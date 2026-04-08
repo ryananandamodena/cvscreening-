@@ -1,0 +1,8 @@
+{
+  "name": "RecruitAI Enterprise",
+  "description": "An end-to-end AI-powered recruitment platform featuring CV screening, live interview analysis, and talent management CRM.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

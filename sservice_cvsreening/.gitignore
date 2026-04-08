@@ -1,0 +1,64 @@
+# Compiled binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build output
+/cmd/**/main
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of go coverage tool
+*.out
+*.prof
+
+# Log files
+*.log
+
+# Build error logs
+build_error*.log
+build_errors*.txt
+
+# Environment files - NEVER commit secrets
+.env
+.env.local
+.env.*.local
+
+# Service account credentials
+service-account.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# User uploads
+uploads/
+
+# Debug & test artifacts
+test_output.txt
+test_results.txt
+test_debug.txt
+test_single.txt
+debug_server*.log
+server.log
+startup.log
+backend.log
+*_stderr.log
+*_stdout.log
+
+# Seed output
+seed_out.txt
+seed_err.txt
+
+# Temporary files
+*.tmp

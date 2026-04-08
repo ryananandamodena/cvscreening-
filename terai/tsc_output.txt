@@ -1,0 +1,13 @@
+﻿pages/LinkedInImport.tsx(44,23): error TS2345: Argument of type '"Please enter search keywords"' is not assignable to parameter of type 'ToastType'.
+pages/LinkedInImport.tsx(62,23): error TS2345: Argument of type '`Found ${number} candidates`' is not assignable to parameter of type 'ToastType'.
+pages/LinkedInImport.tsx(64,23): error TS2345: Argument of type '"Failed to search candidates"' is not assignable to parameter of type 'ToastType'.
+pages/LinkedInImport.tsx(95,27): error TS2345: Argument of type '`Successfully imported ${string} ${string}`' is not assignable to parameter of type 'ToastType'.
+pages/LinkedInImport.tsx(97,27): error TS2345: Argument of type '`Failed to import: ${string}`' is not assignable to parameter of type 'ToastType'.
+pages/LinkedInImport.tsx(100,23): error TS2345: Argument of type '"Failed to import candidate"' is not assignable to parameter of type 'ToastType'.
+pages/LinkedInImport.tsx(109,23): error TS2345: Argument of type '"Please select candidates to import"' is not assignable to parameter of type 'ToastType'.
+pages/SkillMatching.tsx(54,23): error TS2345: Argument of type '"Please add both candidate skills and job requirements"' is not assignable to parameter of type 'ToastType'.
+pages/SkillMatching.tsx(62,23): error TS2345: Argument of type '"Skill matching completed!"' is not assignable to parameter of type 'ToastType'.
+pages/SkillMatching.tsx(64,23): error TS2345: Argument of type '"Failed to perform skill matching"' is not assignable to parameter of type 'ToastType'.
+pages/SkillMatching.tsx(73,23): error TS2345: Argument of type '"Please paste CV content"' is not assignable to parameter of type 'ToastType'.
+pages/SkillMatching.tsx(83,23): error TS2345: Argument of type '"Skills extracted successfully!"' is not assignable to parameter of type 'ToastType'.
+pages/SkillMatching.tsx(85,23): error TS2345: Argument of type '"Failed to extract skills from CV"' is not assignable to parameter of type 'ToastType'.
