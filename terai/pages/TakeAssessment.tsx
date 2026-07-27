@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Clock, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Send,
@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { apiService } from '../services/api.service';
 import { useLanguage } from '../contexts/LanguageContext';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
 
 interface Question {
     id: number;
@@ -243,24 +245,24 @@ const TakeAssessment: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center gap-4">
-                <Loader2 size={48} className="text-indigo-600 animate-spin" />
-                <p className="font-black text-slate-400 uppercase tracking-widest text-xs">{t('assess.loading')}</p>
+            <div className="min-h-screen bg-slate-100 dark:bg-neutral-800 flex flex-col items-center justify-center gap-4">
+                <Loader2 size={48} className="text-brand-600 animate-spin" />
+                <p className="font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest text-xs">{t('assess.loading')}</p>
             </div>
         );
     }
 
     if (!assessment) {
         return (
-            <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center gap-4">
-                <AlertCircle size={48} className="text-red-400" />
-                <p className="font-black text-slate-400 uppercase tracking-widest text-xs">{t('assess.notFound')}</p>
+            <div className="min-h-screen bg-slate-100 dark:bg-neutral-800 flex flex-col items-center justify-center gap-4">
+                <AlertCircle size={48} className="text-red-600 dark:text-red-400" />
+                <p className="font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest text-xs">{t('assess.notFound')}</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-100">
+        <div className="min-h-screen bg-slate-100 dark:bg-neutral-800">
             {/* Warning Toast */}
             {showWarning && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top duration-300">
@@ -272,7 +274,7 @@ const TakeAssessment: React.FC = () => {
             )}
 
             {/* Header */}
-            <div className="bg-white border-b border-slate-200 sticky top-0 z-40">
+            <div className="bg-white dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 sticky top-0 z-40">
                 <div className="max-w-5xl mx-auto px-6 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -280,18 +282,18 @@ const TakeAssessment: React.FC = () => {
                             {assessment.assessmentType === 'coding' && <Code className="text-blue-500" size={24} />}
                             {assessment.assessmentType === 'language' && <FileText className="text-green-500" size={24} />}
                             <div>
-                                <h1 className="text-lg font-bold text-slate-900">{assessment.title}</h1>
-                                <p className="text-sm text-slate-500">{t('assess.questionOf', { current: currentQuestion + 1, total: questions.length })}</p>
+                                <h1 className="text-lg font-bold text-slate-900 dark:text-white">{assessment.title}</h1>
+                                <p className="text-sm text-slate-700 dark:text-slate-300">{t('assess.questionOf', { current: currentQuestion + 1, total: questions.length })}</p>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-6">
                             <div className="text-center">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('take.answered')}</p>
-                                <p className="text-lg font-bold text-slate-900">{getAnsweredCount()}/{questions.length}</p>
+                                <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">{t('take.answered')}</p>
+                                <p className="text-lg font-bold text-slate-900 dark:text-white">{getAnsweredCount()}/{questions.length}</p>
                             </div>
 
-                            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl ${timeRemaining < 300 ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-600'
+                            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl ${timeRemaining < 300 ? 'bg-red-50 text-red-600' : 'bg-slate-50 dark:bg-neutral-800 text-slate-600'
                                 }`}>
                                 <Clock size={18} />
                                 <span className="font-bold text-lg">{formatTime(timeRemaining)}</span>
@@ -300,9 +302,9 @@ const TakeAssessment: React.FC = () => {
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="mt-4 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="mt-4 h-2 bg-slate-100 dark:bg-neutral-800 rounded-full overflow-hidden">
                         <div
-                            className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                            className="h-full bg-brand-600 rounded-full transition-all duration-300"
                             style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
                         />
                     </div>
@@ -314,18 +316,18 @@ const TakeAssessment: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Question Navigation Sidebar */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white rounded-2xl border border-slate-200 p-4 sticky top-28">
-                            <h3 className="text-sm font-bold text-slate-900 mb-4">{t('assess.questions')}</h3>
+                        <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-slate-200 dark:border-neutral-800 p-4 sticky top-28">
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">{t('assess.questions')}</h3>
                             <div className="grid grid-cols-5 gap-2">
                                 {questions.map((q, idx) => (
                                     <button
                                         key={q.id}
                                         onClick={() => setCurrentQuestion(idx)}
                                         className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${idx === currentQuestion
-                                            ? 'bg-indigo-600 text-white'
+                                            ? 'bg-brand-600 text-white'
                                             : answers[q.id]
                                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                                : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100'
+                                                : 'bg-slate-50 dark:bg-neutral-800 text-slate-600 border border-slate-200 dark:border-neutral-800 hover:bg-slate-100'
                                             }`}
                                     >
                                         {idx + 1}
@@ -333,17 +335,17 @@ const TakeAssessment: React.FC = () => {
                                 ))}
                             </div>
 
-                            <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
-                                <div className="flex items-center gap-2 text-xs text-slate-500">
-                                    <div className="w-4 h-4 bg-indigo-600 rounded" />
+                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-neutral-800 space-y-2">
+                                <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+                                    <div className="w-4 h-4 bg-brand-600 rounded" />
                                     <span>{t('take.current')}</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-slate-500">
+                                <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
                                     <div className="w-4 h-4 bg-emerald-50 border border-emerald-200 rounded" />
                                     <span>{t('take.answered')}</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-slate-500">
-                                    <div className="w-4 h-4 bg-slate-50 border border-slate-200 rounded" />
+                                <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+                                    <div className="w-4 h-4 bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-800 rounded" />
                                     <span>{t('take.notAnswered')}</span>
                                 </div>
                             </div>
@@ -362,30 +364,30 @@ const TakeAssessment: React.FC = () => {
                     {/* Question Content */}
                     <div className="lg:col-span-3">
                         {question && (
-                            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
                                 {/* Question Header */}
-                                <div className="p-6 border-b border-slate-200">
+                                <div className="p-6 border-b border-slate-200 dark:border-neutral-800">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <span className={`px-3 py-1 text-[10px] font-bold rounded-full border ${question.questionType === 'multiple_choice' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                question.questionType === 'essay' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                    question.questionType === 'code' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                                        question.questionType === 'true_false' ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                                                            'bg-slate-50 text-slate-700 border-slate-200'
-                                                }`}>
+                                            <Badge tone={
+                                                question.questionType === 'multiple_choice' ? 'info' :
+                                                question.questionType === 'essay' ? 'success' :
+                                                question.questionType === 'code' ? 'brand' :
+                                                question.questionType === 'true_false' ? 'warning' : 'neutral'
+                                            }>
                                                 {question.questionType.replace('_', ' ').toUpperCase()}
-                                            </span>
-                                            <span className="text-sm text-slate-500">{question.points} {t('take.pointS')}</span>
+                                            </Badge>
+                                            <span className="text-sm text-slate-700 dark:text-slate-300">{question.points} {t('take.pointS')}</span>
                                         </div>
                                         {question.required && (
-                                            <span className="text-xs font-bold text-red-500">* {t('assess.required')}</span>
+                                            <Badge tone="danger">* {t('assess.required')}</Badge>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Question Body */}
                                 <div className="p-8">
-                                    <h2 className="text-xl font-bold text-slate-900 mb-6">{question.questionText}</h2>
+                                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">{question.questionText}</h2>
 
                                     {/* Multiple Choice */}
                                     {question.questionType === 'multiple_choice' && question.options && (
@@ -394,8 +396,8 @@ const TakeAssessment: React.FC = () => {
                                                 <label
                                                     key={i}
                                                     className={`flex items-center gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${answers[question.id] === opt
-                                                        ? 'border-indigo-500 bg-indigo-50'
-                                                        : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                                                        ? 'border-brand-500 bg-brand-50'
+                                                        : 'border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-800 hover:border-slate-300'
                                                         }`}
                                                 >
                                                     <input
@@ -403,9 +405,9 @@ const TakeAssessment: React.FC = () => {
                                                         name={`question-${question.id}`}
                                                         checked={answers[question.id] === opt}
                                                         onChange={() => handleAnswerChange(question.id, opt)}
-                                                        className="text-indigo-600 focus:ring-indigo-500"
+                                                        className="text-brand-600 focus:ring-brand-500"
                                                     />
-                                                    <span className="font-medium text-slate-900">
+                                                    <span className="font-medium text-slate-900 dark:text-white">
                                                         {String.fromCharCode(65 + i)}. {opt}
                                                     </span>
                                                 </label>
@@ -418,8 +420,8 @@ const TakeAssessment: React.FC = () => {
                                         <div className="flex gap-4">
                                             <label
                                                 className={`flex-1 p-6 rounded-2xl border-2 cursor-pointer transition-all text-center ${answers[question.id] === 'true'
-                                                    ? 'border-indigo-500 bg-indigo-50'
-                                                    : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                                                    ? 'border-brand-500 bg-brand-50'
+                                                    : 'border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-800 hover:border-slate-300'
                                                     }`}
                                             >
                                                 <input
@@ -429,13 +431,13 @@ const TakeAssessment: React.FC = () => {
                                                     onChange={() => handleAnswerChange(question.id, 'true')}
                                                     className="hidden"
                                                 />
-                                                <CheckCircle2 size={32} className={`mx-auto mb-2 ${answers[question.id] === 'true' ? 'text-indigo-600' : 'text-slate-300'}`} />
-                                                <span className="text-lg font-bold text-slate-900">True</span>
+                                                <CheckCircle2 size={32} className={`mx-auto mb-2 ${answers[question.id] === 'true' ? 'text-brand-600' : 'text-slate-700 dark:text-slate-300'}`} />
+                                                <span className="text-lg font-bold text-slate-900 dark:text-white">True</span>
                                             </label>
                                             <label
                                                 className={`flex-1 p-6 rounded-2xl border-2 cursor-pointer transition-all text-center ${answers[question.id] === 'false'
-                                                    ? 'border-indigo-500 bg-indigo-50'
-                                                    : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                                                    ? 'border-brand-500 bg-brand-50'
+                                                    : 'border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-800 hover:border-slate-300'
                                                     }`}
                                             >
                                                 <input
@@ -445,8 +447,8 @@ const TakeAssessment: React.FC = () => {
                                                     onChange={() => handleAnswerChange(question.id, 'false')}
                                                     className="hidden"
                                                 />
-                                                <AlertCircle size={32} className={`mx-auto mb-2 ${answers[question.id] === 'false' ? 'text-indigo-600' : 'text-slate-300'}`} />
-                                                <span className="text-lg font-bold text-slate-900">False</span>
+                                                <AlertCircle size={32} className={`mx-auto mb-2 ${answers[question.id] === 'false' ? 'text-brand-600' : 'text-slate-700 dark:text-slate-300'}`} />
+                                                <span className="text-lg font-bold text-slate-900 dark:text-white">False</span>
                                             </label>
                                         </div>
                                     )}
@@ -456,7 +458,7 @@ const TakeAssessment: React.FC = () => {
                                         <textarea
                                             value={answers[question.id] || ''}
                                             onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                                            className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500 min-h-[200px]"
+                                            className="w-full px-5 py-4 bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-800 rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500 min-h-[200px]"
                                             placeholder={t('assess.answerPlaceholder')}
                                         />
                                     )}
@@ -464,13 +466,13 @@ const TakeAssessment: React.FC = () => {
                                     {/* Code */}
                                     {question.questionType === 'code' && (
                                         <div className="relative">
-                                            <div className="absolute top-3 left-3 text-xs font-mono text-slate-400">
+                                            <div className="absolute top-3 left-3 text-xs font-mono text-slate-600 dark:text-slate-400">
                                                 javascript
                                             </div>
                                             <textarea
                                                 value={answers[question.id] || ''}
                                                 onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                                                className="w-full px-5 py-8 bg-slate-900 text-green-400 font-mono text-sm rounded-2xl min-h-[250px] focus:ring-2 ring-indigo-500"
+                                                className="w-full px-5 py-8 bg-slate-50 dark:bg-neutral-800 dark:bg-slate-900 text-green-600 dark:text-green-400 font-mono text-sm rounded-2xl min-h-[250px] focus:ring-2 ring-brand-500"
                                                 placeholder={t('take.codePlaceholder')}
                                                 spellCheck={false}
                                             />
@@ -479,29 +481,30 @@ const TakeAssessment: React.FC = () => {
                                 </div>
 
                                 {/* Navigation */}
-                                <div className="p-6 border-t border-slate-200 flex justify-between">
-                                    <button
+                                <div className="p-6 border-t border-slate-200 dark:border-neutral-800 flex justify-between">
+                                    <Button
                                         onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
                                         disabled={currentQuestion === 0}
-                                        className="px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                                        variant="secondary"
+                                        icon={<ChevronLeft size={18} />}
                                     >
-                                        <ChevronLeft size={18} /> {t('common.previous')}
-                                    </button>
+                                        {t('common.previous')}
+                                    </Button>
 
                                     {currentQuestion === questions.length - 1 ? (
-                                        <button
+                                        <Button
                                             onClick={() => handleSubmit()}
-                                            className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 shadow-lg flex items-center gap-2 transition-all"
+                                            icon={<Send size={18} />}
+                                            className="bg-success-600 hover:bg-success-700 shadow-success-600/20"
                                         >
-                                            <Send size={18} /> {t('take.submitAssessment')}
-                                        </button>
+                                            {t('take.submitAssessment')}
+                                        </Button>
                                     ) : (
-                                        <button
+                                        <Button
                                             onClick={() => setCurrentQuestion(Math.min(questions.length - 1, currentQuestion + 1))}
-                                            className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 shadow-lg flex items-center gap-2 transition-all"
                                         >
                                             {t('common.next')} <ChevronRight size={18} />
-                                        </button>
+                                        </Button>
                                     )}
                                 </div>
                             </div>
@@ -512,14 +515,14 @@ const TakeAssessment: React.FC = () => {
 
             {/* Confirm Submit Modal */}
             {showConfirmSubmit && (
-                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-                    <div className="bg-white w-full max-w-md rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                <div className="fixed inset-0 bg-slate-950/60 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+                    <div className="bg-white dark:bg-neutral-900 w-full max-w-md rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
                         <div className="p-10 text-center">
                             <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <Send size={32} className="text-emerald-600" />
                             </div>
-                            <h2 className="text-2xl font-black text-slate-900 mb-2">{t('take.submitConfirm')}</h2>
-                            <p className="text-slate-500 mb-6">
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">{t('take.submitConfirm')}</h2>
+                            <p className="text-slate-700 dark:text-slate-300 mb-6">
                                 {t('take.answeredOf', { answered: getAnsweredCount(), total: questions.length })}
                                 {getAnsweredCount() < questions.length && (
                                     <span className="block text-orange-500 mt-2">
@@ -529,19 +532,20 @@ const TakeAssessment: React.FC = () => {
                             </p>
 
                             <div className="flex gap-4">
-                                <button
+                                <Button
                                     onClick={() => setShowConfirmSubmit(false)}
-                                    className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all"
+                                    variant="secondary"
+                                    className="flex-1"
                                 >
                                     {t('take.continueEditing')}
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={() => handleSubmit(true)}
-                                    disabled={submitting}
-                                    className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 shadow-lg transition-all disabled:opacity-50"
+                                    loading={submitting}
+                                    className="flex-1 bg-success-600 hover:bg-success-700 shadow-success-600/20"
                                 >
                                     {submitting ? t('take.submitting') : t('take.confirmSubmit')}
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </div>

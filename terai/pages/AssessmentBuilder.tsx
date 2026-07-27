@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Plus, Save, Trash2, Edit, GripVertical, Eye, Settings,
@@ -8,6 +8,8 @@ import {
 import { apiService } from '../services/api.service';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNotifications } from '../contexts/NotificationContext';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
 
 interface Question {
     id: number;
@@ -136,26 +138,15 @@ const AssessmentBuilder: React.FC = () => {
             case 'code': return <Code size={16} className="text-purple-500" />;
             case 'true_false': return <AlertCircle size={16} className="text-orange-500" />;
             case 'rating': return <FileQuestion size={16} className="text-pink-500" />;
-            default: return <FileQuestion size={16} className="text-slate-500" />;
-        }
-    };
-
-    const getTypeColor = (type: string) => {
-        switch (type) {
-            case 'multiple_choice': return 'bg-blue-50 text-blue-700 border-blue-200';
-            case 'essay': return 'bg-green-50 text-green-700 border-green-200';
-            case 'code': return 'bg-purple-50 text-purple-700 border-purple-200';
-            case 'true_false': return 'bg-orange-50 text-orange-700 border-orange-200';
-            case 'rating': return 'bg-pink-50 text-pink-700 border-pink-200';
-            default: return 'bg-slate-50 text-slate-700 border-slate-200';
+            default: return <FileQuestion size={16} className="text-slate-700 dark:text-slate-300" />;
         }
     };
 
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center h-full gap-4">
-                <Loader2 size={48} className="text-indigo-600 animate-spin" />
-                <p className="font-black text-slate-400 uppercase tracking-widest text-xs">{t('assess.loading')}</p>
+                <Loader2 size={48} className="text-brand-600 animate-spin" />
+                <p className="font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest text-xs">{t('assess.loading')}</p>
             </div>
         );
     }
@@ -163,11 +154,11 @@ const AssessmentBuilder: React.FC = () => {
     if (!assessment) {
         return (
             <div className="flex flex-col items-center justify-center h-full gap-4">
-                <AlertCircle size={48} className="text-red-400" />
-                <p className="font-black text-slate-400 uppercase tracking-widest text-xs">{t('assess.notFound')}</p>
+                <AlertCircle size={48} className="text-red-600 dark:text-red-400" />
+                <p className="font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest text-xs">{t('assess.notFound')}</p>
                 <button
                     onClick={() => navigate('/assessments')}
-                    className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl"
+                    className="px-6 py-3 bg-brand-600 text-white font-bold rounded-2xl"
                 >
                     {t('assess.backToList')}
                 </button>
@@ -181,75 +172,75 @@ const AssessmentBuilder: React.FC = () => {
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => navigate('/assessments')}
-                    className="p-3 bg-white rounded-2xl border border-slate-200 hover:bg-slate-50 transition-all"
+                    className="p-3 bg-white dark:bg-neutral-900 rounded-2xl border border-slate-200 dark:border-neutral-800 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-all"
                 >
                     <ArrowLeft size={20} className="text-slate-600" />
                 </button>
                 <div className="flex-1">
-                    <h1 className="text-3xl font-black text-slate-900">{assessment.title}</h1>
-                    <p className="text-slate-500 mt-1">{assessment.description}</p>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white">{assessment.title}</h1>
+                    <p className="text-slate-700 dark:text-slate-300 mt-1">{assessment.description}</p>
                 </div>
                 <div className="flex gap-3">
-                    <button
+                    <Button
                         onClick={() => setShowPreview(true)}
-                        className="px-5 py-3 bg-white text-slate-600 font-bold rounded-2xl border border-slate-200 hover:bg-slate-50 flex items-center gap-2 transition-all"
+                        variant="outline"
+                        icon={<Eye size={18} />}
                     >
-                        <Eye size={18} /> {t('assess.preview')}
-                    </button>
-                    <button
+                        {t('assess.preview')}
+                    </Button>
+                    <Button
                         onClick={() => setShowAddModal(true)}
-                        className="px-5 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 shadow-lg flex items-center gap-2 transition-all"
+                        icon={<Plus size={18} />}
                     >
-                        <Plus size={18} /> {t('assess.addQuestion')}
-                    </button>
+                        {t('assess.addQuestion')}
+                    </Button>
                 </div>
             </div>
 
             {/* Assessment Info */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-slate-200 dark:border-neutral-800 shadow-sm">
                 <div className="flex items-center gap-6">
                     <div className="flex items-center gap-3">
                         {assessment.assessmentType === 'psychotest' && <Brain className="text-purple-500" size={24} />}
                         {assessment.assessmentType === 'coding' && <Code className="text-blue-500" size={24} />}
                         {assessment.assessmentType === 'language' && <Globe className="text-green-500" size={24} />}
                         {assessment.assessmentType === 'technical' && <FileText className="text-orange-500" size={24} />}
-                        <span className="font-bold text-slate-900 capitalize">{assessment.assessmentType}</span>
+                        <span className="font-bold text-slate-900 dark:text-white capitalize">{assessment.assessmentType}</span>
                     </div>
-                    <div className="h-6 w-px bg-slate-200" />
-                    <div className="flex items-center gap-2 text-slate-500">
+                    <div className="h-6 w-px bg-slate-200 dark:bg-neutral-800" />
+                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                         <Clock size={16} />
                         <span>{assessment.durationMinutes} {t('assess.minutes')}</span>
                     </div>
-                    <div className="h-6 w-px bg-slate-200" />
-                    <div className="flex items-center gap-2 text-slate-500">
+                    <div className="h-6 w-px bg-slate-200 dark:bg-neutral-800" />
+                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                         <CheckCircle2 size={16} />
                         <span>{t('assess.passingScore')}: {assessment.passingScore}%</span>
                     </div>
-                    <div className="h-6 w-px bg-slate-200" />
-                    <span className={`px-3 py-1 text-[10px] font-bold rounded-full ${assessment.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
-                        }`}>
+                    <div className="h-6 w-px bg-slate-200 dark:bg-neutral-800" />
+                    <Badge tone={assessment.status === 'active' ? 'success' : 'neutral'}>
                         {assessment.status.toUpperCase()}
-                    </span>
+                    </Badge>
                 </div>
             </div>
 
             {/* Questions List */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-slate-900">{t('assess.questions')} ({questions.length})</h2>
-                    <div className="text-sm text-slate-500">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('assess.questions')} ({questions.length})</h2>
+                    <div className="text-sm text-slate-700 dark:text-slate-300">
                         {t('assess.totalPoints')}: {questions.reduce((sum, q) => sum + q.points, 0)}
                     </div>
                 </div>
 
                 {questions.length === 0 ? (
-                    <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center">
-                        <FileQuestion size={48} className="mx-auto text-slate-300 mb-4" />
-                        <p className="font-black text-slate-400 uppercase tracking-widest text-xs mb-2">{t('assess.noQuestions')}</p>
-                        <p className="text-sm text-slate-500 mb-6">{t('assess.noQuestionsSub')}</p>
+                    <div className="bg-white dark:bg-neutral-900 p-12 rounded-3xl border border-slate-200 dark:border-neutral-800 text-center">
+                        <FileQuestion size={48} className="mx-auto text-slate-700 dark:text-slate-300 mb-4" />
+                        <p className="font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest text-xs mb-2">{t('assess.noQuestions')}</p>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 mb-6">{t('assess.noQuestionsSub')}</p>
                         <button
                             onClick={() => setShowAddModal(true)}
-                            className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 inline-flex items-center gap-2"
+                            className="px-6 py-3 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 inline-flex items-center gap-2"
                         >
                             <Plus size={18} /> {t('assess.addQuestion')}
                         </button>
@@ -259,39 +250,44 @@ const AssessmentBuilder: React.FC = () => {
                         {questions.map((question, index) => (
                             <div
                                 key={question.id}
-                                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group"
+                                className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm hover:shadow-md transition-all group"
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="flex flex-col items-center gap-1">
                                         <button
                                             onClick={() => handleMoveQuestion(question.id, 'up')}
                                             disabled={index === 0}
-                                            className="p-1 hover:bg-slate-100 rounded disabled:opacity-30"
+                                            className="p-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded disabled:opacity-30"
                                         >
-                                            <ChevronUp size={16} className="text-slate-400" />
+                                            <ChevronUp size={16} className="text-slate-600 dark:text-slate-400" />
                                         </button>
-                                        <span className="text-sm font-bold text-slate-400">#{index + 1}</span>
+                                        <span className="text-sm font-bold text-slate-600 dark:text-slate-400">#{index + 1}</span>
                                         <button
                                             onClick={() => handleMoveQuestion(question.id, 'down')}
                                             disabled={index === questions.length - 1}
-                                            className="p-1 hover:bg-slate-100 rounded disabled:opacity-30"
+                                            className="p-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded disabled:opacity-30"
                                         >
-                                            <ChevronDown size={16} className="text-slate-400" />
+                                            <ChevronDown size={16} className="text-slate-600 dark:text-slate-400" />
                                         </button>
                                     </div>
 
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
                                             {getTypeIcon(question.questionType)}
-                                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${getTypeColor(question.questionType)}`}>
+                                            <Badge tone={
+                                                question.questionType === 'multiple_choice' ? 'info' :
+                                                question.questionType === 'essay' ? 'success' :
+                                                question.questionType === 'code' ? 'brand' :
+                                                question.questionType === 'true_false' ? 'warning' : 'neutral'
+                                            }>
                                                 {question.questionType.replace('_', ' ').toUpperCase()}
-                                            </span>
-                                            <span className="text-xs text-slate-400">{question.points} {t('assess.points_short')}</span>
+                                            </Badge>
+                                            <span className="text-xs text-slate-600 dark:text-slate-400">{question.points} {t('assess.points_short')}</span>
                                             {question.required && (
-                                                <span className="text-[10px] font-bold text-red-500">*{t('assess.required')}</span>
+                                                <Badge tone="danger">*{t('assess.required')}</Badge>
                                             )}
                                         </div>
-                                        <p className="text-slate-900 font-medium">{question.questionText}</p>
+                                        <p className="text-slate-900 dark:text-white font-medium">{question.questionText}</p>
 
                                         {question.questionType === 'multiple_choice' && question.options && (
                                             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -300,7 +296,7 @@ const AssessmentBuilder: React.FC = () => {
                                                         key={i}
                                                         className={`px-3 py-2 rounded-lg text-sm ${opt === question.correctAnswer
                                                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                                            : 'bg-slate-50 text-slate-600'
+                                                            : 'bg-slate-50 dark:bg-neutral-800 text-slate-600'
                                                             }`}
                                                     >
                                                         {String.fromCharCode(65 + i)}. {opt}
@@ -311,11 +307,11 @@ const AssessmentBuilder: React.FC = () => {
 
                                         {question.questionType === 'true_false' && (
                                             <div className="mt-3 flex gap-2">
-                                                <span className={`px-3 py-1.5 rounded-lg text-sm ${question.correctAnswer === 'true' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-600'
+                                                <span className={`px-3 py-1.5 rounded-lg text-sm ${question.correctAnswer === 'true' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 dark:bg-neutral-800 text-slate-600'
                                                     }`}>
                                                     {t('assess.true')}
                                                 </span>
-                                                <span className={`px-3 py-1.5 rounded-lg text-sm ${question.correctAnswer === 'false' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-600'
+                                                <span className={`px-3 py-1.5 rounded-lg text-sm ${question.correctAnswer === 'false' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 dark:bg-neutral-800 text-slate-600'
                                                     }`}>
                                                     {t('assess.false')}
                                                 </span>
@@ -326,9 +322,9 @@ const AssessmentBuilder: React.FC = () => {
                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => setEditingQuestion(question)}
-                                            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                                            className="p-2 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
                                         >
-                                            <Edit size={16} className="text-slate-500" />
+                                            <Edit size={16} className="text-slate-700 dark:text-slate-300" />
                                         </button>
                                         <button
                                             onClick={() => handleDeleteQuestion(question.id)}
@@ -414,23 +410,23 @@ const QuestionModal: React.FC<{
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-950/60 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+            <div className="bg-white dark:bg-neutral-900 w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
                 <div className="p-10">
-                    <h2 className="text-2xl font-black text-slate-900 mb-2">
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">
                         {question ? t('assess.editQuestion') : t('assess.addQuestion')}
                     </h2>
-                    <p className="text-slate-500 text-sm mb-8">
+                    <p className="text-slate-700 dark:text-slate-300 text-sm mb-8">
                         {question ? t('assess.editQuestionSub') : t('assess.addQuestionSub')}
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('assess.questionType')}</label>
+                            <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('assess.questionType')}</label>
                             <select
                                 value={formData.questionType}
                                 onChange={(e) => setFormData({ ...formData, questionType: e.target.value })}
-                                className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500"
+                                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-neutral-800 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500"
                             >
                                 <option value="multiple_choice">{t('assess.multipleChoice')}</option>
                                 <option value="true_false">{t('assess.trueFalse')}</option>
@@ -441,22 +437,22 @@ const QuestionModal: React.FC<{
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('assess.questionText')}</label>
+                            <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('assess.questionText')}</label>
                             <textarea
                                 required
                                 value={formData.questionText}
                                 onChange={(e) => setFormData({ ...formData, questionText: e.target.value })}
-                                className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500 min-h-[100px]"
+                                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-neutral-800 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500 min-h-[100px]"
                                 placeholder={t('assess.questionPlaceholder')}
                             />
                         </div>
 
                         {formData.questionType === 'multiple_choice' && (
                             <div className="space-y-4">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('assess.options')}</label>
+                                <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('assess.options')}</label>
                                 {formData.options.map((opt, i) => (
                                     <div key={i} className="flex items-center gap-3">
-                                        <span className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg text-sm font-bold text-slate-500">
+                                        <span className="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-neutral-800 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-300">
                                             {String.fromCharCode(65 + i)}
                                         </span>
                                         <input
@@ -467,16 +463,16 @@ const QuestionModal: React.FC<{
                                                 newOptions[i] = e.target.value;
                                                 setFormData({ ...formData, options: newOptions });
                                             }}
-                                            className="flex-1 px-5 py-3 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500"
+                                            className="flex-1 px-5 py-3 bg-slate-50 dark:bg-neutral-800 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500"
                                             placeholder={`${t('assess.option')} ${String.fromCharCode(65 + i)}`}
                                         />
-                                        <label className="flex items-center gap-2 text-sm text-slate-500">
+                                        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                                             <input
                                                 type="radio"
                                                 name="correctAnswer"
                                                 checked={formData.correctAnswer === opt}
                                                 onChange={() => setFormData({ ...formData, correctAnswer: opt })}
-                                                className="text-indigo-600"
+                                                className="text-brand-600"
                                             />
                                             {t('assess.correct')}
                                         </label>
@@ -487,9 +483,9 @@ const QuestionModal: React.FC<{
 
                         {formData.questionType === 'true_false' && (
                             <div className="space-y-4">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('assess.correctAnswer')}</label>
+                                <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('assess.correctAnswer')}</label>
                                 <div className="flex gap-4">
-                                    <label className={`flex-1 p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.correctAnswer === 'true' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50'
+                                    <label className={`flex-1 p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.correctAnswer === 'true' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-800'
                                         }`}>
                                         <input
                                             type="radio"
@@ -498,9 +494,9 @@ const QuestionModal: React.FC<{
                                             onChange={() => setFormData({ ...formData, correctAnswer: 'true' })}
                                             className="hidden"
                                         />
-                                        <span className="font-bold text-slate-900">{t('assess.true')}</span>
+                                        <span className="font-bold text-slate-900 dark:text-white">{t('assess.true')}</span>
                                     </label>
-                                    <label className={`flex-1 p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.correctAnswer === 'false' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50'
+                                    <label className={`flex-1 p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.correctAnswer === 'false' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-800'
                                         }`}>
                                         <input
                                             type="radio"
@@ -509,7 +505,7 @@ const QuestionModal: React.FC<{
                                             onChange={() => setFormData({ ...formData, correctAnswer: 'false' })}
                                             className="hidden"
                                         />
-                                        <span className="font-bold text-slate-900">{t('assess.false')}</span>
+                                        <span className="font-bold text-slate-900 dark:text-white">{t('assess.false')}</span>
                                     </label>
                                 </div>
                             </div>
@@ -517,24 +513,24 @@ const QuestionModal: React.FC<{
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('assess.points')}</label>
+                                <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('assess.points')}</label>
                                 <input
                                     type="number"
                                     min="1"
                                     max="100"
                                     value={formData.points}
                                     onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) })}
-                                    className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500"
+                                    className="w-full px-5 py-3.5 bg-slate-50 dark:bg-neutral-800 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('assess.required')}</label>
-                                <label className="flex items-center gap-3 px-5 py-3.5 bg-slate-50 rounded-2xl cursor-pointer">
+                                <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('assess.required')}</label>
+                                <label className="flex items-center gap-3 px-5 py-3.5 bg-slate-50 dark:bg-neutral-800 rounded-2xl cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={formData.required}
                                         onChange={(e) => setFormData({ ...formData, required: e.target.checked })}
-                                        className="text-indigo-600 rounded"
+                                        className="text-brand-600 rounded"
                                     />
                                     <span className="text-sm font-medium text-slate-700">{t('assess.mustAnswer')}</span>
                                 </label>
@@ -542,20 +538,12 @@ const QuestionModal: React.FC<{
                         </div>
 
                         <div className="flex gap-4 pt-4">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all"
-                            >
+                            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
                                 {t('common.cancel')}
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50"
-                            >
+                            </Button>
+                            <Button type="submit" loading={saving} className="flex-1">
                                 {saving ? t('common.saving') : (question ? t('assess.updateQuestion') : t('assess.addQuestion'))}
-                            </button>
+                            </Button>
                         </div>
                     </form>
                 </div>
@@ -577,10 +565,10 @@ const PreviewModal: React.FC<{
     const question = questions[currentQuestion];
 
     return (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-3xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 bg-slate-950/60 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+            <div className="bg-white dark:bg-neutral-900 w-full max-w-3xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
                 {/* Header */}
-                <div className="bg-indigo-600 p-6 text-white">
+                <div className="bg-brand-600 p-6 text-white">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-bold">{assessment.title}</h2>
                         <button
@@ -590,14 +578,14 @@ const PreviewModal: React.FC<{
                             {t('assess.closePreview')}
                         </button>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-indigo-200">
+                    <div className="flex items-center gap-4 text-sm text-brand-200">
                         <span>{t('assess.questionOf', { current: currentQuestion + 1, total: questions.length })}</span>
                         <span>•</span>
                         <span>{assessment.durationMinutes} {t('assess.minutes')}</span>
                     </div>
                     <div className="mt-4 h-2 bg-white/20 rounded-full overflow-hidden">
                         <div
-                            className="h-full bg-white rounded-full transition-all"
+                            className="h-full bg-white dark:bg-neutral-900 rounded-full transition-all"
                             style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
                         />
                     </div>
@@ -608,17 +596,17 @@ const PreviewModal: React.FC<{
                     {question && (
                         <>
                             <div className="flex items-center gap-3 mb-4">
-                                <span className={`px-3 py-1 text-[10px] font-bold rounded-full border ${question.questionType === 'multiple_choice' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                    question.questionType === 'essay' ? 'bg-green-50 text-green-700 border-green-200' :
-                                        question.questionType === 'code' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                            'bg-slate-50 text-slate-700 border-slate-200'
-                                    }`}>
+                                <Badge tone={
+                                    question.questionType === 'multiple_choice' ? 'info' :
+                                    question.questionType === 'essay' ? 'success' :
+                                    question.questionType === 'code' ? 'brand' : 'neutral'
+                                }>
                                     {question.questionType.replace('_', ' ').toUpperCase()}
-                                </span>
-                                <span className="text-sm text-slate-400">{question.points} {t('assess.points')}</span>
+                                </Badge>
+                                <span className="text-sm text-slate-600 dark:text-slate-400">{question.points} {t('assess.points')}</span>
                             </div>
 
-                            <h3 className="text-xl font-bold text-slate-900 mb-6">{question.questionText}</h3>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">{question.questionText}</h3>
 
                             {question.questionType === 'multiple_choice' && question.options && (
                                 <div className="space-y-3">
@@ -626,8 +614,8 @@ const PreviewModal: React.FC<{
                                         <label
                                             key={i}
                                             className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${answers[question.id] === opt
-                                                ? 'border-indigo-500 bg-indigo-50'
-                                                : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                                                ? 'border-brand-500 bg-brand-50'
+                                                : 'border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-800 hover:border-slate-300'
                                                 }`}
                                         >
                                             <input
@@ -635,9 +623,9 @@ const PreviewModal: React.FC<{
                                                 name={`question-${question.id}`}
                                                 checked={answers[question.id] === opt}
                                                 onChange={() => setAnswers({ ...answers, [question.id]: opt })}
-                                                className="text-indigo-600"
+                                                className="text-brand-600"
                                             />
-                                            <span className="font-medium text-slate-900">{String.fromCharCode(65 + i)}. {opt}</span>
+                                            <span className="font-medium text-slate-900 dark:text-white">{String.fromCharCode(65 + i)}. {opt}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -647,8 +635,8 @@ const PreviewModal: React.FC<{
                                 <div className="flex gap-4">
                                     <label
                                         className={`flex-1 p-6 rounded-2xl border-2 cursor-pointer transition-all text-center ${answers[question.id] === 'true'
-                                            ? 'border-indigo-500 bg-indigo-50'
-                                            : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                                            ? 'border-brand-500 bg-brand-50'
+                                            : 'border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-800 hover:border-slate-300'
                                             }`}
                                     >
                                         <input
@@ -658,12 +646,12 @@ const PreviewModal: React.FC<{
                                             onChange={() => setAnswers({ ...answers, [question.id]: 'true' })}
                                             className="hidden"
                                         />
-                                        <span className="text-lg font-bold text-slate-900">{t('assess.true')}</span>
+                                        <span className="text-lg font-bold text-slate-900 dark:text-white">{t('assess.true')}</span>
                                     </label>
                                     <label
                                         className={`flex-1 p-6 rounded-2xl border-2 cursor-pointer transition-all text-center ${answers[question.id] === 'false'
-                                            ? 'border-indigo-500 bg-indigo-50'
-                                            : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                                            ? 'border-brand-500 bg-brand-50'
+                                            : 'border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-800 hover:border-slate-300'
                                             }`}
                                     >
                                         <input
@@ -673,7 +661,7 @@ const PreviewModal: React.FC<{
                                             onChange={() => setAnswers({ ...answers, [question.id]: 'false' })}
                                             className="hidden"
                                         />
-                                        <span className="text-lg font-bold text-slate-900">{t('assess.false')}</span>
+                                        <span className="text-lg font-bold text-slate-900 dark:text-white">{t('assess.false')}</span>
                                     </label>
                                 </div>
                             )}
@@ -682,7 +670,7 @@ const PreviewModal: React.FC<{
                                 <textarea
                                     value={answers[question.id] || ''}
                                     onChange={(e) => setAnswers({ ...answers, [question.id]: e.target.value })}
-                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500 min-h-[150px]"
+                                    className="w-full px-5 py-4 bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-800 rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500 min-h-[150px]"
                                     placeholder={t('assess.answerPlaceholder')}
                                 />
                             )}
@@ -691,21 +679,20 @@ const PreviewModal: React.FC<{
                 </div>
 
                 {/* Navigation */}
-                <div className="p-6 border-t border-slate-200 flex justify-between">
-                    <button
+                <div className="p-6 border-t border-slate-200 dark:border-neutral-800 flex justify-between">
+                    <Button
                         onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
                         disabled={currentQuestion === 0}
-                        className="px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 disabled:opacity-30 transition-all"
+                        variant="secondary"
                     >
                         {t('common.previous')}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={() => setCurrentQuestion(Math.min(questions.length - 1, currentQuestion + 1))}
                         disabled={currentQuestion === questions.length - 1}
-                        className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 disabled:opacity-30 transition-all"
                     >
                         {t('common.next')}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

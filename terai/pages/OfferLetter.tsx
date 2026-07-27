@@ -219,7 +219,7 @@ const OfferLetter: React.FC = () => {
 
    const stats = [
       { id: 'total', label: t('offers.stats.total'), value: offers.length, color: 'text-slate-900', bg: 'bg-slate-50' },
-      { id: 'draft', label: t('offers.stats.draft'), value: offers.filter(o => o.status === 'draft').length, color: 'text-slate-500', bg: 'bg-white' },
+      { id: 'draft', label: t('offers.stats.draft'), value: offers.filter(o => o.status === 'draft').length, color: 'text-slate-700 dark:text-slate-300', bg: 'bg-white' },
       { id: 'sent', label: t('offers.stats.sent'), value: offers.filter(o => o.status === 'sent').length, color: 'text-blue-600', bg: 'bg-blue-50/30' },
       { id: 'accepted', label: t('offers.stats.accepted'), value: offers.filter(o => o.status === 'accepted').length, color: 'text-emerald-600', bg: 'bg-emerald-50/30' },
       { id: 'declined', label: t('offers.stats.declined'), value: offers.filter(o => o.status === 'declined').length, color: 'text-rose-600', bg: 'bg-rose-50/30' },
@@ -240,17 +240,17 @@ const OfferLetter: React.FC = () => {
          {/* Header */}
          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div className="space-y-1">
-               <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest mb-2 border border-indigo-100">
+               <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-50 text-brand-600 rounded-lg text-[10px] font-black uppercase tracking-widest mb-2 border border-brand-100">
                   <FileSignature size={12} /> {t('offers.recruitmentFlow')}
                </div>
                <h1 className="text-4xl font-black text-slate-900 tracking-tight">{t('offers.title')}</h1>
-               <p className="text-slate-500 font-medium">{t('offers.subtitle')}</p>
+               <p className="text-slate-700 dark:text-slate-300 font-medium">{t('offers.subtitle')}</p>
             </div>
             <button
                onClick={() => { setShowCreate(true); resetForm(); }}
-               className="group relative px-8 py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all overflow-hidden flex items-center gap-3 shadow-2xl"
+               className="group relative px-8 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-black rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all overflow-hidden flex items-center gap-3 shadow-2xl"
             >
-               <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+               <div className="absolute inset-0 bg-gradient-to-r from-brand-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                <Plus size={20} className="relative z-10" />
                <span className="relative z-10">{t('offers.create')}</span>
             </button>
@@ -260,7 +260,7 @@ const OfferLetter: React.FC = () => {
          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {stats.map((s) => (
                <div key={s.id} className={`${s.bg} p-6 rounded-[32px] border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow`}>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{s.label}</p>
+                  <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">{s.label}</p>
                   <p className={`text-3xl font-black ${s.color} tracking-tighter`}>{s.value}</p>
                </div>
             ))}
@@ -269,31 +269,31 @@ const OfferLetter: React.FC = () => {
          {/* Advanced Filters */}
          <div className="bg-white/50 backdrop-blur-md p-4 rounded-[32px] border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
-               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" size={20} />
                <input
                   type="text"
                   placeholder={t('common.search') + "..."}
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-100 focus:border-indigo-600 rounded-2xl text-sm font-medium transition-all outline-none"
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-100 focus:border-brand-600 rounded-2xl text-sm font-medium transition-all outline-none"
                />
             </div>
             <div className="relative">
                <select
                   value={filterStatus}
                   onChange={e => setFilterStatus(e.target.value)}
-                  className="appearance-none px-6 py-3.5 pr-12 bg-white border-2 border-slate-100 focus:border-indigo-600 rounded-2xl text-sm font-black cursor-pointer outline-none"
+                  className="appearance-none px-6 py-3.5 pr-12 bg-white border-2 border-slate-100 focus:border-brand-600 rounded-2xl text-sm font-black cursor-pointer outline-none"
                >
                   <option value="all">{t('offers.allStatus')}</option>
                   {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                      <option key={k} value={k}>{v.label}</option>
                   ))}
                </select>
-               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 pointer-events-none" size={18} />
             </div>
             <button
                onClick={fetchOffers}
-               className="p-4 bg-white border-2 border-slate-100 rounded-2xl hover:bg-slate-50 transition-all text-slate-400 hover:text-indigo-600"
+               className="p-4 bg-white border-2 border-slate-100 rounded-2xl hover:bg-slate-50 transition-all text-slate-600 dark:text-slate-400 hover:text-brand-600"
                title={t('common.refresh')}
             >
                <RefreshCw size={18} />
@@ -306,20 +306,20 @@ const OfferLetter: React.FC = () => {
                <table className="w-full border-collapse">
                   <thead>
                      <tr className="bg-slate-50/50">
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.candidate')}</th>
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.position')}</th>
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.salary')}</th>
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.startDate')}</th>
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.status')}</th>
-                        <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.actions')}</th>
+                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.candidate')}</th>
+                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.position')}</th>
+                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.salary')}</th>
+                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.startDate')}</th>
+                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.status')}</th>
+                        <th className="px-8 py-5 text-right text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">{t('offers.table.actions')}</th>
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                      {loading ? (
                         <tr>
                            <td colSpan={6} className="px-8 py-32 text-center">
-                              <Loader2 size={40} className="mx-auto text-indigo-600 animate-spin mb-4" />
-                              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{t('common.loading')}</p>
+                              <Loader2 size={40} className="mx-auto text-brand-600 animate-spin mb-4" />
+                              <p className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">{t('common.loading')}</p>
                            </td>
                         </tr>
                      ) : filtered.length === 0 ? (
@@ -329,13 +329,13 @@ const OfferLetter: React.FC = () => {
                                  <FileSignature size={32} className="text-slate-200" />
                               </div>
                               <h3 className="text-lg font-black text-slate-900">{t('common.noData')}</h3>
-                              <p className="text-sm text-slate-400 font-medium max-w-xs mx-auto mt-2">
+                              <p className="text-sm text-slate-600 dark:text-slate-400 font-medium max-w-xs mx-auto mt-2">
                                  {search || filterStatus !== 'all' ? t('offers.noFilterResults') : t('offers.emptyState')}
                               </p>
                               {!search && filterStatus === 'all' && (
                                  <button
                                     onClick={() => setShowCreate(true)}
-                                    className="mt-8 px-8 py-3.5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20"
+                                    className="mt-8 px-8 py-3.5 bg-brand-600 text-white font-black rounded-2xl hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20"
                                  >
                                     {t('offers.create')}
                                  </button>
@@ -349,22 +349,22 @@ const OfferLetter: React.FC = () => {
                               <tr key={o.id} className="hover:bg-slate-50/80 transition-colors group">
                                  <td className="px-8 py-6">
                                     <div className="flex items-center gap-4">
-                                       <div className="size-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center text-white font-black shadow-lg">
+                                       <div className="size-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center text-slate-900 dark:text-white font-black shadow-lg">
                                           {o.candidateName.charAt(0).toUpperCase() || '?'}
                                        </div>
                                        <div>
                                           <p className="font-black text-slate-900 leading-tight">{o.candidateName || '—'}</p>
-                                          <p className="text-xs text-slate-400 font-medium mt-0.5">{o.candidateEmail}</p>
+                                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">{o.candidateEmail}</p>
                                        </div>
                                     </div>
                                  </td>
                                  <td className="px-8 py-6">
                                     <p className="font-bold text-slate-800 text-sm leading-tight">{o.positionTitle || o.jobTitle}</p>
-                                    <p className="text-[10px] text-indigo-500 font-black uppercase tracking-widest mt-1.5">{o.jobTitle}</p>
+                                    <p className="text-[10px] text-brand-500 font-black uppercase tracking-widest mt-1.5">{o.jobTitle}</p>
                                  </td>
                                  <td className="px-8 py-6">
                                     <p className="font-black text-slate-900 text-sm">{formatCurrency(o.salaryAmount, o.salaryCurrency)}</p>
-                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">{o.salaryCurrency} / {t('offers.form.perYear')}</p>
+                                    <p className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-widest mt-1">{o.salaryCurrency} / {t('offers.form.perYear')}</p>
                                  </td>
                                  <td className="px-8 py-6 font-bold text-slate-600 text-sm">
                                     {formatDate(o.startDate)}
@@ -378,7 +378,7 @@ const OfferLetter: React.FC = () => {
                                     <div className="flex items-center justify-end gap-2 pr-1">
                                        <button
                                           onClick={() => setViewOffer(o)}
-                                          className="p-3 bg-white border border-slate-100 text-slate-400 rounded-xl hover:bg-slate-950 hover:text-white hover:border-slate-950 transition-all shadow-sm"
+                                          className="p-3 bg-white border border-slate-100 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-950 hover:text-slate-900 dark:text-white hover:border-slate-950 transition-all shadow-sm"
                                           title={t('common.viewDetails')}
                                        >
                                           <Eye size={16} />
@@ -388,7 +388,7 @@ const OfferLetter: React.FC = () => {
                                              <button
                                                 onClick={() => handleSend(o.id)}
                                                 disabled={actionLoading === o.id}
-                                                className="p-3 bg-white border border-slate-100 text-indigo-500 rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm disabled:opacity-50"
+                                                className="p-3 bg-white border border-slate-100 text-brand-500 rounded-xl hover:bg-brand-600 hover:text-white hover:border-brand-600 transition-all shadow-sm disabled:opacity-50"
                                                 title={t('offers.detail.issueOffer')}
                                              >
                                                 {actionLoading === o.id ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
@@ -422,10 +422,10 @@ const OfferLetter: React.FC = () => {
                      <div className="flex items-center justify-between mb-10">
                         <div>
                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">{t('offers.form.title')}</h2>
-                           <p className="text-slate-500 font-medium mt-1">{t('offers.form.subtitle')}</p>
+                           <p className="text-slate-700 dark:text-slate-300 font-medium mt-1">{t('offers.form.subtitle')}</p>
                         </div>
                         <button onClick={() => setShowCreate(false)} className="size-12 flex items-center justify-center bg-slate-50 hover:bg-rose-50 hover:text-rose-600 rounded-2xl transition-all group">
-                           <X size={24} className="text-slate-400 group-hover:text-rose-600" />
+                           <X size={24} className="text-slate-600 dark:text-slate-400 group-hover:text-rose-600" />
                         </button>
                      </div>
 
@@ -438,24 +438,24 @@ const OfferLetter: React.FC = () => {
                      <form onSubmit={handleCreate} className="space-y-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                            <div className="space-y-2.5">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><User size={12} className="text-indigo-500" /> {t('offers.form.candidate')} *</label>
+                              <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><User size={12} className="text-brand-500" /> {t('offers.form.candidate')} *</label>
                               <div className="relative">
                                  <select
                                     required
                                     value={form.candidateId}
                                     onChange={e => setForm({ ...form, candidateId: e.target.value })}
-                                    className="w-full pl-5 pr-12 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none appearance-none transition-all shadow-inner"
+                                    className="w-full pl-5 pr-12 py-4 bg-slate-50 border-2 border-transparent focus:border-brand-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none appearance-none transition-all shadow-inner"
                                  >
                                     <option value="">{t('offers.form.selectCandidate')}</option>
                                     {candidates.map(c => (
                                        <option key={c.id} value={c.id}>{c.fullName} — {c.email}</option>
                                     ))}
                                  </select>
-                                 <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                 <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 pointer-events-none" />
                               </div>
                            </div>
                            <div className="space-y-2.5">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Briefcase size={12} className="text-indigo-500" /> {t('offers.form.job')} *</label>
+                              <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Briefcase size={12} className="text-brand-500" /> {t('offers.form.job')} *</label>
                               <div className="relative">
                                  <select
                                     required
@@ -464,33 +464,33 @@ const OfferLetter: React.FC = () => {
                                        const job = jobs.find(j => j.id === parseInt(e.target.value));
                                        setForm({ ...form, jobId: e.target.value, positionTitle: job?.title || form.positionTitle });
                                     }}
-                                    className="w-full pl-5 pr-12 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none appearance-none transition-all shadow-inner"
+                                    className="w-full pl-5 pr-12 py-4 bg-slate-50 border-2 border-transparent focus:border-brand-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none appearance-none transition-all shadow-inner"
                                  >
                                     <option value="">{t('offers.form.selectPosition')}</option>
                                     {jobs.map(j => (
                                        <option key={j.id} value={j.id}>{j.title} — {j.department}</option>
                                     ))}
                                  </select>
-                                 <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                 <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 pointer-events-none" />
                               </div>
                            </div>
                         </div>
 
                         <div className="space-y-2.5">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('offers.form.positionTitle')}</label>
+                           <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest px-1">{t('offers.form.positionTitle')}</label>
                            <input
                               type="text"
                               required
                               value={form.positionTitle}
                               onChange={e => setForm({ ...form, positionTitle: e.target.value })}
                               placeholder="e.g. Lead Product Engineer"
-                              className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none transition-all shadow-inner"
+                              className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-brand-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none transition-all shadow-inner"
                            />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                            <div className="space-y-2.5">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><DollarSign size={12} className="text-emerald-500" /> {t('offers.form.salary')} *</label>
+                              <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><DollarSign size={12} className="text-emerald-500" /> {t('offers.form.salary')} *</label>
                               <input
                                  type="number"
                                  required
@@ -498,54 +498,54 @@ const OfferLetter: React.FC = () => {
                                  value={form.salaryAmount}
                                  onChange={e => setForm({ ...form, salaryAmount: e.target.value })}
                                  placeholder="120000000"
-                                 className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none transition-all shadow-inner"
+                                 className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-brand-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none transition-all shadow-inner"
                               />
                            </div>
                            <div className="space-y-2.5">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('offers.form.currency')}</label>
+                              <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest px-1">{t('offers.form.currency')}</label>
                               <div className="relative">
                                  <select
                                     value={form.salaryCurrency}
                                     onChange={e => setForm({ ...form, salaryCurrency: e.target.value })}
-                                    className="w-full pl-5 pr-12 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none appearance-none transition-all shadow-inner"
+                                    className="w-full pl-5 pr-12 py-4 bg-slate-50 border-2 border-transparent focus:border-brand-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none appearance-none transition-all shadow-inner"
                                  >
                                     <option value="IDR">IDR (Rupiah)</option>
                                     <option value="USD">USD (Dollar)</option>
                                  </select>
-                                 <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                 <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 pointer-events-none" />
                               </div>
                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                            <div className="space-y-2.5">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Calendar size={12} className="text-indigo-500" /> {t('offers.form.startDate')}</label>
+                              <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Calendar size={12} className="text-brand-500" /> {t('offers.form.startDate')}</label>
                               <input
                                  type="date"
                                  value={form.startDate}
                                  onChange={e => setForm({ ...form, startDate: e.target.value })}
-                                 className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none transition-all shadow-inner"
+                                 className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-brand-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none transition-all shadow-inner"
                               />
                            </div>
                            <div className="space-y-2.5">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('offers.form.expiry')}</label>
+                              <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest px-1">{t('offers.form.expiry')}</label>
                               <input
                                  type="date"
                                  value={form.offerExpiry}
                                  onChange={e => setForm({ ...form, offerExpiry: e.target.value })}
-                                 className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none transition-all shadow-inner"
+                                 className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-brand-600 focus:bg-white rounded-[20px] text-sm font-bold outline-none transition-all shadow-inner"
                               />
                            </div>
                         </div>
 
                         <div className="space-y-2.5">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('offers.form.notes')}</label>
+                           <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest px-1">{t('offers.form.notes')}</label>
                            <textarea
                               rows={4}
                               value={form.notes}
                               onChange={e => setForm({ ...form, notes: e.target.value })}
                               placeholder="Describe benefits, conditions, or specific instructions for the candidate..."
-                              className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-[20px] text-sm font-medium outline-none resize-none transition-all shadow-inner"
+                              className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-brand-600 focus:bg-white rounded-[20px] text-sm font-medium outline-none resize-none transition-all shadow-inner"
                            />
                         </div>
 
@@ -553,14 +553,14 @@ const OfferLetter: React.FC = () => {
                            <button
                               type="button"
                               onClick={() => setShowCreate(false)}
-                              className="flex-1 py-5 bg-slate-50 text-slate-500 font-black rounded-[20px] hover:bg-slate-100 transition-all uppercase tracking-widest text-xs"
+                              className="flex-1 py-5 bg-slate-50 text-slate-700 dark:text-slate-300 font-black rounded-[20px] hover:bg-slate-100 transition-all uppercase tracking-widest text-xs"
                            >
                               {t('common.cancel')}
                            </button>
                            <button
                               type="submit"
                               disabled={saving}
-                              className="flex-[2] py-5 bg-slate-900 text-white font-black rounded-[20px] hover:bg-indigo-600 hover:shadow-[0_20px_40px_rgba(79,70,229,0.3)] transition-all disabled:opacity-50 flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
+                              className="flex-[2] py-5 bg-slate-50 dark:bg-slate-900 text-white font-black rounded-[20px] hover:bg-brand-600 hover:shadow-[0_20px_40px_rgba(79,70,229,0.3)] transition-all disabled:opacity-50 flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
                            >
                               {saving ? <Loader2 size={18} className="animate-spin" /> : <FileSignature size={18} />}
                               {saving ? t('common.loading') : t('offers.form.saveDraft')}
@@ -576,19 +576,19 @@ const OfferLetter: React.FC = () => {
          {viewOffer && (
             <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xl z-50 flex items-center justify-center p-4">
                <div className="bg-white w-full max-w-2xl rounded-[48px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-12 duration-500 max-h-[95vh] flex flex-col border border-white/20">
-                  <div className="h-3 bg-gradient-to-r from-indigo-500 via-purple-600 to-rose-500" />
+                  <div className="h-3 bg-gradient-to-r from-brand-500 via-purple-600 to-rose-500" />
 
                   <div className="p-10 flex-1 overflow-y-auto custom-scrollbar">
                      <div className="flex items-center justify-between mb-12">
                         <div className="flex items-center gap-4">
-                           <div className="size-14 bg-slate-950 text-white rounded-2xl flex items-center justify-center font-black italic shadow-xl">R_AI</div>
+                           <div className="size-14 bg-slate-950 text-slate-900 dark:text-white rounded-2xl flex items-center justify-center font-black italic shadow-xl">R_AI</div>
                            <div>
                               <h2 className="text-2xl font-black text-slate-900 tracking-tight">{t('offers.detail.title')}</h2>
-                              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">#{viewOffer.id} · {formatDate(viewOffer.createdAt)}</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">#{viewOffer.id} · {formatDate(viewOffer.createdAt)}</p>
                            </div>
                         </div>
                         <button onClick={() => setViewOffer(null)} className="size-10 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl transition-all">
-                           <X size={20} className="text-slate-400" />
+                           <X size={20} className="text-slate-600 dark:text-slate-400" />
                         </button>
                      </div>
 
@@ -614,7 +614,7 @@ const OfferLetter: React.FC = () => {
                         <div className="space-y-6 px-4">
                            <div className="space-y-2">
                               <h3 className="text-2xl font-black text-slate-900 tracking-tight">{t('offers.detail.employmentOffer')}</h3>
-                              <div className="h-1 w-20 bg-indigo-600 rounded-full" />
+                              <div className="h-1 w-20 bg-brand-600 rounded-full" />
                            </div>
                            <div className="text-slate-600 text-lg leading-relaxed font-medium">
                               <p className="mb-4">{t('offers.detail.dear').replace('{name}', viewOffer.candidateName)},</p>
@@ -622,7 +622,7 @@ const OfferLetter: React.FC = () => {
                                  {t('offers.detail.proudToOffer').replace('{position}', `"${viewOffer.positionTitle || viewOffer.jobTitle}"`)}
                               </p>
                               {viewOffer.notes && (
-                                 <p className="mt-6 p-6 bg-slate-50 border-l-4 border-indigo-600 rounded-r-3xl text-base italic text-slate-500">
+                                 <p className="mt-6 p-6 bg-slate-50 border-l-4 border-brand-600 rounded-r-3xl text-base italic text-slate-700 dark:text-slate-300">
                                     "{viewOffer.notes}"
                                  </p>
                               )}
@@ -631,36 +631,36 @@ const OfferLetter: React.FC = () => {
 
                         {/* Financial Data */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                           <div className="p-8 bg-slate-950 text-white rounded-[32px] shadow-2xl shadow-slate-900/20">
-                              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">{t('offers.detail.annualSalary')}</p>
+                           <div className="p-8 bg-slate-950 text-slate-900 dark:text-white rounded-[32px] shadow-2xl shadow-slate-200 dark:shadow-slate-900/20">
+                              <p className="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-[0.2em] mb-2">{t('offers.detail.annualSalary')}</p>
                               <p className="text-3xl font-black tracking-tighter">{formatCurrency(viewOffer.salaryAmount, viewOffer.salaryCurrency)}</p>
                               <div className="mt-4 flex items-center gap-2">
                                  <div className="size-2 bg-emerald-500 rounded-full animate-pulse" />
-                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{viewOffer.salaryCurrency} {t('offers.detail.guaranteed')}</span>
+                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">{viewOffer.salaryCurrency} {t('offers.detail.guaranteed')}</span>
                               </div>
                            </div>
-                           <div className="p-8 bg-indigo-50 border border-indigo-100 rounded-[32px]">
-                              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">{t('offers.table.startDate')}</p>
-                              <p className="text-3xl font-black text-indigo-900 tracking-tighter">{formatDate(viewOffer.startDate)}</p>
+                           <div className="p-8 bg-brand-50 border border-brand-100 rounded-[32px]">
+                              <p className="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-[0.2em] mb-2">{t('offers.table.startDate')}</p>
+                              <p className="text-3xl font-black text-brand-900 tracking-tighter">{formatDate(viewOffer.startDate)}</p>
                               <div className="mt-4 flex items-center gap-2">
-                                 <Calendar size={14} className="text-indigo-400" />
-                                 <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">{viewOffer.jobTitle}</span>
+                                 <Calendar size={14} className="text-brand-600 dark:text-brand-400" />
+                                 <span className="text-[10px] font-black uppercase tracking-widest text-brand-600 dark:text-brand-400">{viewOffer.jobTitle}</span>
                               </div>
                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-6">
                            <div className="flex items-center gap-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                              <div className="size-10 bg-white rounded-xl flex items-center justify-center text-slate-400 shadow-sm"><User size={20} /></div>
+                              <div className="size-10 bg-white rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 shadow-sm"><User size={20} /></div>
                               <div>
-                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('offers.detail.candidateEmail')}</p>
+                                 <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">{t('offers.detail.candidateEmail')}</p>
                                  <p className="text-sm font-bold text-slate-700">{viewOffer.candidateEmail}</p>
                               </div>
                            </div>
                            <div className="flex items-center gap-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                              <div className="size-10 bg-white rounded-xl flex items-center justify-center text-slate-400 shadow-sm"><Clock size={20} /></div>
+                              <div className="size-10 bg-white rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 shadow-sm"><Clock size={20} /></div>
                               <div>
-                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('offers.form.expiry')}</p>
+                                 <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">{t('offers.form.expiry')}</p>
                                  <p className="text-sm font-bold text-slate-700">{formatDate(viewOffer.offerExpiry)}</p>
                               </div>
                            </div>
@@ -681,7 +681,7 @@ const OfferLetter: React.FC = () => {
                         <button
                            onClick={() => handleSend(viewOffer.id)}
                            disabled={actionLoading === viewOffer.id}
-                           className="flex-1 py-5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50 flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
+                           className="flex-1 py-5 bg-brand-600 text-white font-black rounded-2xl hover:bg-brand-700 shadow-lg shadow-brand-600/20 transition-all disabled:opacity-50 flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
                         >
                            {actionLoading === viewOffer.id ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                            {t('offers.detail.issueOffer')}
@@ -707,7 +707,7 @@ const OfferLetter: React.FC = () => {
                      )}
                      <button
                         onClick={() => setViewOffer(null)}
-                        className="px-10 py-5 bg-white border-2 border-slate-200 text-slate-500 font-black rounded-2xl hover:bg-slate-50 transition-all uppercase tracking-widest text-xs"
+                        className="px-10 py-5 bg-white border-2 border-slate-200 text-slate-700 dark:text-slate-300 font-black rounded-2xl hover:bg-slate-50 transition-all uppercase tracking-widest text-xs"
                      >
                         {t('offers.detail.close')}
                      </button>

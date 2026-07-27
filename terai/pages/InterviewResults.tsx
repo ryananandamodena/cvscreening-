@@ -27,7 +27,7 @@ const StarRating = ({ value, onChange, readonly = false }: { value: number; onCh
                     <Star
                         size={28}
                         className={`transition-colors ${(hover || value) >= star
-                            ? 'fill-yellow-400 text-yellow-400'
+                            ? 'fill-yellow-400 text-yellow-600 dark:text-yellow-400'
                             : 'text-slate-600'
                             }`}
                     />
@@ -45,7 +45,7 @@ const RecommendationBadge = ({ value, selected, onClick, icon: Icon, color }: an
         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all border
             ${selected
                 ? `${color} scale-105 shadow-lg`
-                : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20'
+                : 'bg-white/5 border-white/10 text-slate-600 dark:text-slate-400 hover:bg-white/10 hover:border-white/20'
             }`}
     >
         <Icon size={16} /> {value}
@@ -131,19 +131,19 @@ const InterviewResults = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-900 dark:text-white">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div>
             </div>
         );
     }
 
     if (error || !interview) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white p-4">
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-900 dark:text-white p-4">
                 <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl max-w-md text-center">
-                    <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
+                    <AlertCircle size={48} className="mx-auto text-danger-500 mb-4" />
                     <h2 className="text-xl font-bold mb-2">Error Loading Results</h2>
-                    <p className="text-slate-400 mb-6">{error || "Interview not found"}</p>
+                    <p className="text-slate-600 dark:text-slate-400 mb-6">{error || "Interview not found"}</p>
                     <button
                         onClick={() => navigate('/interviews')}
                         className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
@@ -157,13 +157,13 @@ const InterviewResults = () => {
 
     // Helper to format transcript
     const formatTranscript = (text: string) => {
-        if (!text) return <p className="text-slate-500 italic">No transcript available.</p>;
+        if (!text) return <p className="text-slate-700 dark:text-slate-300 italic">No transcript available.</p>;
         return text.split('\n\n---\n\n').map((block, i) => {
             const [q, a] = block.split('\n\nA: ');
             return (
                 <div key={i} className="mb-6 p-4 bg-white/5 rounded-xl border border-white/5">
-                    <h4 className="text-indigo-300 font-semibold mb-2">{q?.replace('Q: ', '') || 'Question'}</h4>
-                    <p className="text-slate-300 leading-relaxed">{a || block}</p>
+                    <h4 className="text-brand-300 font-semibold mb-2">{q?.replace('Q: ', '') || 'Question'}</h4>
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{a || block}</p>
                 </div>
             );
         });
@@ -211,11 +211,11 @@ const InterviewResults = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-8">
+        <div className="min-h-screen bg-slate-950 text-slate-900 dark:text-white p-8">
             <div className="mx-auto">
                 <button
                     onClick={() => navigate('/interviews')}
-                    className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8"
+                    className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white transition-colors mb-8"
                 >
                     <ArrowLeft size={20} /> {t('common.back')}
                 </button>
@@ -223,14 +223,14 @@ const InterviewResults = () => {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                     <div>
-                        <h1 className="text-3xl font-black text-white mb-2 flex items-center gap-3">
+                        <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2 flex items-center gap-3">
                             {interview.candidateName} <span className="text-slate-600">/</span> {interview.jobTitle}
                         </h1>
-                        <div className="flex gap-4 text-slate-400 text-sm">
+                        <div className="flex gap-4 text-slate-600 dark:text-slate-400 text-sm">
                             <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(interview.createdAt).toLocaleDateString()}</span>
                             <span className="flex items-center gap-1.5"><Briefcase size={14} /> {interview.interviewType}</span>
                             <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold uppercase
-                                ${interview.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-300'}
+                                ${interview.status === 'completed' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-700 text-slate-700 dark:text-slate-300'}
                             `}>
                                 {interview.status}
                             </span>
@@ -241,7 +241,7 @@ const InterviewResults = () => {
                     <div className="flex gap-3">
                         <button
                             onClick={handleOpenAssessmentModal}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors flex items-center gap-2"
+                            className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-colors flex items-center gap-2"
                         >
                             <FileText size={18} /> Send Assessment
                         </button>
@@ -250,23 +250,23 @@ const InterviewResults = () => {
 
                 <div className="flex gap-4 mb-8">
                     {/* Score Cards */}
-                    <div className="bg-indigo-600/10 border border-indigo-500/20 p-4 rounded-2xl flex items-center gap-4">
-                        <div className="p-3 bg-indigo-500/20 rounded-xl">
-                            <BrainCircuit size={24} className="text-indigo-400" />
+                    <div className="bg-brand-600/10 border border-brand-500/20 p-4 rounded-2xl flex items-center gap-4">
+                        <div className="p-3 bg-brand-500/20 rounded-xl">
+                            <BrainCircuit size={24} className="text-brand-600 dark:text-brand-400" />
                         </div>
                         <div>
-                            <div className="text-xs text-indigo-300 font-bold uppercase tracking-wider">{t('results.aiScore')}</div>
-                            <div className="text-3xl font-black text-white">{aiScore || 0}<span className="text-lg text-indigo-400/50">/100</span></div>
+                            <div className="text-xs text-brand-300 font-bold uppercase tracking-wider">{t('results.aiScore')}</div>
+                            <div className="text-3xl font-black text-slate-900 dark:text-white">{aiScore || 0}<span className="text-lg text-brand-600 dark:text-brand-400/50">/100</span></div>
                         </div>
                     </div>
                     {hasSavedFeedback && (
                         <div className="bg-amber-600/10 border border-amber-500/20 p-4 rounded-2xl flex items-center gap-4">
                             <div className="p-3 bg-amber-500/20 rounded-xl">
-                                <Star size={24} className="text-amber-400" />
+                                <Star size={24} className="text-amber-600 dark:text-amber-400" />
                             </div>
                             <div>
                                 <div className="text-xs text-amber-300 font-bold uppercase tracking-wider">{t('results.humanScore')}</div>
-                                <div className="text-3xl font-black text-white">{interview.rating || feedbackRating * 20}<span className="text-lg text-amber-400/50">/100</span></div>
+                                <div className="text-3xl font-black text-slate-900 dark:text-white">{interview.rating || feedbackRating * 20}<span className="text-lg text-amber-600 dark:text-amber-400/50">/100</span></div>
                             </div>
                         </div>
                     )}
@@ -277,8 +277,8 @@ const InterviewResults = () => {
                     <div className="space-y-8">
                         {/* Video Player ... */}
                         <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-                            <div className="p-4 border-b border-white/5 flex items-center gap-2 font-bold text-slate-300">
-                                <Video size={18} className="text-rose-400" /> {t('results.recording')}
+                            <div className="p-4 border-b border-white/5 flex items-center gap-2 font-bold text-slate-700 dark:text-slate-300">
+                                <Video size={18} className="text-rose-600 dark:text-rose-400" /> {t('results.recording')}
                             </div>
                             <div className="aspect-video bg-black flex items-center justify-center">
                                 {interview.recordingPath ? (
@@ -298,63 +298,63 @@ const InterviewResults = () => {
 
                         {/* AI Feedback */}
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                            <h3 className="flex items-center gap-2 font-bold text-slate-300 mb-4">
-                                <BrainCircuit size={18} className="text-indigo-400" /> {t('results.aiEvaluation')}
+                            <h3 className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-300 mb-4">
+                                <BrainCircuit size={18} className="text-brand-600 dark:text-brand-400" /> {t('results.aiEvaluation')}
                             </h3>
-                            <div className="prose prose-invert prose-sm text-slate-300">
+                            <div className="prose prose-invert prose-sm text-slate-700 dark:text-slate-300">
                                 {aiFeedback ? (
                                     typeof aiFeedback === 'string' ? aiFeedback : JSON.stringify(aiFeedback, null, 2)
                                 ) : (
-                                    <p className="italic text-slate-500">No evaluation generated yet.</p>
+                                    <p className="italic text-slate-700 dark:text-slate-300">No evaluation generated yet.</p>
                                 )}
                             </div>
                         </div>
 
                         {/* Human Feedback Form ... */}
                         <div className="bg-gradient-to-br from-amber-500/5 to-orange-500/5 border border-amber-500/20 rounded-2xl p-6">
-                            <h3 className="flex items-center gap-2 font-bold text-white mb-6">
-                                <MessageSquare size={18} className="text-amber-400" /> {t('results.feedback')}
+                            <h3 className="flex items-center gap-2 font-bold text-slate-900 dark:text-white mb-6">
+                                <MessageSquare size={18} className="text-amber-600 dark:text-amber-400" /> {t('results.feedback')}
                             </h3>
                             {/* ... (Form Content - keeping same structure) */}
                             <div className="mb-6">
-                                <label className="block text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">{t('results.rating')}</label>
+                                <label className="block text-xs text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">{t('results.rating')}</label>
                                 <StarRating value={feedbackRating} onChange={setFeedbackRating} />
-                                <p className="text-xs text-slate-500 mt-1">
+                                <p className="text-xs text-slate-700 dark:text-slate-300 mt-1">
                                     {feedbackRating > 0 ? `${feedbackRating}/5 → ${t('common.score')}: ${feedbackRating * 20}/100` : t('results.selectRating')}
                                 </p>
                             </div>
 
                             {/* Recommendation */}
                             <div className="mb-6">
-                                <label className="block text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">{t('results.recommendation')}</label>
+                                <label className="block text-xs text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider mb-3">{t('results.recommendation')}</label>
                                 <div className="flex gap-3">
                                     <RecommendationBadge
                                         value={t('results.proceed')}
                                         selected={feedbackRecommendation === 'Proceed'}
                                         onClick={() => setFeedbackRecommendation('Proceed')}
                                         icon={ThumbsUp}
-                                        color="bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                                        color="bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
                                     />
                                     <RecommendationBadge
                                         value={t('results.maybe')}
                                         selected={feedbackRecommendation === 'Maybe'}
                                         onClick={() => setFeedbackRecommendation('Maybe')}
                                         icon={Minus}
-                                        color="bg-yellow-500/20 border-yellow-500/30 text-yellow-400"
+                                        color="bg-yellow-500/20 border-yellow-500/30 text-yellow-600 dark:text-yellow-400"
                                     />
                                     <RecommendationBadge
                                         value={t('results.reject')}
                                         selected={feedbackRecommendation === 'Reject'}
                                         onClick={() => setFeedbackRecommendation('Reject')}
                                         icon={ThumbsDown}
-                                        color="bg-rose-500/20 border-rose-500/30 text-rose-400"
+                                        color="bg-rose-500/20 border-rose-500/30 text-rose-600 dark:text-rose-400"
                                     />
                                 </div>
                             </div>
 
                             {/* Notes */}
                             <div className="mb-6">
-                                <label className="block text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">{t('results.notes')}</label>
+                                <label className="block text-xs text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">{t('results.notes')}</label>
                                 <textarea
                                     value={feedbackNotes}
                                     onChange={(e) => setFeedbackNotes(e.target.value)}
@@ -390,8 +390,8 @@ const InterviewResults = () => {
                     {/* Right Column: Transcript */}
                     <div className="lg:col-span-2">
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-8 min-h-[600px]">
-                            <h3 className="flex items-center gap-2 font-bold text-slate-300 mb-6">
-                                <FileText size={18} className="text-emerald-400" /> {t('results.transcript')}
+                            <h3 className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-300 mb-6">
+                                <FileText size={18} className="text-emerald-600 dark:text-emerald-400" /> {t('results.transcript')}
                             </h3>
                             <div className="space-y-2">
                                 {formatTranscript(interview.transcript)}
@@ -404,9 +404,9 @@ const InterviewResults = () => {
             {/* Assessment Modal */}
             {isAssessmentModalOpen && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
-                        <h3 className="text-xl font-bold text-white mb-4">Send Assessment</h3>
-                        <p className="text-slate-400 mb-6">Choose an assessment to assign to <strong>{interview.candidateName}</strong>.</p>
+                    <div className="bg-slate-50 dark:bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Send Assessment</h3>
+                        <p className="text-slate-600 dark:text-slate-400 mb-6">Choose an assessment to assign to <strong>{interview.candidateName}</strong>.</p>
 
                         <div className="space-y-3 mb-6 max-h-60 overflow-y-auto custom-scrollbar">
                             {assessments.map((a) => (
@@ -415,8 +415,8 @@ const InterviewResults = () => {
                                     onClick={() => setSelectedAssessmentId(a.id)}
                                     className={`w-full text-left p-4 rounded-xl border transition-all
                                         ${selectedAssessmentId === a.id
-                                            ? 'bg-indigo-600/20 border-indigo-500 text-white'
-                                            : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                                            ? 'bg-brand-600/20 border-brand-500 text-white'
+                                            : 'bg-white/5 border-white/10 text-slate-700 dark:text-slate-300 hover:bg-white/10'
                                         }`}
                                 >
                                     <div className="font-bold">{a.title}</div>
@@ -424,21 +424,21 @@ const InterviewResults = () => {
                                 </button>
                             ))}
                             {assessments.length === 0 && (
-                                <p className="text-center text-slate-500 py-4">No active assessments found.</p>
+                                <p className="text-center text-slate-700 dark:text-slate-300 py-4">No active assessments found.</p>
                             )}
                         </div>
 
                         <div className="flex gap-3 justify-end">
                             <button
                                 onClick={() => setIsAssessmentModalOpen(false)}
-                                className="px-4 py-2 rounded-lg font-bold text-slate-400 hover:text-white"
+                                className="px-4 py-2 rounded-lg font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSendAssessment}
                                 disabled={!selectedAssessmentId || isSendingAssessment}
-                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
                                 {isSendingAssessment && <Loader2 size={16} className="animate-spin" />}
                                 Send Assessment

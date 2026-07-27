@@ -8,17 +8,19 @@ import {
     LineChart, Line, AreaChart, Area, ComposedChart, PieChart as RechartsPie,
     Pie, Cell
 } from 'recharts';
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import { apiService } from '../services/api.service';
 import { useLanguage } from '../contexts/LanguageContext';
 import { exportService } from '../services/export.service';
+import Badge from '../components/ui/Badge';
+import Button from '../components/ui/Button';
 
-const fadeUpVariant = {
+const fadeUpVariant: Variants = {
     initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } }
+    animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as const } }
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
     animate: { transition: { staggerChildren: 0.08 } }
 };
 
@@ -214,10 +216,10 @@ const AdvancedAnalytics: React.FC = () => {
         return (
             <div className="flex flex-col items-center justify-center min-h-[70vh] gap-6">
                 <div className="relative">
-                   <div className="absolute inset-0 bg-indigo-500 blur-3xl opacity-20 rounded-full animate-pulse"></div>
-                   <Loader2 size={40} className="text-indigo-600 animate-spin relative z-10" />
+                   <div className="absolute inset-0 bg-brand-500 blur-3xl opacity-20 rounded-full animate-pulse"></div>
+                   <Loader2 size={40} className="text-brand-600 dark:text-brand-400 animate-spin relative z-10" />
                 </div>
-                <p className="font-extrabold text-slate-400 uppercase tracking-[0.2em] text-xs">Aggregating Global Metrics...</p>
+                <p className="font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] text-xs">Aggregating Global Metrics...</p>
             </div>
         );
     }
@@ -229,38 +231,32 @@ const AdvancedAnalytics: React.FC = () => {
             {/* Header Area */}
             <motion.div variants={fadeUpVariant} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
                         {t('analytics.advancedTitle') || 'Advanced Analytics'}
                     </h1>
-                    <p className="text-sm font-medium text-slate-500 mt-2 max-w-xl">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mt-2 max-w-xl">
                         Comprehensive recruiting insights and performance metrics wrapped in a modern predictive dashboard.
                     </p>
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="relative">
                         <button
                             onClick={() => setShowFilters(!showFilters)}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200/50 rounded-2xl font-bold text-slate-600 shadow-sm hover:shadow-md transition-all text-sm"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200/50 dark:border-neutral-700 rounded-2xl font-bold text-slate-600 dark:text-slate-300 shadow-sm hover:shadow-md transition-all text-sm"
                         >
-                            <Calendar size={16} className="text-indigo-500" />
+                            <Calendar size={16} className="text-brand-500" />
                             {dateRange === '7d' ? 'Last 7 Days' : dateRange === '30d' ? 'Last 30 Days' : 'Last 90 Days'}
-                            <ChevronDown size={14} className="ml-2 text-slate-400" />
+                            <ChevronDown size={14} className="ml-2 text-slate-600 dark:text-slate-400" />
                         </button>
                     </div>
 
-                    <button
-                        onClick={exportToPDF}
-                        className="px-5 py-2.5 bg-slate-900 border border-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-slate-800 shadow-[0_8px_20px_rgb(15,23,42,0.25)] transition-all flex items-center gap-2"
-                    >
-                        <FileText size={16} /> PDF
-                    </button>
-                    <button
-                        onClick={exportToExcel}
-                        className="px-5 py-2.5 bg-emerald-500 border border-emerald-500 text-white rounded-2xl font-bold text-sm hover:bg-emerald-600 shadow-[0_8px_20px_rgb(16,185,129,0.25)] transition-all flex items-center gap-2"
-                    >
-                        <Download size={16} /> Data
-                    </button>
+                    <Button variant="secondary" size="md" icon={<FileText size={16} />} onClick={exportToPDF} className="rounded-2xl">
+                        PDF
+                    </Button>
+                    <Button variant="primary" size="md" icon={<Download size={16} />} onClick={exportToExcel} className="rounded-2xl bg-success-600 hover:bg-success-700 shadow-success-600/20">
+                        Data
+                    </Button>
                 </div>
             </motion.div>
 
@@ -271,7 +267,7 @@ const AdvancedAnalytics: React.FC = () => {
                    value={stats?.totalCandidates.toLocaleString()} 
                    trend={stats?.trendData.candidates}
                    icon={<Users size={22} />} 
-                   color="bg-blue-50 text-blue-600" 
+                   color="bg-info-50 dark:bg-info-500/10 text-info-600 dark:text-info-500" 
                 />
                 <MetricCard 
                    title="Candidates Hired" 
@@ -395,15 +391,15 @@ const AdvancedAnalytics: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4 mt-2">
                         {data?.departments.map((dept, index) => (
                             <div key={index} className="p-4 bg-slate-50 border border-slate-100/50 rounded-[1.5rem] hover:bg-slate-100 transition-all cursor-pointer">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">{dept.department}</p>
+                                <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-3">{dept.department}</p>
                                 <div className="flex items-end justify-between">
                                     <div>
                                         <h4 className="text-2xl font-black text-slate-800 tracking-tight">{dept.matchRate}%</h4>
-                                        <p className="text-[11px] font-bold text-slate-400 mt-1">{dept.openPositions} Openings</p>
+                                        <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mt-1">{dept.openPositions} Openings</p>
                                     </div>
-                                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${dept.trendPercent.startsWith('+') ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                    <Badge tone={dept.trendPercent.startsWith('+') ? 'success' : 'danger'} className="normal-case">
                                         {dept.trendPercent}
-                                    </span>
+                                    </Badge>
                                 </div>
                             </div>
                         ))}
@@ -415,12 +411,12 @@ const AdvancedAnalytics: React.FC = () => {
                         {data?.geographicData.map((geo, index) => (
                             <div key={index} className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-100/50 rounded-[1.5rem]">
                                 <div className="flex items-center gap-4">
-                                    <div className="p-2.5 bg-indigo-100 text-indigo-600 rounded-[14px]">
+                                    <div className="p-2.5 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 rounded-[14px]">
                                         <MapPin size={18} />
                                     </div>
                                     <div>
                                         <p className="font-bold text-sm text-slate-800">{geo.location}</p>
-                                        <p className="text-[11px] font-semibold text-slate-400">{geo.candidates} Candidates</p>
+                                        <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{geo.candidates} Candidates</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
@@ -438,20 +434,20 @@ const AdvancedAnalytics: React.FC = () => {
                  <ChartCard title="AI Interview Assessment Metrics">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
                         {data?.interviewPerformance.map((perf, index) => (
-                            <div key={index} className="p-5 bg-gradient-to-br from-indigo-50/50 to-white rounded-[1.5rem] border border-indigo-50/80">
-                                <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest mb-3">{perf.name}</p>
+                            <div key={index} className="p-5 bg-gradient-to-br from-brand-50/50 to-white dark:from-brand-900/20 dark:to-neutral-900 rounded-[1.5rem] border border-brand-50/80 dark:border-brand-900/40">
+                                <p className="text-[11px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-3">{perf.name}</p>
                                 <div className="flex items-end justify-between">
                                     <div>
-                                        <h4 className="text-3xl font-black text-slate-900 tracking-tighter">{perf.score}%</h4>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Avg Score</p>
+                                        <h4 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{perf.score}%</h4>
+                                        <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">Avg Score</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-extrabold text-indigo-500">{perf.completion}%</p>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Completed</p>
+                                        <p className="text-sm font-extrabold text-brand-500">{perf.completion}%</p>
+                                        <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">Completed</p>
                                     </div>
                                 </div>
-                                <div className="mt-4 h-1.5 bg-indigo-100/50 rounded-full overflow-hidden">
-                                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${perf.score}%` }} />
+                                <div className="mt-4 h-1.5 bg-brand-100/50 dark:bg-brand-900/40 rounded-full overflow-hidden">
+                                    <div className="h-full bg-brand-500 rounded-full" style={{ width: `${perf.score}%` }} />
                                 </div>
                             </div>
                         ))}
@@ -467,25 +463,23 @@ const AdvancedAnalytics: React.FC = () => {
 const MetricCard = ({ title, value, trend, subtext, icon, color }: any) => {
     const isPositive = trend >= 0;
     return (
-        <motion.div variants={fadeUpVariant} className="bg-white p-6 rounded-[2rem] border border-slate-200/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between min-h-[160px]">
+        <motion.div variants={fadeUpVariant} className="bg-white dark:bg-neutral-900 p-6 rounded-2xl border border-slate-200/50 dark:border-neutral-700 shadow-sm flex flex-col justify-between min-h-[160px]">
             <div className="flex justify-between items-start mb-4">
                 <div className={`size-12 rounded-[1.25rem] flex items-center justify-center ${color}`}>
                     {icon}
                 </div>
                 {trend !== undefined && (
-                   <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 border ${
-                       isPositive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'
-                   }`}>
+                   <Badge tone={isPositive ? 'success' : 'danger'} className="normal-case flex items-center gap-1">
                       {isPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                       {Math.abs(trend)}%
-                   </div>
+                   </Badge>
                 )}
             </div>
             <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{title}</p>
+                <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">{title}</p>
                 <div className="flex items-baseline gap-2">
-                    <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{value}</h3>
-                    {subtext && <span className="text-xs font-bold text-slate-400">{subtext}</span>}
+                    <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</h3>
+                    {subtext && <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{subtext}</span>}
                 </div>
             </div>
         </motion.div>
@@ -493,10 +487,12 @@ const MetricCard = ({ title, value, trend, subtext, icon, color }: any) => {
 };
 
 const ChartCard = ({ title, children, className = '' }: any) => (
-    <motion.div variants={fadeUpVariant} className={`bg-white p-7 rounded-[2rem] border border-slate-200/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${className}`}>
-        <h3 className="text-base font-extrabold text-slate-800 tracking-tight mb-4">{title}</h3>
+    <motion.div variants={fadeUpVariant} className={`bg-white dark:bg-neutral-900 p-7 rounded-2xl border border-slate-200/50 dark:border-neutral-700 shadow-sm ${className}`}>
+        <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 tracking-tight mb-4">{title}</h3>
         {children}
     </motion.div>
 );
 
 export default AdvancedAnalytics;
+
+

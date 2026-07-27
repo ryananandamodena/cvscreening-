@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     CheckCircle2, XCircle, Clock, AlertTriangle, Brain, Code, Globe, FileText,
@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { apiService } from '../services/api.service';
 import { useLanguage } from '../contexts/LanguageContext';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
 
 interface Answer {
     id: number;
@@ -124,33 +126,33 @@ const AssessmentResults: React.FC = () => {
             case 'psychotest': return <Brain className="text-purple-500" size={24} />;
             case 'coding': return <Code className="text-blue-500" size={24} />;
             case 'language': return <Globe className="text-green-500" size={24} />;
-            default: return <FileText className="text-slate-500" size={24} />;
+            default: return <FileText className="text-slate-700 dark:text-slate-300" size={24} />;
         }
     };
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center gap-4">
-                <Loader2 size={48} className="text-indigo-600 animate-spin" />
-                <p className="font-black text-slate-400 uppercase tracking-widest text-xs">{t('results.loading')}</p>
+            <div className="min-h-screen bg-slate-100 dark:bg-neutral-800 flex flex-col items-center justify-center gap-4">
+                <Loader2 size={48} className="text-brand-600 animate-spin" />
+                <p className="font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest text-xs">{t('results.loading')}</p>
             </div>
         );
     }
 
     if (!result) {
         return (
-            <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center gap-4">
-                <AlertTriangle size={48} className="text-red-400" />
-                <p className="font-black text-slate-400 uppercase tracking-widest text-xs">{t('results.notFound')}</p>
+            <div className="min-h-screen bg-slate-100 dark:bg-neutral-800 flex flex-col items-center justify-center gap-4">
+                <AlertTriangle size={48} className="text-red-600 dark:text-red-400" />
+                <p className="font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest text-xs">{t('results.notFound')}</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-100 py-8">
+        <div className="min-h-screen bg-slate-100 dark:bg-neutral-800 py-8">
             <div className="mx-auto px-6 space-y-6">
                 {/* Header */}
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
                     {/* Result Banner */}
                     <div className={`p-8 text-center ${result.passed ? 'bg-emerald-600' : 'bg-red-600'}`}>
                         <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -197,34 +199,34 @@ const AssessmentResults: React.FC = () => {
                                         />
                                     </svg>
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-2xl font-black text-slate-900">{result.percentage}%</span>
+                                        <span className="text-2xl font-black text-slate-900 dark:text-white">{result.percentage}%</span>
                                     </div>
                                 </div>
-                                <p className="text-sm font-medium text-slate-500 mt-2">{t('common.score')}</p>
+                                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mt-2">{t('common.score')}</p>
                             </div>
 
                             <div className="text-center">
-                                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                                    <Target className="text-indigo-600" size={28} />
+                                <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                                    <Target className="text-brand-600" size={28} />
                                 </div>
-                                <p className="text-2xl font-black text-slate-900">{result.totalScore}/{result.maxScore}</p>
-                                <p className="text-sm text-slate-500">{t('assess.points')}</p>
+                                <p className="text-2xl font-black text-slate-900 dark:text-white">{result.totalScore}/{result.maxScore}</p>
+                                <p className="text-sm text-slate-700 dark:text-slate-300">{t('assess.points')}</p>
                             </div>
 
                             <div className="text-center">
                                 <div className="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mx-auto mb-2">
                                     <Clock className="text-purple-600" size={28} />
                                 </div>
-                                <p className="text-2xl font-black text-slate-900">{result.timeSpent} min</p>
-                                <p className="text-sm text-slate-500">{t('results.timeSpent')}</p>
+                                <p className="text-2xl font-black text-slate-900 dark:text-white">{result.timeSpent} min</p>
+                                <p className="text-sm text-slate-700 dark:text-slate-300">{t('results.timeSpent')}</p>
                             </div>
 
                             <div className="text-center">
                                 <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-2">
                                     <Award className="text-amber-600" size={28} />
                                 </div>
-                                <p className="text-2xl font-black text-slate-900">{result.passingScore}%</p>
-                                <p className="text-sm text-slate-500">{t('assess.passingScore')}</p>
+                                <p className="text-2xl font-black text-slate-900 dark:text-white">{result.passingScore}%</p>
+                                <p className="text-sm text-slate-700 dark:text-slate-300">{t('assess.passingScore')}</p>
                             </div>
                         </div>
 
@@ -246,32 +248,32 @@ const AssessmentResults: React.FC = () => {
                 </div>
 
                 {/* Assessment Info */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-slate-200 dark:border-neutral-800 p-6">
                     <div className="flex items-center gap-4">
                         {getTypeIcon(result.assessmentType)}
                         <div>
-                            <h2 className="text-lg font-bold text-slate-900">{result.assessmentTitle}</h2>
-                            <p className="text-sm text-slate-500 capitalize">{result.assessmentType} {t('results.assessment')}</p>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{result.assessmentTitle}</h2>
+                            <p className="text-sm text-slate-700 dark:text-slate-300 capitalize">{result.assessmentType} {t('results.assessment')}</p>
                         </div>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-2 gap-4 text-sm">
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-neutral-800 grid grid-cols-2 gap-4 text-sm">
                         <div>
-                            <span className="text-slate-500">{t('results.candidate')}:</span>
-                            <span className="ml-2 font-medium text-slate-900">{result.candidateName}</span>
+                            <span className="text-slate-700 dark:text-slate-300">{t('results.candidate')}:</span>
+                            <span className="ml-2 font-medium text-slate-900 dark:text-white">{result.candidateName}</span>
                         </div>
                         <div>
-                            <span className="text-slate-500">{t('common.email')}:</span>
-                            <span className="ml-2 font-medium text-slate-900">{result.candidateEmail}</span>
+                            <span className="text-slate-700 dark:text-slate-300">{t('common.email')}:</span>
+                            <span className="ml-2 font-medium text-slate-900 dark:text-white">{result.candidateEmail}</span>
                         </div>
                         <div>
-                            <span className="text-slate-500">{t('results.started')}:</span>
-                            <span className="ml-2 font-medium text-slate-900">
+                            <span className="text-slate-700 dark:text-slate-300">{t('results.started')}:</span>
+                            <span className="ml-2 font-medium text-slate-900 dark:text-white">
                                 {new Date(result.startTime).toLocaleString()}
                             </span>
                         </div>
                         <div>
-                            <span className="text-slate-500">{t('results.submitted')}:</span>
-                            <span className="ml-2 font-medium text-slate-900">
+                            <span className="text-slate-700 dark:text-slate-300">{t('results.submitted')}:</span>
+                            <span className="ml-2 font-medium text-slate-900 dark:text-white">
                                 {new Date(result.submittedAt).toLocaleString()}
                             </span>
                         </div>
@@ -280,23 +282,23 @@ const AssessmentResults: React.FC = () => {
 
                 {/* Question Results */}
                 <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-slate-900">{t('results.questionReview')}</h3>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('results.questionReview')}</h3>
 
                     {result.answers.map((answer, index) => (
                         <div
                             key={answer.id}
-                            className="bg-white rounded-2xl border border-slate-200 overflow-hidden"
+                            className="bg-white dark:bg-neutral-900 rounded-2xl border border-slate-200 dark:border-neutral-800 overflow-hidden"
                         >
                             {/* Question Header */}
                             <button
                                 onClick={() => toggleQuestion(answer.questionId)}
-                                className="w-full p-5 flex items-center gap-4 hover:bg-slate-50 transition-colors"
+                                className="w-full p-5 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors"
                             >
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${answer.isCorrect === true
                                     ? 'bg-emerald-50 text-emerald-600'
                                     : answer.isCorrect === false
                                         ? 'bg-red-50 text-red-600'
-                                        : 'bg-indigo-50 text-indigo-600'
+                                        : 'bg-brand-50 text-brand-600'
                                     }`}>
                                     {answer.isCorrect === true ? (
                                         <CheckCircle2 size={20} />
@@ -308,44 +310,44 @@ const AssessmentResults: React.FC = () => {
                                 </div>
 
                                 <div className="flex-1 text-left">
-                                    <p className="font-medium text-slate-900 line-clamp-1">
+                                    <p className="font-medium text-slate-900 dark:text-white line-clamp-1">
                                         Q{index + 1}: {answer.questionText}
                                     </p>
-                                    <p className="text-sm text-slate-500">
+                                    <p className="text-sm text-slate-700 dark:text-slate-300">
                                         {answer.questionType.replace('_', ' ')} • {answer.earnedPoints}/{answer.points} {t('assess.points')}
                                     </p>
                                 </div>
 
                                 {expandedQuestions.has(answer.questionId) ? (
-                                    <ChevronUp size={20} className="text-slate-400" />
+                                    <ChevronUp size={20} className="text-slate-600 dark:text-slate-400" />
                                 ) : (
-                                    <ChevronDown size={20} className="text-slate-400" />
+                                    <ChevronDown size={20} className="text-slate-600 dark:text-slate-400" />
                                 )}
                             </button>
 
                             {/* Expanded Content */}
                             {expandedQuestions.has(answer.questionId) && (
-                                <div className="px-5 pb-5 pt-0 border-t border-slate-100">
+                                <div className="px-5 pb-5 pt-0 border-t border-slate-100 dark:border-neutral-800">
                                     <div className="space-y-4 pt-4">
                                         {/* Question */}
                                         <div>
-                                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{t('assess.questions')}</p>
-                                            <p className="text-slate-900">{answer.questionText}</p>
+                                            <p className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">{t('assess.questions')}</p>
+                                            <p className="text-slate-900 dark:text-white">{answer.questionText}</p>
                                         </div>
 
                                         {/* User Answer */}
                                         <div>
-                                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{t('results.yourAnswer')}</p>
+                                            <p className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">{t('results.yourAnswer')}</p>
                                             <div className={`p-4 rounded-xl ${answer.isCorrect === true
                                                 ? 'bg-emerald-50 border border-emerald-200'
                                                 : answer.isCorrect === false
                                                     ? 'bg-red-50 border border-red-200'
-                                                    : 'bg-indigo-50 border border-indigo-200'
+                                                    : 'bg-brand-50 border border-brand-200'
                                                 }`}>
                                                 {answer.questionType === 'code' ? (
-                                                    <pre className="font-mono text-sm text-slate-900 whitespace-pre-wrap">{answer.userAnswer}</pre>
+                                                    <pre className="font-mono text-sm text-slate-900 dark:text-white whitespace-pre-wrap">{answer.userAnswer}</pre>
                                                 ) : (
-                                                    <p className="text-slate-900">{answer.userAnswer}</p>
+                                                    <p className="text-slate-900 dark:text-white">{answer.userAnswer}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -353,7 +355,7 @@ const AssessmentResults: React.FC = () => {
                                         {/* Correct Answer (if applicable) */}
                                         {answer.correctAnswer && answer.isCorrect === false && (
                                             <div>
-                                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{t('assess.correctAnswer')}</p>
+                                                <p className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">{t('assess.correctAnswer')}</p>
                                                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
                                                     <p className="text-emerald-800">{answer.correctAnswer}</p>
                                                 </div>
@@ -363,16 +365,16 @@ const AssessmentResults: React.FC = () => {
                                         {/* AI Evaluation */}
                                         {answer.aiEvaluation && (
                                             <div className="space-y-3">
-                                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{t('results.aiEval')}</p>
+                                                <p className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">{t('results.aiEval')}</p>
 
                                                 <div className="flex items-center gap-4">
-                                                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div className="flex-1 h-2 bg-slate-100 dark:bg-neutral-800 rounded-full overflow-hidden">
                                                         <div
-                                                            className="h-full bg-indigo-600 rounded-full"
+                                                            className="h-full bg-brand-600 rounded-full"
                                                             style={{ width: `${answer.aiEvaluation.score}%` }}
                                                         />
                                                     </div>
-                                                    <span className="text-sm font-bold text-slate-900">{answer.aiEvaluation.score}%</span>
+                                                    <span className="text-sm font-bold text-slate-900 dark:text-white">{answer.aiEvaluation.score}%</span>
                                                 </div>
 
                                                 <p className="text-sm text-slate-600">{answer.aiEvaluation.feedback}</p>
@@ -415,27 +417,29 @@ const AssessmentResults: React.FC = () => {
 
                 {/* Actions */}
                 <div className="flex justify-center gap-4 pt-4">
-                    <button
+                    <Button
                         onClick={() => navigate('/candidate/dashboard')}
-                        className="px-8 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all"
+                        variant="secondary"
+                        size="lg"
                     >
                         {t('results.backToDashboard')}
-                    </button>
+                    </Button>
                     {result.passed && (
-                        <button
+                        <Button
                             onClick={() => navigate(`/offers?create=true&candidateId=${result.candidateId}&jobId=${result.jobId}`)}
-                            className="px-8 py-4 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 shadow-lg transition-all flex items-center gap-2"
+                            size="lg"
+                            icon={<FileSignature size={20} />}
+                            className="bg-success-600 hover:bg-success-700 shadow-success-600/20"
                         >
-                            <FileSignature size={20} />
                             {t('results.draftOffer')}
-                        </button>
+                        </Button>
                     )}
-                    <button
+                    <Button
                         onClick={() => window.print()}
-                        className="px-8 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 shadow-lg transition-all"
+                        size="lg"
                     >
                         {t('results.printResults')}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

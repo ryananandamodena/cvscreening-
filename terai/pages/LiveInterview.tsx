@@ -287,8 +287,8 @@ const VolumeMeter = ({ stream, isRecording }: { stream: MediaStream | null, isRe
   return (
     <div className="flex flex-col gap-1 w-full max-w-[120px]">
       <div className="flex justify-between items-center px-1">
-        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Mic Level</span>
-        <span className={`text-[8px] font-bold ${level > 10 ? 'text-emerald-500' : 'text-rose-400'}`}>
+        <span className="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Mic Level</span>
+        <span className={`text-[8px] font-bold ${level > 10 ? 'text-emerald-500' : 'text-rose-600 dark:text-rose-400'}`}>
           {level > 10 ? 'OK' : 'Too Quiet'}
         </span>
       </div>
@@ -370,7 +370,7 @@ const LiveInterview = () => {
 
     // Tech accuracy based on strength observations
     let techAccuracy = 'Calculating...';
-    let techColor = 'text-indigo-600';
+    let techColor = 'text-brand-600';
     if (total > 0) {
       const strengthRatio = priorityCounts.low / total;
       if (strengthRatio > 0.5) {
@@ -1347,8 +1347,8 @@ const LiveInterview = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <Loader2 size={48} className="text-indigo-600 animate-spin" />
-        <p className="font-black text-slate-400 uppercase tracking-widest text-xs">{t('liveInterview.session.initializing')}</p>
+        <Loader2 size={48} className="text-brand-600 animate-spin" />
+        <p className="font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest text-xs">{t('liveInterview.session.initializing')}</p>
       </div>
     );
   }
@@ -1360,18 +1360,18 @@ const LiveInterview = () => {
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-4xl font-black text-slate-900">{t('liveInterview.title')}</h1>
-            <p className="text-slate-500 mt-2">{t('liveInterview.subtitle')}</p>
+            <p className="text-slate-700 dark:text-slate-300 mt-2">{t('liveInterview.subtitle')}</p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => window.open('/#/live/TEST_TOKEN', '_blank')}
-              className="px-6 py-4 bg-white text-indigo-600 font-bold rounded-2xl border border-indigo-100 hover:bg-indigo-50 shadow-xl shadow-indigo-100/50 flex items-center gap-2 transition-all active:scale-95"
+              className="px-6 py-4 bg-white text-brand-600 font-bold rounded-2xl border border-brand-100 hover:bg-brand-50 shadow-xl shadow-brand-100/50 flex items-center gap-2 transition-all active:scale-95"
             >
               <User size={20} /> {t('liveInterview.testCandidate')}
             </button>
             <button
               onClick={() => setShowScheduleModal(true)}
-              className="px-6 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 shadow-xl flex items-center gap-2 transition-all active:scale-95"
+              className="px-6 py-4 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 shadow-xl flex items-center gap-2 transition-all active:scale-95"
             >
               <Plus size={20} /> {t('liveInterview.schedule')}
             </button>
@@ -1382,7 +1382,7 @@ const LiveInterview = () => {
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" size={18} />
                 <input type="text" placeholder={t('liveInterview.searchPlaceholder')} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm" />
               </div>
               <button className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-bold flex items-center gap-2">
@@ -1394,10 +1394,10 @@ const LiveInterview = () => {
               <table className="w-full">
                 <thead className="bg-slate-50/50 border-b border-slate-100">
                   <tr>
-                    <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('liveInterview.table.candidate')}</th>
-                    <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('liveInterview.table.job')}</th>
-                    <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('liveInterview.table.schedule')}</th>
-                    <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('liveInterview.table.action')}</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">{t('liveInterview.table.candidate')}</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">{t('liveInterview.table.job')}</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">{t('liveInterview.table.schedule')}</th>
+                    <th className="px-8 py-5 text-right text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">{t('liveInterview.table.action')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -1405,17 +1405,17 @@ const LiveInterview = () => {
                     <tr key={intv.id} className="hover:bg-slate-50/50 transition-all group">
                       <td className="px-8 py-6">
                         <p className="font-bold text-slate-900">{intv.candidateName}</p>
-                        <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                        <span className="text-[10px] font-black text-brand-500 uppercase tracking-widest bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100">
                           {intv.interviewType}
                         </span>
                       </td>
                       <td className="px-8 py-6 text-slate-600 font-medium">{intv.jobTitle}</td>
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-2 text-slate-600">
-                          <Calendar size={14} className="text-slate-400" />
+                          <Calendar size={14} className="text-slate-600 dark:text-slate-400" />
                           <span className="text-xs font-bold">{new Date(intv.scheduledAt).toLocaleDateString()}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-400 mt-1">
+                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mt-1">
                           <Clock size={12} />
                           <span className="text-[10px] font-medium">{new Date(intv.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
@@ -1438,14 +1438,14 @@ const LiveInterview = () => {
                                   navigator.clipboard.writeText(url);
                                   addToast('success', (t('liveInterview.table.copyLink') || 'Link copied') + "!");
                                 }}
-                                className="px-4 py-2 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100 flex items-center gap-2"
+                                className="px-4 py-2 bg-brand-50 text-brand-600 text-[10px] font-bold rounded-xl hover:bg-brand-100 transition-all border border-brand-100 flex items-center gap-2"
                                 title={t('liveInterview.table.copyLink')}
                               >
                                 <Monitor size={14} /> {t('liveInterview.table.copyLink')}
                               </button>
                               <button
                                 onClick={() => initSession(intv)}
-                                className="px-5 py-2.5 bg-slate-900 text-white text-[10px] font-black rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 uppercase tracking-widest"
+                                className="px-5 py-2.5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-[10px] font-black rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 dark:shadow-slate-900/10 uppercase tracking-widest"
                               >
                                 {t('liveInterview.table.joinSession')}
                               </button>
@@ -1458,7 +1458,7 @@ const LiveInterview = () => {
                   {interviews.length === 0 && (
                     <tr>
                       <td colSpan={4} className="py-20 text-center">
-                        <div className="flex flex-col items-center gap-4 text-slate-300">
+                        <div className="flex flex-col items-center gap-4 text-slate-700 dark:text-slate-300">
                           <Calendar size={48} className="opacity-20" />
                           <p className="font-black uppercase tracking-[0.2em] text-xs">{t('liveInterview.table.noInterviews')}</p>
                         </div>
@@ -1474,7 +1474,7 @@ const LiveInterview = () => {
             <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
               <h3 className="font-black text-slate-900 mb-6 flex items-center justify-between">
                 {t('liveInterview.vitals.title')}
-                <Activity size={20} className="text-indigo-600" />
+                <Activity size={20} className="text-brand-600" />
               </h3>
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
@@ -1482,7 +1482,7 @@ const LiveInterview = () => {
                     <CheckCircle2 size={24} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t('liveInterview.vitals.completedToday')}</p>
+                    <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest leading-none">{t('liveInterview.vitals.completedToday')}</p>
                     <p className="text-xl font-black text-slate-900">
                       {interviews.filter(i => i.status === 'completed' && new Date(i.scheduledAt).toDateString() === new Date().toDateString()).length}
                     </p>
@@ -1493,7 +1493,7 @@ const LiveInterview = () => {
                     <Clock size={24} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t('liveInterview.vitals.pendingActions')}</p>
+                    <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest leading-none">{t('liveInterview.vitals.pendingActions')}</p>
                     <p className="text-xl font-black text-slate-900">
                       {interviews.filter(i => i.status !== 'completed').length}
                     </p>
@@ -1502,9 +1502,9 @@ const LiveInterview = () => {
               </div>
             </div>
 
-            <div className="bg-indigo-600 p-8 rounded-[32px] text-white shadow-xl shadow-indigo-600/20">
+            <div className="bg-brand-600 p-8 rounded-[32px] text-white shadow-xl shadow-brand-600/20">
               <h3 className="font-black mb-4">{t('liveInterview.proTip.title')}</h3>
-              <p className="text-indigo-100 text-sm leading-relaxed">
+              <p className="text-brand-100 text-sm leading-relaxed">
                 {t('liveInterview.proTip.content')}
               </p>
             </div>
@@ -1516,16 +1516,16 @@ const LiveInterview = () => {
             <div className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
               <div className="p-10">
                 <h2 className="text-2xl font-black text-slate-900 mb-2">{t('liveInterview.modal.title')}</h2>
-                <p className="text-slate-500 text-sm mb-8">{t('liveInterview.modal.subtitle')}</p>
+                <p className="text-slate-700 dark:text-slate-300 text-sm mb-8">{t('liveInterview.modal.subtitle')}</p>
 
                 <form onSubmit={handleScheduleInterview} className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.candidate')}</label>
+                    <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.candidate')}</label>
                     <select
                       name="candidateId"
                       required
                       defaultValue={prefillData.candidateId || ""}
-                      className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500 transition-all appearance-none cursor-pointer"
+                      className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500 transition-all appearance-none cursor-pointer"
                     >
                       <option value="">{t('liveInterview.modal.selectCandidate')}</option>
                       {candidates.map(c => <option key={c.id} value={c.id}>{c.fullName}</option>)}
@@ -1533,12 +1533,12 @@ const LiveInterview = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.job')}</label>
+                    <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.job')}</label>
                     <select
                       name="jobId"
                       required
                       defaultValue={prefillData.jobId || ""}
-                      className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500 transition-all appearance-none cursor-pointer"
+                      className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500 transition-all appearance-none cursor-pointer"
                     >
                       <option value="">{t('liveInterview.modal.selectJob')}</option>
                       {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
@@ -1547,23 +1547,23 @@ const LiveInterview = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.date')}</label>
-                      <input type="date" name="date" required className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500 transition-all" />
+                      <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.date')}</label>
+                      <input type="date" name="date" required className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500 transition-all" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.time')}</label>
-                      <input type="time" name="time" required className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500 transition-all" />
+                      <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.time')}</label>
+                      <input type="time" name="time" required className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500 transition-all" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.interviewer')}</label>
-                      <input type="text" name="interviewer" placeholder="RecruitAI Agent" className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500 transition-all" />
+                      <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.interviewer')}</label>
+                      <input type="text" name="interviewer" placeholder="RecruitAI Agent" className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500 transition-all" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.type')}</label>
-                      <select name="type" className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-indigo-500 transition-all appearance-none cursor-pointer">
+                      <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.type')}</label>
+                      <select name="type" className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500 transition-all appearance-none cursor-pointer">
                         <option value="Technical">{t('interviewSchedule.technical')}</option>
                         <option value="Behavioral">{t('interviewSchedule.behavioral')}</option>
                         <option value="Culture Fit">{t('interviewSchedule.cultureFit')}</option>
@@ -1573,7 +1573,7 @@ const LiveInterview = () => {
 
                   <div className="flex gap-4 pt-4">
                     <button onClick={() => setShowScheduleModal(false)} type="button" className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all">{t('common.cancel')}</button>
-                    <button type="submit" className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all active:scale-95">{t('liveInterview.modal.schedule')}</button>
+                    <button type="submit" className="flex-1 py-4 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 shadow-lg shadow-brand-600/20 transition-all active:scale-95">{t('liveInterview.modal.schedule')}</button>
                   </div>
                 </form>
               </div>
@@ -1602,11 +1602,11 @@ const LiveInterview = () => {
           {/* Interview Language Selector */}
           {!isLive && (
             <div className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('interview.selectLanguage')}</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('interview.selectLanguage')}</span>
               <select
                 value={interviewLang}
                 onChange={(e) => setInterviewLang(e.target.value as 'id' | 'en')}
-                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
               >
                 <option value="id">🇮🇩 {t('interview.langId')}</option>
                 <option value="en">🇬🇧 {t('interview.langEn')}</option>
@@ -1617,7 +1617,7 @@ const LiveInterview = () => {
           <button
             onClick={isLive ? terminateSession : () => initSession()}
             disabled={isSaving}
-            className={`px-8 py-4 ${isLive ? 'bg-rose-600' : 'bg-indigo-600'} text-white font-black rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`px-8 py-4 ${isLive ? 'bg-rose-600' : 'bg-brand-600'} text-white font-black rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {isSaving ? <Loader2 className="animate-spin" size={20} /> : (isLive ? <MicOff size={20} /> : <Mic size={20} />)}
             {isSaving ? t('liveInterview.session.saving') : (isLive ? t('liveInterview.session.stop') : t('liveInterview.session.start'))}
@@ -1626,7 +1626,7 @@ const LiveInterview = () => {
       </div>
 
       <div className="flex-1 flex gap-8 overflow-hidden">
-        <div className="flex-1 bg-slate-900 rounded-[50px] overflow-hidden relative shadow-2xl border-8 border-slate-800/50 flex flex-col">
+        <div className="flex-1 bg-slate-50 dark:bg-slate-900 rounded-[50px] overflow-hidden relative shadow-2xl border-8 border-slate-200 dark:border-slate-800/50 flex flex-col">
           {/* Video Feed Display */}
           {videoStream ? (
             <video
@@ -1642,19 +1642,19 @@ const LiveInterview = () => {
           )}
 
           <div className="absolute top-10 left-10 glass p-6 rounded-[32px] flex items-center gap-4 border border-white/10 z-10">
-            <BrainCircuit size={32} className="text-indigo-400" />
+            <BrainCircuit size={32} className="text-brand-600 dark:text-brand-400" />
             <div>
-              <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">{t('liveInterview.session.secureEngine')}</p>
-              <h4 className="text-white font-bold">{isLive ? t('liveInterview.session.analysisEnabled') : t('liveInterview.session.readyToStart')}</h4>
+              <p className="text-[10px] font-black text-brand-300 uppercase tracking-widest">{t('liveInterview.session.secureEngine')}</p>
+              <h4 className="text-slate-900 dark:text-white font-bold">{isLive ? t('liveInterview.session.analysisEnabled') : t('liveInterview.session.readyToStart')}</h4>
             </div>
           </div>
 
           <div className="flex-1 flex flex-col justify-center items-center relative z-10 px-20 text-center space-y-12">
             {isLive && (
-              <div className="size-64 rounded-full border-4 border-indigo-500/30 flex items-center justify-center relative">
-                <div className="absolute inset-0 rounded-full border-2 border-indigo-400 animate-ping opacity-20"></div>
-                <div className="size-48 bg-indigo-600/20 rounded-full backdrop-blur-3xl border border-white/10 flex items-center justify-center">
-                  <Zap size={64} className="text-indigo-400 animate-pulse" />
+              <div className="size-64 rounded-full border-4 border-brand-500/30 flex items-center justify-center relative">
+                <div className="absolute inset-0 rounded-full border-2 border-brand-400 animate-ping opacity-20"></div>
+                <div className="size-48 bg-brand-600/20 rounded-full backdrop-blur-3xl border border-white/10 flex items-center justify-center">
+                  <Zap size={64} className="text-brand-600 dark:text-brand-400 animate-pulse" />
                 </div>
               </div>
             )}
@@ -1662,7 +1662,7 @@ const LiveInterview = () => {
             <div className="w-full max-w-2xl space-y-6">
               <AudioVisualizer stream={micStream} isActive={isLive} color="#818cf8" />
               <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent w-full"></div>
-              <p className="text-2xl font-medium text-slate-300 leading-relaxed italic">
+              <p className="text-2xl font-medium text-slate-700 dark:text-slate-300 leading-relaxed italic">
                 {isLive ? `"${transcript}"` : t('liveInterview.session.readyToStart')}
               </p>
             </div>
@@ -1670,21 +1670,21 @@ const LiveInterview = () => {
 
           <div className="p-10 bg-slate-950/50 border-t border-white/5 flex justify-between items-center relative z-10">
             <div className="flex items-center gap-4">
-              <div className="size-12 rounded-xl bg-slate-800 flex items-center justify-center text-white">
+              <div className="size-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-slate-900 dark:text-white">
                 <User size={24} />
               </div>
               <div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">{t('liveInterview.session.candidateProfile')}</p>
-                <p className="text-white font-bold text-sm">
+                <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest leading-none">{t('liveInterview.session.candidateProfile')}</p>
+                <p className="text-slate-900 dark:text-white font-bold text-sm">
                   {activeInterview ? activeInterview.candidateName : 'Sarah Jenkins'}
                 </p>
               </div>
             </div>
             <div className="flex gap-4">
               <div className="flex flex-col items-end">
-                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">{t('liveInterview.session.signalStrength')}</p>
+                <p className="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest leading-none">{t('liveInterview.session.signalStrength')}</p>
                 <div className="flex gap-1 mt-2">
-                  {[1, 2, 3, 4, 5].map(i => <div key={i} className={`w-1 h-3 rounded-full ${i <= 4 ? 'bg-indigo-500' : 'bg-slate-700'}`}></div>)}
+                  {[1, 2, 3, 4, 5].map(i => <div key={i} className={`w-1 h-3 rounded-full ${i <= 4 ? 'bg-brand-500' : 'bg-slate-700'}`}></div>)}
                 </div>
               </div>
             </div>
@@ -1697,30 +1697,30 @@ const LiveInterview = () => {
           <div className="w-[400px] flex flex-col gap-6">
             <div className="bg-white p-10 rounded-[50px] border border-slate-200 shadow-xl flex-1 flex flex-col">
               <h3 className="text-lg font-black mb-8 flex items-center gap-3 text-slate-900">
-                <Monitor className="text-indigo-600" size={24} /> Recruiter Intelligence
+                <Monitor className="text-brand-600" size={24} /> Recruiter Intelligence
               </h3>
               <div className="space-y-6 flex-1">
                 <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t('liveInterview.vitals.title')}</p>
+                  <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-4">{t('liveInterview.vitals.title')}</p>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-500">{t('liveInterview.session.fluency')}</span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('liveInterview.session.fluency')}</span>
                       <span className={`text-xs font-black ${candidateVitals.fluencyColor}`}>{candidateVitals.fluency}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-500">{t('liveInterview.session.hesitation')}</span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('liveInterview.session.hesitation')}</span>
                       <span className={`text-xs font-black ${candidateVitals.hesitationColor}`}>{candidateVitals.hesitation}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-500">{t('liveInterview.session.techAccuracy')}</span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('liveInterview.session.techAccuracy')}</span>
                       <span className={`text-xs font-black ${candidateVitals.techColor}`}>{candidateVitals.techAccuracy}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100 flex flex-col gap-4">
+                <div className="p-6 bg-brand-50/50 rounded-3xl border border-brand-100 flex flex-col gap-4">
                   <div className="flex justify-between items-center mb-2">
-                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                    <p className="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest">
                       {t('assessment.question')} {currentQuestionIndex + 1} of {jobQuestions.length}
                     </p>
                     <div className="flex gap-1">
@@ -1728,7 +1728,7 @@ const LiveInterview = () => {
                         <div
                           key={idx}
                           className={`h-1.5 w-1.5 rounded-full transition-all ${savedResponses[idx] ? 'bg-emerald-500' :
-                            idx === currentQuestionIndex ? 'bg-indigo-600 scale-125' :
+                            idx === currentQuestionIndex ? 'bg-brand-600 scale-125' :
                               idx < currentQuestionIndex ? 'bg-emerald-400' : 'bg-slate-200'
                             }`}
                         />
@@ -1782,7 +1782,7 @@ const LiveInterview = () => {
                             <VolumeMeter stream={micStream} isRecording={isRecordingQuestion} />
                           </div>
                           
-                          <span className="text-rose-400 text-[9px] font-bold ml-auto tabular-nums">100% Secure</span>
+                          <span className="text-rose-600 dark:text-rose-400 text-[9px] font-bold ml-auto tabular-nums">100% Secure</span>
                         </div>
                       ) : (
                         <div className="flex gap-2 flex-wrap">
@@ -1819,14 +1819,14 @@ const LiveInterview = () => {
                           [currentQuestionIndex]: e.target.value
                         }))}
                         placeholder="Take notes on the candidate's answer..."
-                        className="w-full px-4 py-3 bg-white border border-indigo-100 rounded-2xl text-xs font-medium resize-none focus:ring-2 ring-indigo-500 transition-all min-h-[80px]"
+                        className="w-full px-4 py-3 bg-white border border-brand-100 rounded-2xl text-xs font-medium resize-none focus:ring-2 ring-brand-500 transition-all min-h-[80px]"
                       />
 
                       <div className="flex justify-between items-center pt-2">
                         <button
                           onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                           disabled={currentQuestionIndex === 0}
-                          className="text-xs font-bold text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          className="text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                           {t('common.previous')}
                         </button>
@@ -1834,7 +1834,7 @@ const LiveInterview = () => {
                         <button
                           onClick={handleSaveAndNext}
                           disabled={isSavingQuestion}
-                          className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-2 bg-brand-600 text-white text-xs font-bold rounded-xl hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {currentQuestionIndex < jobQuestions.length - 1 ? (
                             <>{isSavingQuestion ? t('interview.saving') : t('interview.saveAndNext')} <ChevronRight size={14} /></>
@@ -1846,7 +1846,7 @@ const LiveInterview = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <p className="text-xs text-slate-400 italic">{t('liveInterview.table.noInterviews')}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 italic">{t('liveInterview.table.noInterviews')}</p>
                     </div>
                   )}
                 </div>
@@ -1911,8 +1911,8 @@ const LiveInterview = () => {
                         );
                       })
                     ) : (
-                      <li className="text-[10px] font-bold text-slate-400 flex items-center gap-2">
-                        <Activity size={12} className="text-slate-400" /> {t('liveInterview.session.analyzingTopics') || 'Analyzing conversation topics...'}
+                      <li className="text-[10px] font-bold text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                        <Activity size={12} className="text-slate-600 dark:text-slate-400" /> {t('liveInterview.session.analyzingTopics') || 'Analyzing conversation topics...'}
                       </li>
                     )}
                   </ul>
@@ -1955,13 +1955,13 @@ const LiveInterview = () => {
                       addToast('info', recommendation);
                       navigate(`/interviews/${activeInterview?.id}/results`, { state: { recommendation } });
                     }}
-                    className="w-full py-5 bg-indigo-600 text-white font-black rounded-3xl text-sm shadow-xl shadow-indigo-600/20 flex justify-between px-8 items-center hover:bg-indigo-700 transition-all cursor-pointer"
+                    className="w-full py-5 bg-brand-600 text-white font-black rounded-3xl text-sm shadow-xl shadow-brand-600/20 flex justify-between px-8 items-center hover:bg-brand-700 transition-all cursor-pointer"
                   >
                     {t('liveInterview.session.finalRec')} <ChevronRight size={18} />
                   </button>
                   <button
                     onClick={terminateSession}
-                    className="w-full py-5 bg-slate-900 text-white font-black rounded-3xl text-sm transition-all flex justify-between px-8 items-center border border-slate-800"
+                    className="w-full py-5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-black rounded-3xl text-sm transition-all flex justify-between px-8 items-center border border-slate-200 dark:border-slate-800"
                   >
                     {t('liveInterview.session.endSession')} <Mic size={18} />
                   </button>
@@ -1983,7 +1983,7 @@ const LiveInterview = () => {
                 </div>
                 <div>
                   <h2 className="text-xl font-black text-slate-900">{t('liveInterview.resume.title')}</h2>
-                  <p className="text-slate-500 text-sm">{t('liveInterview.resume.subtitle')}</p>
+                  <p className="text-slate-700 dark:text-slate-300 text-sm">{t('liveInterview.resume.subtitle')}</p>
                 </div>
               </div>
 
@@ -2000,7 +2000,7 @@ const LiveInterview = () => {
                 </button>
                 <button
                   onClick={() => handleResumeSession(true)}
-                  className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20"
+                  className="flex-1 py-4 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20"
                 >
                   {t('liveInterview.resume.resume')}
                 </button>

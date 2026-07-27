@@ -148,38 +148,38 @@ const LinkedInImport: React.FC = () => {
             {/* Header */}
             <div className="flex items-center gap-4">
                 <div className="bg-[#0077B5] p-4 rounded-2xl shadow-lg">
-                    <Linkedin size={32} className="text-white" />
+                    <Linkedin size={32} className="text-slate-900 dark:text-white" />
                 </div>
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
                         LinkedIn Import
                     </h1>
-                    <p className="text-slate-500 font-medium mt-1">
+                    <p className="text-slate-700 dark:text-slate-300 font-medium mt-1">
                         Search and import candidates from LinkedIn
                     </p>
                 </div>
             </div>
 
             {/* Search Section */}
-            <div className="bg-white rounded-2xl border border-slate-200/60 shadow-lg p-6 space-y-4">
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-slate-200/60 shadow-lg p-6 space-y-4">
                 {/* Main Search */}
                 <div className="flex gap-4">
                     <div className="flex-1 relative">
-                        <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && searchCandidates()}
                             placeholder="Search by name, skills, or keywords..."
-                            className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#0077B5] focus:ring-2 focus:ring-[#0077B5]/20 outline-none transition-all"
+                            className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 dark:border-neutral-800 focus:border-[#0077B5] focus:ring-2 focus:ring-[#0077B5]/20 outline-none transition-all"
                         />
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`px-4 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${showFilters
                             ? 'bg-slate-100 text-slate-700'
-                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                            : 'bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
                             }`}
                     >
                         <Filter size={18} />
@@ -189,7 +189,7 @@ const LinkedInImport: React.FC = () => {
                     <button
                         onClick={searchCandidates}
                         disabled={isLoading}
-                        className="px-6 py-3 bg-[#0077B5] text-white rounded-xl font-bold hover:bg-[#006399] transition-all disabled:opacity-50 flex items-center gap-2"
+                        className="px-6 py-3 bg-[#0077B5] text-slate-900 dark:text-white rounded-xl font-bold hover:bg-[#006399] transition-all disabled:opacity-50 flex items-center gap-2"
                     >
                         {isLoading ? (
                             <>
@@ -207,39 +207,39 @@ const LinkedInImport: React.FC = () => {
 
                 {/* Filters */}
                 {showFilters && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-100 dark:border-neutral-800">
                         <div>
-                            <label className="block text-sm font-medium text-slate-600 mb-2">Location</label>
+                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Location</label>
                             <div className="relative">
-                                <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" />
                                 <input
                                     type="text"
                                     value={location}
                                     onChange={(e) => setLocation(e.target.value)}
                                     placeholder="e.g., Jakarta, Indonesia"
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:border-[#0077B5] focus:ring-2 focus:ring-[#0077B5]/20 outline-none transition-all"
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-neutral-800 focus:border-[#0077B5] focus:ring-2 focus:ring-[#0077B5]/20 outline-none transition-all"
                                 />
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-600 mb-2">Job Title</label>
+                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Job Title</label>
                             <div className="relative">
-                                <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" />
                                 <input
                                     type="text"
                                     value={jobTitle}
                                     onChange={(e) => setJobTitle(e.target.value)}
                                     placeholder="e.g., Software Engineer"
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:border-[#0077B5] focus:ring-2 focus:ring-[#0077B5]/20 outline-none transition-all"
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-neutral-800 focus:border-[#0077B5] focus:ring-2 focus:ring-[#0077B5]/20 outline-none transition-all"
                                 />
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-600 mb-2">Experience Level</label>
+                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Experience Level</label>
                             <select
                                 value={experienceLevel}
                                 onChange={(e) => setExperienceLevel(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-[#0077B5] focus:ring-2 focus:ring-[#0077B5]/20 outline-none transition-all"
+                                className="w-full px-4 py-2.5 rounded-lg border border-slate-200 dark:border-neutral-800 focus:border-[#0077B5] focus:ring-2 focus:ring-[#0077B5]/20 outline-none transition-all"
                             >
                                 <option value="">All Levels</option>
                                 <option value="entry">Entry Level (0-2 years)</option>
@@ -249,7 +249,7 @@ const LinkedInImport: React.FC = () => {
                             </select>
                         </div>
                         <div className="md:col-span-3">
-                            <label className="block text-sm font-medium text-slate-600 mb-2">Required Skills</label>
+                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Required Skills</label>
                             <div className="flex gap-2 mb-2">
                                 <input
                                     type="text"
@@ -257,11 +257,11 @@ const LinkedInImport: React.FC = () => {
                                     onChange={(e) => setSkillInput(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && addSkill()}
                                     placeholder="Add a skill filter..."
-                                    className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 focus:border-[#0077B5] focus:ring-2 focus:ring-[#0077B5]/20 outline-none transition-all"
+                                    className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-neutral-800 focus:border-[#0077B5] focus:ring-2 focus:ring-[#0077B5]/20 outline-none transition-all"
                                 />
                                 <button
                                     onClick={addSkill}
-                                    className="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-all"
+                                    className="px-4 py-2.5 bg-slate-100 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-200 transition-all"
                                 >
                                     Add
                                 </button>
@@ -290,15 +290,15 @@ const LinkedInImport: React.FC = () => {
             {candidates.length > 0 && (
                 <div className="space-y-4">
                     {/* Actions Bar */}
-                    <div className="flex items-center justify-between bg-white rounded-xl border border-slate-200/60 p-4">
+                    <div className="flex items-center justify-between bg-white dark:bg-neutral-900 rounded-xl border border-slate-200/60 p-4">
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={selectAll}
-                                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-all"
+                                className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white transition-all"
                             >
                                 {selectedCandidates.length === candidates.length ? 'Deselect All' : 'Select All'}
                             </button>
-                            <span className="text-sm text-slate-400">
+                            <span className="text-sm text-slate-600 dark:text-slate-400">
                                 {selectedCandidates.length} selected
                             </span>
                         </div>
@@ -324,7 +324,7 @@ const LinkedInImport: React.FC = () => {
                             return (
                                 <div
                                     key={candidate.id}
-                                    className={`bg-white rounded-2xl border-2 transition-all cursor-pointer ${isSelected
+                                    className={`bg-white dark:bg-neutral-900 rounded-2xl border-2 transition-all cursor-pointer ${isSelected
                                         ? 'border-[#0077B5] shadow-lg shadow-[#0077B5]/10'
                                         : 'border-slate-200/60 hover:border-slate-300'
                                         } ${isImported ? 'opacity-60' : ''}`}
@@ -340,15 +340,15 @@ const LinkedInImport: React.FC = () => {
                                             />
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <h3 className="font-bold text-slate-900 truncate">
+                                                    <h3 className="font-bold text-slate-900 dark:text-white truncate">
                                                         {candidate.firstName} {candidate.lastName}
                                                     </h3>
                                                     {isImported && (
                                                         <CheckCircle2 size={16} className="text-green-500 shrink-0" />
                                                     )}
                                                 </div>
-                                                <p className="text-sm text-slate-600 truncate">{candidate.headline}</p>
-                                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                                                <p className="text-sm text-slate-600 dark:text-slate-400 truncate">{candidate.headline}</p>
+                                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-600 dark:text-slate-400">
                                                     {candidate.location && (
                                                         <span className="flex items-center gap-1">
                                                             <MapPin size={12} />
@@ -364,7 +364,7 @@ const LinkedInImport: React.FC = () => {
                                             <div className="flex items-center gap-2">
                                                 {isSelected && !isImported && (
                                                     <div className="w-6 h-6 bg-[#0077B5] rounded-full flex items-center justify-center">
-                                                        <CheckCircle2 size={16} className="text-white" />
+                                                        <CheckCircle2 size={16} className="text-slate-900 dark:text-white" />
                                                     </div>
                                                 )}
                                             </div>
@@ -372,7 +372,7 @@ const LinkedInImport: React.FC = () => {
 
                                         {/* Summary */}
                                         {candidate.summary && (
-                                            <p className="mt-4 text-sm text-slate-600 line-clamp-2">
+                                            <p className="mt-4 text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
                                                 {candidate.summary}
                                             </p>
                                         )}
@@ -382,13 +382,13 @@ const LinkedInImport: React.FC = () => {
                                             {candidate.skills.slice(0, 6).map(skill => (
                                                 <span
                                                     key={skill}
-                                                    className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium"
+                                                    className="px-2 py-0.5 bg-slate-100 text-slate-600 dark:text-slate-400 rounded text-xs font-medium"
                                                 >
                                                     {skill}
                                                 </span>
                                             ))}
                                             {candidate.skills.length > 6 && (
-                                                <span className="px-2 py-0.5 text-slate-400 text-xs">
+                                                <span className="px-2 py-0.5 text-slate-600 dark:text-slate-400 text-xs">
                                                     +{candidate.skills.length - 6} more
                                                 </span>
                                             )}
@@ -396,17 +396,17 @@ const LinkedInImport: React.FC = () => {
 
                                         {/* Experience */}
                                         {candidate.positions.length > 0 && (
-                                            <div className="mt-4 pt-4 border-t border-slate-100">
-                                                <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-neutral-800">
+                                                <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 mb-2">
                                                     <Building2 size={14} />
                                                     Current Position
                                                 </div>
                                                 <div className="text-sm">
-                                                    <span className="font-medium text-slate-900">
+                                                    <span className="font-medium text-slate-900 dark:text-white">
                                                         {candidate.positions[0].title}
                                                     </span>
-                                                    <span className="text-slate-400 mx-1">at</span>
-                                                    <span className="text-slate-600">
+                                                    <span className="text-slate-600 dark:text-slate-400 mx-1">at</span>
+                                                    <span className="text-slate-600 dark:text-slate-400">
                                                         {candidate.positions[0].company}
                                                     </span>
                                                 </div>
@@ -415,11 +415,11 @@ const LinkedInImport: React.FC = () => {
 
                                         {/* Education */}
                                         {candidate.educations.length > 0 && (
-                                            <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                                            <div className="mt-3 flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
                                                 <GraduationCap size={14} />
                                                 {candidate.educations[0].school}
                                                 {candidate.educations[0].degree && (
-                                                    <span className="text-slate-400">
+                                                    <span className="text-slate-600 dark:text-slate-400">
                                                         - {candidate.educations[0].degree}
                                                     </span>
                                                 )}
@@ -427,7 +427,7 @@ const LinkedInImport: React.FC = () => {
                                         )}
 
                                         {/* Actions */}
-                                        <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-neutral-800 flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 {candidate.certifications.length > 0 && (
                                                     <span className="flex items-center gap-1 text-xs text-yellow-600">
@@ -445,8 +445,8 @@ const LinkedInImport: React.FC = () => {
                                                 className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-all flex items-center gap-1 ${isImported
                                                     ? 'bg-green-100 text-green-700 cursor-default'
                                                     : isImporting
-                                                        ? 'bg-slate-100 text-slate-400 cursor-wait'
-                                                        : 'bg-[#0077B5] text-white hover:bg-[#006399]'
+                                                        ? 'bg-slate-100 text-slate-600 dark:text-slate-400 cursor-wait'
+                                                        : 'bg-[#0077B5] text-slate-900 dark:text-white hover:bg-[#006399]'
                                                     }`}
                                             >
                                                 {isImported ? (
@@ -477,10 +477,10 @@ const LinkedInImport: React.FC = () => {
 
             {/* Empty State */}
             {candidates.length === 0 && !isLoading && (
-                <div className="bg-white rounded-2xl border border-slate-200/60 shadow-lg p-12 text-center">
-                    <Linkedin size={64} className="text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Search LinkedIn Candidates</h3>
-                    <p className="text-slate-500 max-w-md mx-auto">
+                <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-slate-200/60 shadow-lg p-12 text-center">
+                    <Linkedin size={64} className="text-slate-700 dark:text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Search LinkedIn Candidates</h3>
+                    <p className="text-slate-700 dark:text-slate-300 max-w-md mx-auto">
                         Enter keywords, skills, or job titles to find potential candidates from LinkedIn.
                         Use filters to narrow down your search.
                     </p>

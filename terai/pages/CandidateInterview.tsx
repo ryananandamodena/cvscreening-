@@ -15,7 +15,9 @@ import {
     Camera,
     CameraOff,
     Download,
-    XCircle
+    XCircle,
+    Sparkles,
+    Edit3
 } from 'lucide-react';
 import { aiService } from '../services/ai.service';
 import { apiService } from '../services/api.service';
@@ -131,7 +133,15 @@ const CandidateInterview = () => {
     const [jobQuestions, setJobQuestions] = useState<string[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const currentQuestionIndexRef = useRef(0);
+    const questionRecorderRef = useRef<MediaRecorder | null>(null);
+    const questionChunksRef = useRef<Blob[]>([]);
     useEffect(() => { currentQuestionIndexRef.current = currentQuestionIndex; }, [currentQuestionIndex]);
+
+    const [aiReviewMode, setAiReviewMode] = useState(false);
+    const [aiEvaluationResult, setAiEvaluationResult] = useState("");
+    const [aiTranscriptResult, setAiTranscriptResult] = useState("");
+    const [correctionMode, setCorrectionMode] = useState(false);
+    const [correctedTranscript, setCorrectedTranscript] = useState("");
 
     const [questionAnswers, setQuestionAnswers] = useState<Record<number, string>>({});
     const [activeInterview, setActiveInterview] = useState<any>(null);
@@ -139,6 +149,8 @@ const CandidateInterview = () => {
 
     const [candidateAnswer, setCandidateAnswer] = useState("");
     const candidateAnswerRef = useRef("");
+    // FIX: finalTranscriptAccumulator sebagai ref agar bisa direset dari handleNextQuestion
+    const finalTranscriptAccumulatorRef = useRef('');
     const recognitionRef = useRef<any>(null);
 
     // Self-Paced Interview State
@@ -180,43 +192,112 @@ const CandidateInterview = () => {
             [currentQuestionIndex]: currentAnswer
         }));
 
-        // Reset for next question
+        // Reset untuk pertanyaan berikutnya - termasuk accumulator agar jawaban tidak bergabung
         setCandidateAnswer("");
         candidateAnswerRef.current = "";
-        setTranscript("Listening for new answer...");
+        finalTranscriptAccumulatorRef.current = ''; 
+        setTranscript("Processing your answer...");
 
-        if (sessionRef.current) {
-            const currentQ = jobQuestions[currentQuestionIndex] || "General Introduction";
-            try {
-                sessionRef.current.sendClientContent({ turns: [{ role: "user", parts: [{ text: `[SYSTEM] Candidate answer (Transcript): "${currentAnswer}". Question: "${currentQ}". Please evaluate.` }] }] });
-            } catch (e) {
-                console.warn("Could not send evaluation request to AI session:", e);
+        let videoBlob: Blob | undefined;
+        if (questionRecorderRef.current && questionRecorderRef.current.state !== 'inactive') {
+            await new Promise<void>(resolve => {
+                questionRecorderRef.current!.onstop = () => resolve();
+                questionRecorderRef.current!.stop();
+            });
+            await new Promise(resolve => setTimeout(resolve, 300));
+            if (questionChunksRef.current.length > 0) {
+                videoBlob = new Blob(questionChunksRef.current, { type: 'video/webm' });
             }
         }
+        questionChunksRef.current = [];
 
+        if (questionRecorderRef.current && currentQuestionIndex < jobQuestions.length - 1) {
+            try { questionRecorderRef.current.start(); } catch (e) { console.error("Failed to start next question recorder", e); }
+        }
+
+        if (videoBlob) {
+            try {
+                const currentQ = jobQuestions[currentQuestionIndex] || "General Introduction";
+                const result = await aiService.evaluateVideoAnswer(currentQ, videoBlob, interviewLang);
+                setQuestionAnswers(prev => ({
+                    ...prev,
+                    [currentQuestionIndex]: result.transcript
+                }));
+                setAiTranscriptResult(result.transcript);
+                setAiEvaluationResult(result.evaluation);
+                // Go to correction mode first — user can edit transcript before seeing evaluation
+                setCorrectedTranscript(result.transcript);
+                setCorrectionMode(true);
+            } catch (e) {
+                console.warn("Failed to evaluate video:", e);
+                setAiTranscriptResult(currentAnswer || "(Audio/Video not captured correctly)");
+                setAiEvaluationResult("AI Evaluation failed (Server Error). We have saved your video response safely, you may proceed to the next question.");
+                setCorrectedTranscript(currentAnswer || "(Audio/Video not captured correctly)");
+                setCorrectionMode(true);
+            }
+        } else {
+            setAiTranscriptResult(currentAnswer || "(Audio/Video not captured)");
+            setAiEvaluationResult("No video was captured for this question. You may proceed.");
+            setCorrectedTranscript(currentAnswer || "(Audio/Video not captured)");
+            setCorrectionMode(true);
+        }
+        setIsSubmitting(false);
+    };
+
+    const confirmCorrection = () => {
+        // Save corrected transcript as final answer
+        setQuestionAnswers(prev => ({
+            ...prev,
+            [currentQuestionIndex]: correctedTranscript
+        }));
+        setAiTranscriptResult(correctedTranscript);
+        setCorrectionMode(false);
+        setAiReviewMode(true); // Now show AI evaluation
+    };
+
+    const proceedToNextQuestion = async () => {
+        setAiReviewMode(false);
+        setAiTranscriptResult("");
+        setAiEvaluationResult("");
+        
         if (currentQuestionIndex < jobQuestions.length - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
             setTimeLeft(120);
         } else {
             // FINISH & SUBMIT
+            setTranscript("Menyusun hasil wawancara akhir...");
             await finishInterview();
         }
-        setIsSubmitting(false);
     };
 
     const finishInterview = async () => {
         try {
-            // Capture the last answer if not already captured (handled by handleNextQuestion usually, but just in case)
-            const finalAnswers = { ...questionAnswers };
-            // Note: currentQuestionIndex answer is added in handleNextQuestion before calling this, 
-            // or we might need to add it here if called directly. 
-            // For now, assuming handleNextQuestion handles the last one too.
+            // FIX: Ambil jawaban terakhir langsung dari ref (tidak mengandalkan state yang mungkin belum update)
+            const lastAnswerBeforeFinish = candidateAnswerRef.current || candidateAnswer || "(No answer captured)";
+            // Gabungkan semua jawaban sebelumnya + jawaban terakhir
+            const finalAnswers = {
+                ...questionAnswers,
+                [currentQuestionIndex]: lastAnswerBeforeFinish
+            };
 
-            const fullTranscript = jobQuestions.map((q, i) => `Q: ${q}\n\nA: ${finalAnswers[i] || "No answer provided (or audio not captured)."}`).join("\n\n---\n\n");
+            const fullTranscript = jobQuestions.map((q, i) => `Q: ${q}\n\nA: ${finalAnswers[i] || "No answer provided (or audio not captured.)"}`).join("\n\n---\n\n");
 
-            const videoBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+            // FIX: Stop mediaRecorder dulu agar semua chunks ter-flush sebelum membuat blob
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                await new Promise<void>(resolve => {
+                    mediaRecorderRef.current!.onstop = () => resolve();
+                    mediaRecorderRef.current!.stop();
+                });
+                // Tunggu sedikit agar ondataavailable terakhir selesai dipanggil
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
 
-            // Use token from URL, default to 0 if missing (though it shouldn't be reached without one)
+            // Buat video blob hanya jika ada data (skip jika kosong agar tidak error)
+            const videoBlob = recordedChunksRef.current.length > 0
+                ? new Blob(recordedChunksRef.current, { type: 'video/webm' })
+                : undefined;
+
+            // Use token from URL, default to 0 if missing
             await apiService.submitInterview(token || "0", fullTranscript, videoBlob);
 
             setStage('success');
@@ -234,11 +315,7 @@ const CandidateInterview = () => {
         }
     }, [videoStream, stage]); // Re-attach when stage changes
 
-    const audioCtxRef = useRef<AudioContext | null>(null);
-    const inputCtxRef = useRef<AudioContext | null>(null);
-    const nextStartTimeRef = useRef(0);
-    const sessionRef = useRef<any>(null);
-    const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+
 
     // Session Management
     const [sessionId, setSessionId] = useState<string>(() => generateSessionId());
@@ -256,7 +333,7 @@ const CandidateInterview = () => {
     useEffect(() => {
         networkMonitorRef.current = new NetworkMonitor(
             () => {
-                if (isLive && !sessionRef.current) handleReconnect();
+                if (isLive) handleReconnect();
             },
             () => { }
         );
@@ -339,9 +416,6 @@ const CandidateInterview = () => {
     };
 
     const initSession = async () => {
-        if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-        if (!inputCtxRef.current) inputCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-
         try {
             // Re-use stream or get new one
             const stream = videoStream || await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -357,78 +431,16 @@ const CandidateInterview = () => {
             mediaRecorderRef.current = mediaRecorder;
             mediaRecorder.start(1000);
 
-            const langDirective = interviewLang === 'id'
-                ? 'You MUST respond and provide all evaluations entirely in Bahasa Indonesia. Do NOT use English.'
-                : 'You MUST respond and provide all evaluations entirely in English. Do NOT use Indonesian.';
+            // Per-question recorder
+            const qRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+            qRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) questionChunksRef.current.push(event.data);
+            };
+            questionRecorderRef.current = qRecorder;
+            qRecorder.start();
 
-            const systemInstruction = `You are a passive AI Evaluator for a self-paced interview.
-      The candidate will answer questions displayed on screen one by one.
-      DO NOT ask questions yourself.
-      Your role is to LISTEN to the candidate's answer.
-      
-      LANGUAGE DIRECTIVE: ${langDirective}
-      
-      When you receive a [SYSTEM] prompt, you MUST start your response with "[EVALUATION]" followed by the score and feedback.
-      Example response: "[EVALUATION] Score: 85. Feedback: ...".
-      Otherwise, remain silent or provide very brief neutral acknowledgments like "I am listening".`;
-
-            const sessionPromise = aiService.setupLiveInterview({
-                systemInstruction,
-                onopen: () => {
-                    setTranscript("Session Active. AI Agent is ready.");
-                    if (inputCtxRef.current) {
-                        const source = inputCtxRef.current.createMediaStreamSource(stream);
-                        const scriptProcessor = inputCtxRef.current.createScriptProcessor(4096, 1, 1);
-                        scriptProcessor.onaudioprocess = (e) => {
-                            if (sessionRef.current && isLive) {
-                                const inputData = e.inputBuffer.getChannelData(0);
-                                const pcmBlob = aiService.createPCMBlob(inputData);
-                                sessionRef.current.sendRealtimeInput({ media: pcmBlob });
-                            }
-                        };
-                        source.connect(scriptProcessor);
-                        scriptProcessor.connect(inputCtxRef.current.destination);
-                    }
-                },
-                onmessage: async (message: any) => {
-                    const audioBase64 = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-                    if (audioBase64 && audioCtxRef.current) {
-                        const bytes = aiService.decodeBase64(audioBase64);
-                        const buffer = await aiService.bytesToAudioBuffer(bytes, audioCtxRef.current);
-                        const source = audioCtxRef.current.createBufferSource();
-                        source.buffer = buffer;
-                        source.connect(audioCtxRef.current.destination);
-                        const startTime = Math.max(nextStartTimeRef.current, audioCtxRef.current.currentTime);
-                        source.start(startTime);
-                        nextStartTimeRef.current = startTime + buffer.duration;
-                        sourcesRef.current.add(source);
-                        source.onended = () => sourcesRef.current.delete(source);
-                    }
-
-                    if (message.serverContent?.modelTurn?.parts[0]?.text) {
-                        const text = message.serverContent.modelTurn.parts[0].text;
-                        if (text.startsWith("[EVALUATION]")) {
-                            const cleanText = text.replace("[EVALUATION]", "").trim();
-                            setQuestionAnswers(prev => ({ ...prev, [currentQuestionIndexRef.current]: cleanText }));
-                        } else {
-                            setTranscript(text);
-                        }
-                    }
-
-                    if (message.serverContent?.interrupted) {
-                        sourcesRef.current.forEach(s => { try { s.stop(); } catch (e) { } });
-                        sourcesRef.current.clear();
-                        nextStartTimeRef.current = 0;
-                    }
-                },
-                onerror: (e: any) => {
-                    console.error("Session Error:", e);
-                    setIsLive(false);
-                }
-            });
-
-            sessionRef.current = await sessionPromise;
             setIsLive(true);
+            setTranscript("Session Active. AI Evaluator is ready.");
 
             // Start Speech Recognition for candidate transcript
             const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -439,8 +451,8 @@ const CandidateInterview = () => {
                 recognition.maxAlternatives = 1;
                 recognition.lang = interviewLang === 'id' ? 'id-ID' : 'en-US';
 
-                // Use a ref-based finalTranscript to survive across restarts
-                let finalTranscriptAccumulator = '';
+                // FIX: Gunakan ref level komponen agar bisa direset saat pindah pertanyaan
+                finalTranscriptAccumulatorRef.current = '';
                 let isRecognitionActive = false;
 
                 recognition.onstart = () => {
@@ -453,12 +465,12 @@ const CandidateInterview = () => {
                     for (let i = event.resultIndex; i < event.results.length; i++) {
                         const result = event.results[i];
                         if (result.isFinal) {
-                            finalTranscriptAccumulator += result[0].transcript + ' ';
+                            finalTranscriptAccumulatorRef.current += result[0].transcript + ' ';
                         } else {
                             interim += result[0].transcript;
                         }
                     }
-                    const combined = (finalTranscriptAccumulator + interim).trim();
+                    const combined = (finalTranscriptAccumulatorRef.current + interim).trim();
                     setCandidateAnswer(combined);
                     candidateAnswerRef.current = combined;
                     setTranscript(combined || '*Listening...*');
@@ -467,24 +479,14 @@ const CandidateInterview = () => {
                 recognition.onerror = (e: any) => {
                     console.warn('Speech recognition error:', e.error);
                     isRecognitionActive = false;
-                    // Auto-restart for recoverable errors
-                    if (['no-speech', 'network', 'aborted'].includes(e.error)) {
-                        setTimeout(() => {
-                            if (sessionRef.current) {
-                                try { recognition.start(); } catch (err) { /* ignore */ }
-                            }
-                        }, 500);
-                    }
                 };
 
                 recognition.onend = () => {
                     isRecognitionActive = false;
                     // Auto-restart if interview is still active
-                    if (sessionRef.current) {
+                    if (isLive) {
                         setTimeout(() => {
-                            if (sessionRef.current) {
-                                try { recognition.start(); } catch (e) { /* ignore */ }
-                            }
+                            try { recognition.start(); } catch (e) { /* ignore */ }
                         }, 300);
                     }
                 };
@@ -504,8 +506,6 @@ const CandidateInterview = () => {
 
     const terminateSession = async (download = true) => {
         setIsLive(false);
-        sessionRef.current?.close();
-        sessionRef.current = null;
 
         // Stop speech recognition
         if (recognitionRef.current) {
@@ -547,8 +547,8 @@ const CandidateInterview = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-                <Loader2 className="animate-spin text-white" size={48} />
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+                <Loader2 className="animate-spin text-slate-900 dark:text-white" size={48} />
             </div>
         )
     }
@@ -558,17 +558,17 @@ const CandidateInterview = () => {
     // 1. SYSTEM CHECK VIEW
     if (stage === 'check') {
         return (
-            <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6">
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col items-center justify-center p-6">
                 <div className="max-w-2xl w-full space-y-8">
                     <div className="text-center space-y-4">
-                        <div className="inline-flex p-4 bg-indigo-500/20 rounded-2xl mb-4">
-                            <Zap size={48} className="text-indigo-400" />
+                        <div className="inline-flex p-4 bg-brand-500/20 rounded-2xl mb-4">
+                            <Zap size={48} className="text-brand-600 dark:text-brand-400" />
                         </div>
                         <h1 className="text-3xl font-black">{t('interview.systemCheck')}</h1>
-                        <p className="text-slate-400">Let's make sure your camera and microphone are working properly before we begin.</p>
+                        <p className="text-slate-600 dark:text-slate-400">Let's make sure your camera and microphone are working properly before we begin.</p>
                     </div>
 
-                    <div className="bg-slate-800 rounded-3xl p-8 border border-white/5 space-y-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 border border-white/5 space-y-6">
                         <div className="aspect-video bg-black rounded-2xl overflow-hidden relative">
                             {videoStream ? (
                                 <video
@@ -580,7 +580,7 @@ const CandidateInterview = () => {
                                     onLoadedMetadata={(e) => e.currentTarget.play()}
                                 />
                             ) : (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-4">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-700 dark:text-slate-300 gap-4">
                                     <User size={48} />
                                     <p>Camera Preview</p>
                                 </div>
@@ -598,9 +598,9 @@ const CandidateInterview = () => {
                                 : 'bg-slate-700/30 border-white/5'
                                 }`}>
                                 {videoStream ? (
-                                    <><Camera size={20} className="text-emerald-400" /><span className="text-emerald-300 font-bold text-sm">{t('interview.cameraReady')}</span><CheckCircle2 size={16} className="ml-auto text-emerald-400" /></>
+                                    <><Camera size={20} className="text-emerald-600 dark:text-emerald-400" /><span className="text-emerald-300 font-bold text-sm">{t('interview.cameraReady')}</span><CheckCircle2 size={16} className="ml-auto text-emerald-600 dark:text-emerald-400" /></>
                                 ) : (
-                                    <><CameraOff size={20} className="text-slate-500" /><span className="text-slate-500 font-bold text-sm">{t('interview.cameraOff')}</span><XCircle size={16} className="ml-auto text-slate-600" /></>
+                                    <><CameraOff size={20} className="text-slate-700 dark:text-slate-300" /><span className="text-slate-700 dark:text-slate-300 font-bold text-sm">{t('interview.cameraOff')}</span><XCircle size={16} className="ml-auto text-slate-600" /></>
                                 )}
                             </div>
                             <div className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${micStream
@@ -608,9 +608,9 @@ const CandidateInterview = () => {
                                 : 'bg-slate-700/30 border-white/5'
                                 }`}>
                                 {micStream ? (
-                                    <><Mic size={20} className="text-emerald-400" /><span className="text-emerald-300 font-bold text-sm">{t('interview.micReady')}</span><CheckCircle2 size={16} className="ml-auto text-emerald-400" /></>
+                                    <><Mic size={20} className="text-emerald-600 dark:text-emerald-400" /><span className="text-emerald-300 font-bold text-sm">{t('interview.micReady')}</span><CheckCircle2 size={16} className="ml-auto text-emerald-600 dark:text-emerald-400" /></>
                                 ) : (
-                                    <><MicOff size={20} className="text-slate-500" /><span className="text-slate-500 font-bold text-sm">{t('interview.micOff')}</span><XCircle size={16} className="ml-auto text-slate-600" /></>
+                                    <><MicOff size={20} className="text-slate-700 dark:text-slate-300" /><span className="text-slate-700 dark:text-slate-300 font-bold text-sm">{t('interview.micOff')}</span><XCircle size={16} className="ml-auto text-slate-600" /></>
                                 )}
                             </div>
                         </div>
@@ -618,7 +618,7 @@ const CandidateInterview = () => {
                         {!videoStream && (
                             <button
                                 onClick={checkSystem}
-                                className="w-full py-4 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/20"
+                                className="w-full py-4 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-600/20"
                             >
                                 <Mic size={20} /> {t('interview.requestAccess')}
                             </button>
@@ -638,51 +638,51 @@ const CandidateInterview = () => {
     // 2. WAITING ROOM / INTRO VIEW
     if (stage === 'intro') {
         return (
-            <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 bg-[url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2629&auto=format&fit=crop')] bg-cover bg-center bg-no-repeat bg-blend-soft-light backdrop-blur-3xl">
-                <div className="max-w-4xl w-full bg-slate-950/80 backdrop-blur-xl rounded-[40px] border border-white/10 p-12 shadow-2xl">
+            <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center p-6">
+                <div className="max-w-4xl w-full bg-white rounded-2xl border border-slate-200 p-12 shadow-xl">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                         <div className="space-y-6">
-                            <span className="px-4 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-black uppercase tracking-widest border border-indigo-500/20">
+                            <span className="px-4 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wider border border-blue-100">
                                 {activeInterview?.interviewType || 'Technical Interview'}
                             </span>
-                            <h1 className="text-5xl font-black leading-tight">
-                                Ready for your interview, <span className="text-indigo-400">{activeInterview?.candidateName || 'Candidate'}</span>?
+                            <h1 className="text-4xl font-extrabold text-slate-900 leading-tight">
+                                Ready for your interview, <span className="text-blue-600">{activeInterview?.candidateName || 'Candidate'}</span>?
                             </h1>
-                            <p className="text-lg text-slate-400 leading-relaxed">
-                                You are about to begin the assessment for the <strong className="text-white">{activeInterview?.jobTitle || 'Role'}</strong> position.
+                            <p className="text-lg text-slate-600 leading-relaxed">
+                                You are about to begin the assessment for the <strong className="text-slate-900">{activeInterview?.jobTitle || 'Role'}</strong> position.
                             </p>
 
                             <div className="space-y-4 pt-4">
-                                <div className="flex items-center gap-4 text-slate-300">
-                                    <div className="size-10 bg-slate-800 rounded-xl flex items-center justify-center"><Clock size={20} /></div>
+                                <div className="flex items-center gap-4 text-slate-700">
+                                    <div className="size-10 bg-slate-100 rounded-xl flex items-center justify-center"><Clock size={20} className="text-slate-600" /></div>
                                     <div>
-                                        <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Duration</p>
+                                        <p className="text-xs uppercase tracking-wider font-bold text-slate-700 dark:text-slate-300">Duration</p>
                                         <p className="font-bold">~{jobQuestions.length * 2} Minutes</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4 text-slate-300">
-                                    <div className="size-10 bg-slate-800 rounded-xl flex items-center justify-center"><CheckCircle2 size={20} /></div>
+                                <div className="flex items-center gap-4 text-slate-700">
+                                    <div className="size-10 bg-slate-100 rounded-xl flex items-center justify-center"><CheckCircle2 size={20} className="text-slate-600" /></div>
                                     <div>
-                                        <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Questions</p>
+                                        <p className="text-xs uppercase tracking-wider font-bold text-slate-700 dark:text-slate-300">Questions</p>
                                         <p className="font-bold">{jobQuestions.length} Questions</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-white/5 rounded-3xl p-8 border border-white/5 space-y-6">
-                            <h3 className="font-bold text-xl mb-4">Before we start:</h3>
+                        <div className="bg-slate-50 rounded-2xl p-8 border border-slate-200 space-y-6">
+                            <h3 className="font-bold text-xl text-slate-900 mb-4">Before we start:</h3>
                             <ul className="space-y-4">
-                                <li className="flex gap-3 text-slate-300 text-sm">
-                                    <div className="mt-0.5 size-5 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center shrink-0"><CheckCircle2 size={12} /></div>
+                                <li className="flex gap-3 text-slate-700 text-sm">
+                                    <div className="mt-0.5 size-5 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0"><CheckCircle2 size={12} /></div>
                                     Ensure you are in a quiet environment.
                                 </li>
-                                <li className="flex gap-3 text-slate-300 text-sm">
-                                    <div className="mt-0.5 size-5 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center shrink-0"><CheckCircle2 size={12} /></div>
+                                <li className="flex gap-3 text-slate-700 text-sm">
+                                    <div className="mt-0.5 size-5 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0"><CheckCircle2 size={12} /></div>
                                     Speak clearly and at a normal pace.
                                 </li>
-                                <li className="flex gap-3 text-slate-300 text-sm">
-                                    <div className="mt-0.5 size-5 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center shrink-0"><CheckCircle2 size={12} /></div>
+                                <li className="flex gap-3 text-slate-700 text-sm">
+                                    <div className="mt-0.5 size-5 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0"><CheckCircle2 size={12} /></div>
                                     You have 2 minutes per question.
                                 </li>
                             </ul>
@@ -692,24 +692,24 @@ const CandidateInterview = () => {
                                     setStage('interview');
                                     initSession();
                                 }}
-                                className="w-full py-5 bg-white text-indigo-900 font-black rounded-2xl shadow-xl hover:bg-indigo-50 transition-all active:scale-95 text-lg flex items-center justify-center gap-2"
+                                className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all active:scale-95 text-lg flex items-center justify-center gap-2"
                             >
                                 <Mic size={24} /> {t('liveInterview.session.start') || 'START INTERVIEW'}
                             </button>
 
                             {/* Interview Language Selector */}
                             <div className="flex items-center justify-center gap-3 pt-2">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('interview.selectLanguage')}</span>
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('interview.selectLanguage')}</span>
                                 <select
                                     value={interviewLang}
                                     onChange={(e) => setInterviewLang(e.target.value as 'id' | 'en')}
-                                    className="px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer backdrop-blur-sm"
+                                    className="px-4 py-2 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                                 >
                                     <option value="id" className="text-slate-900">🇮🇩 {t('interview.langId')}</option>
                                     <option value="en" className="text-slate-900">🇬🇧 {t('interview.langEn')}</option>
                                 </select>
                             </div>
-                            <p className="text-center text-xs text-slate-500">{t('interview.langHint')}</p>
+                            <p className="text-center text-xs text-slate-700 dark:text-slate-300">{t('interview.langHint')}</p>
                         </div>
                     </div>
                 </div>
@@ -735,12 +735,12 @@ const CandidateInterview = () => {
         };
 
         return (
-            <div className="min-h-screen bg-emerald-950 text-white flex flex-col items-center justify-center p-6 text-center">
-                <div className="bg-emerald-900/20 p-8 rounded-full mb-8 animate-in zoom-in duration-500">
-                    <CheckCircle2 size={80} className="text-emerald-400" />
+            <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center p-6 text-center">
+                <div className="bg-emerald-100 p-8 rounded-full mb-8 animate-in zoom-in duration-500">
+                    <CheckCircle2 size={80} className="text-emerald-600" />
                 </div>
-                <h1 className="text-5xl font-black mb-6">{t('interview.successTitle')}</h1>
-                <p className="text-xl text-emerald-200/60 max-w-xl mx-auto mb-12">
+                <h1 className="text-4xl font-extrabold text-slate-900 mb-6">{t('interview.successTitle')}</h1>
+                <p className="text-lg text-slate-600 max-w-xl mx-auto mb-12">
                     {t('interview.successMessage')}
                 </p>
 
@@ -748,12 +748,12 @@ const CandidateInterview = () => {
                     {recordedChunksRef.current.length > 0 && (
                         <button
                             onClick={handleDownloadRecording}
-                            className="px-8 py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold transition-all flex items-center gap-2"
+                            className="px-6 py-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl font-bold transition-all flex items-center gap-2"
                         >
-                            <Download size={20} /> {t('interview.downloadRecording')}
+                            <Download size={18} /> {t('interview.downloadRecording')}
                         </button>
                     )}
-                    <button onClick={() => window.close()} className="px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-500/20">
+                    <button onClick={() => window.close()} className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20">
                         {t('common.close')}
                     </button>
                 </div>
@@ -761,105 +761,225 @@ const CandidateInterview = () => {
         );
     }
 
-    // 4. INTERVIEW VIEW (Default/Existing)
+    // 4. INTERVIEW VIEW — Full Screen Redesign
     return (
-        <div className="min-h-screen bg-slate-900 text-white flex flex-col p-6">
-            {/* Header */}
-            <div className="flex justify-between items-center mb-8">
-                <div className="flex items-center gap-3">
-                    <div className="size-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                        <BrainCircuit className="text-white" size={20} />
-                    </div>
-                    <div>
-                        <h1 className="font-bold text-lg">RecruitAI</h1>
-                        <p className="text-xs text-slate-400 font-medium">{activeInterview?.candidateName}</p>
-                    </div>
-                </div>
+        <div className="h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col overflow-hidden">
 
-                {isLive && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-full animate-pulse">
-                        <div className="size-2 bg-rose-500 rounded-full"></div>
-                        <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">{t('interview.live')}</span>
-                    </div>
-                )}
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 flex gap-6 overflow-hidden max-w-6xl mx-auto w-full">
-                {/* Left: Video Feed */}
-                <div className="flex-1 relative bg-slate-800 rounded-[32px] overflow-hidden border-4 border-slate-700/50 shadow-2xl">
-                    {videoStream ? (
-                        <video
-                            ref={videoRef}
-                            autoPlay
-                            muted
-                            playsInline
-                            className="absolute inset-0 w-full h-full object-cover"
-                            style={{ transform: 'scaleX(-1)' }}
-                        />
-                    ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <User size={64} className="text-slate-600" />
-                        </div>
-                    )}
-
-                    {/* Visualizer Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-8 pt-20 bg-gradient-to-t from-slate-900/90 to-transparent">
-                        <AudioVisualizer stream={micStream} isActive={isLive} color="#818cf8" />
-                    </div>
-                </div>
-
-                {/* Right: Interaction Panel */}
-                <div className="w-[450px] flex flex-col">
-                    <div className="bg-indigo-600 p-8 rounded-[32px] shadow-2xl shadow-indigo-900/50 flex flex-col h-auto min-h-[500px] relative overflow-hidden transition-all duration-500">
-                        {/* Background decoration */}
-                        <div className="absolute top-0 right-0 p-12 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-
-                        <div className="relative z-10 flex-1 flex flex-col">
-                            <div className="flex justify-between items-center mb-8">
-                                <span className="text-[10px] font-black text-indigo-200 uppercase tracking-widest bg-indigo-700/50 px-3 py-1 rounded-full">
+            {/* ===== CORRECTION MODE: Edit transcript before AI evaluation ===== */}
+            {correctionMode && (
+                <div className="absolute inset-0 z-50 bg-slate-50 flex flex-col">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-8 py-5 bg-white border-b border-slate-200">
+                        <div className="flex items-center gap-3">
+                            <div className="size-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                                <Edit3 className="text-slate-900 dark:text-white" size={20} />
+                            </div>
+                            <div>
+                                <h1 className="font-extrabold text-slate-900 text-lg">Koreksi Jawaban</h1>
+                                <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
                                     {t('interview.question')} {currentQuestionIndex + 1}/{jobQuestions.length}
-                                </span>
-                                <div className={`px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-2 ${timeLeft < 30 ? 'bg-rose-500 text-white animate-pulse' : 'bg-white/20 text-white'}`}>
-                                    <Clock size={14} /> {formatTime(timeLeft)}
-                                </div>
+                                </p>
                             </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                            Step 2 of 3
+                        </span>
+                    </div>
 
-                            <div className="flex-1">
-                                <h3 className="text-2xl font-bold text-white leading-tight mb-6 min-h-[100px] flex items-center justify-center text-center">
+                    {/* Content */}
+                    <div className="flex-1 flex items-center justify-center p-8">
+                        <div className="w-full max-w-3xl space-y-6">
+                            {/* Question Reference */}
+                            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p className="text-[10px] text-slate-700 dark:text-slate-300 uppercase font-bold tracking-widest mb-2">Pertanyaan:</p>
+                                <p className="text-lg font-bold text-slate-900">
                                     {jobQuestions[currentQuestionIndex] || "Please introduce yourself."}
-                                </h3>
-
-                                <div className="space-y-2">
-                                    <div className="p-4 bg-black/20 rounded-2xl border border-white/5 text-indigo-100 text-xs italic leading-relaxed mb-1 min-h-[120px] max-h-[200px] overflow-y-auto">
-                                        "{transcript.split('\n').pop() || 'Listening...'}"
-                                    </div>
-                                    <div className="flex justify-center">
-                                        <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest animate-pulse">
-                                            {t('interview.aiListening')}
-                                        </span>
-                                    </div>
-                                </div>
+                                </p>
                             </div>
 
-                            <div className="mt-8 pt-8 border-t border-white/10">
+                            {/* Editable Transcript */}
+                            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] text-amber-600 uppercase font-bold tracking-widest flex items-center gap-1.5">
+                                        <Edit3 size={12} /> Jawaban yang ditangkap AI — Silakan koreksi jika salah:
+                                    </p>
+                                </div>
+                                <textarea
+                                    value={correctedTranscript}
+                                    onChange={(e) => setCorrectedTranscript(e.target.value)}
+                                    className="w-full min-h-[200px] p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-medium"
+                                    placeholder="Tulis atau koreksi jawaban Anda di sini..."
+                                />
+                                <p className="text-xs text-slate-600 dark:text-slate-400">
+                                    Anda bisa mengedit teks di atas agar sesuai dengan apa yang sebenarnya Anda ucapkan. Setelah yakin, tekan "Konfirmasi & Lihat Evaluasi AI".
+                                </p>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3">
                                 <button
-                                    onClick={handleNextQuestion}
-                                    disabled={isSubmitting}
-                                    className="w-full py-4 bg-white text-indigo-600 font-black rounded-2xl shadow-xl hover:bg-indigo-50 transition-all active:scale-95 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={() => {
+                                        // Skip correction, use original transcript
+                                        setCorrectedTranscript(aiTranscriptResult);
+                                        confirmCorrection();
+                                    }}
+                                    className="flex-1 py-4 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                                 >
-                                    {isSubmitting ? (
-                                        <><Loader2 className="animate-spin" size={20} /> {t('interview.processing')}</>
-                                    ) : (
-                                        currentQuestionIndex < jobQuestions.length - 1 ? (
-                                            <>Submit Answer <ChevronRight size={18} /></>
-                                        ) : (
-                                            <>{t('interview.submitFinish')} <CheckCircle2 size={18} /></>
-                                        )
-                                    )}
+                                    Lewati Koreksi <ChevronRight size={18} />
+                                </button>
+                                <button
+                                    onClick={confirmCorrection}
+                                    className="flex-[2] py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                >
+                                    <CheckCircle2 size={18} /> Konfirmasi & Lihat Evaluasi AI
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== AI REVIEW MODE: Full screen evaluation results ===== */}
+            {aiReviewMode && !correctionMode && (
+                <div className="absolute inset-0 z-50 bg-slate-50 flex flex-col">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-8 py-5 bg-white border-b border-slate-200">
+                        <div className="flex items-center gap-3">
+                            <div className="size-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                                <Sparkles className="text-slate-900 dark:text-white" size={20} />
+                            </div>
+                            <div>
+                                <h1 className="font-extrabold text-slate-900 text-lg">AI Evaluation</h1>
+                                <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                                    {t('interview.question')} {currentQuestionIndex + 1}/{jobQuestions.length}
+                                </p>
+                            </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                            Step 3 of 3
+                        </span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
+                        <div className="w-full max-w-3xl space-y-6">
+                            {/* Question */}
+                            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p className="text-[10px] text-slate-700 dark:text-slate-300 uppercase font-bold tracking-widest mb-2">Pertanyaan:</p>
+                                <p className="text-lg font-bold text-slate-900">
+                                    {jobQuestions[currentQuestionIndex] || "Please introduce yourself."}
+                                </p>
+                            </div>
+
+                            {/* Your Corrected Answer */}
+                            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p className="text-[10px] text-slate-700 dark:text-slate-300 uppercase font-bold tracking-widest mb-2">Jawaban Anda (setelah koreksi):</p>
+                                <p className="text-sm text-slate-700 italic leading-relaxed">"{aiTranscriptResult}"</p>
+                            </div>
+
+                            {/* AI Evaluation Result */}
+                            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm">
+                                <p className="text-[10px] text-blue-600 uppercase font-bold tracking-widest mb-3 flex items-center gap-1.5">
+                                    <Sparkles size={12} /> Evaluasi dari AI:
+                                </p>
+                                <p className="text-sm text-slate-800 leading-relaxed font-medium">{aiEvaluationResult}</p>
+                            </div>
+
+                            {/* Next Button */}
+                            <button
+                                onClick={proceedToNextQuestion}
+                                className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all active:scale-[0.98] flex justify-center items-center gap-2 text-lg"
+                            >
+                                {currentQuestionIndex < jobQuestions.length - 1 ? (
+                                    <>Pertanyaan Selanjutnya <ChevronRight size={20} /></>
+                                ) : (
+                                    <>{t('interview.submitFinish')} <CheckCircle2 size={20} /></>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== RECORDING MODE: Full screen video with overlays ===== */}
+            {/* Top Bar Overlay */}
+            <div className="absolute top-0 left-0 right-0 z-20 flex justify-between items-center px-6 py-4 bg-gradient-to-b from-black/70 to-transparent">
+                <div className="flex items-center gap-3">
+                    <div className="size-9 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <BrainCircuit className="text-slate-900 dark:text-white" size={18} />
+                    </div>
+                    <div>
+                        <h1 className="font-bold text-slate-900 dark:text-white text-sm">RecruitAI</h1>
+                        <p className="text-[10px] text-slate-900 dark:text-white/60 font-medium">{activeInterview?.candidateName}</p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    {isLive && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-600/90 rounded-full animate-pulse">
+                            <div className="size-2 bg-white rounded-full"></div>
+                            <span className="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-widest">{t('interview.live')}</span>
+                        </div>
+                    )}
+                    <div className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 backdrop-blur-sm ${timeLeft < 30 ? 'bg-rose-500/90 text-white animate-pulse' : 'bg-white/20 text-white'}`}>
+                        <Clock size={14} /> {formatTime(timeLeft)}
+                    </div>
+                </div>
+            </div>
+
+            {/* Full Screen Video */}
+            <div className="flex-1 relative">
+                {videoStream ? (
+                    <video
+                        ref={videoRef}
+                        autoPlay
+                        muted
+                        playsInline
+                        className="absolute inset-0 w-full h-full object-cover"
+                        style={{ transform: 'scaleX(-1)' }}
+                    />
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-slate-800">
+                        <User size={80} className="text-slate-600" />
+                    </div>
+                )}
+
+                {/* Question Overlay — Bottom Center */}
+                <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
+                    <div className="p-8 pb-6 max-w-4xl mx-auto">
+                        {/* Question Counter */}
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="text-[10px] font-bold text-slate-900 dark:text-white/60 uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
+                                {t('interview.question')} {currentQuestionIndex + 1}/{jobQuestions.length}
+                            </span>
+                        </div>
+
+                        {/* Question Text */}
+                        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white leading-tight mb-6 drop-shadow-lg">
+                            {jobQuestions[currentQuestionIndex] || "Please introduce yourself."}
+                        </h2>
+
+                        {/* Audio Visualizer */}
+                        <div className="mb-4">
+                            <AudioVisualizer stream={micStream} isActive={isLive} color="#3b82f6" />
+                        </div>
+
+                        {/* Submit Button */}
+                        <button
+                            onClick={handleNextQuestion}
+                            disabled={isSubmitting}
+                            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-[0.98] flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm"
+                        >
+                            {isSubmitting ? (
+                                <><Loader2 className="animate-spin" size={20} /> {t('interview.processing') || 'Memproses jawaban...'}</>
+                            ) : (
+                                currentQuestionIndex < jobQuestions.length - 1 ? (
+                                    <>Kirim Jawaban <ChevronRight size={18} /></>
+                                ) : (
+                                    <>Kirim & Selesai <CheckCircle2 size={18} /></>
+                                )
+                            )}
+                        </button>
                     </div>
                 </div>
             </div>

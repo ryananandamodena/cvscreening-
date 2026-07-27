@@ -1,0 +1,521 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Shield, Heart, DollarSign, Users, TrendingUp, Calendar,
+  Plus, Settings, Download, Upload, Eye, Edit, Trash2,
+  CheckCircle2, AlertCircle, Clock, UserPlus, FileText
+} from 'lucide-react';
+import { benefitsService, EmployeeBenefit, BenefitsAnalytics } from '../../services/benefits.service';
+import { useToast } from '../../contexts/ToastContext';
+import { CardSkeleton } from '../../components/SkeletonLoader';
+import Badge from '../../components/ui/Badge';
+import Button from '../../components/ui/Button';
+
+const BenefitsDashboard: React.FC = () => {
+  const { showToast } = useToast();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [loading, setLoading] = useState(true);
+  const [benefits, setBenefits] = useState<EmployeeBenefit[]>([]);
+  const [analytics, setAnalytics] = useState<BenefitsAnalytics | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [benefitsData, analyticsData] = await Promise.all([
+        benefitsService.getEmployeeBenefits(),
+        benefitsService.getBenefitsAnalytics()
+      ]);
+      setBenefits(benefitsData);
+      setAnalytics(analyticsData);
+    } catch (err) {
+      console.error('Failed to fetch benefits data:', err);
+      showToast('error', 'Failed to load benefits data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusTone = (status: string): 'success' | 'neutral' | 'warning' | 'danger' => {
+    switch (status) {
+      case 'active': return 'success';
+      case 'inactive': return 'neutral';
+      case 'pending': return 'warning';
+      case 'terminated': return 'danger';
+      default: return 'neutral';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'active': return 'Active';
+      case 'inactive': return 'Inactive';
+      case 'pending': return 'Pending';
+      case 'terminated': return 'Terminated';
+      default: return status;
+    }
+  };
+
+  const getBenefitTypeIcon = (type: string) => {
+    switch (type) {
+      case 'insurance': return <Shield className="w-5 h-5" />;
+      case 'allowance': return <DollarSign className="w-5 h-5" />;
+      case 'flexible': return <TrendingUp className="w-5 h-5" />;
+      case 'retirement': return <Users className="w-5 h-5" />;
+      default: return <FileText className="w-5 h-5" />;
+    }
+  };
+
+  const getBenefitTypeColor = (type: string) => {
+    switch (type) {
+      case 'insurance': return 'bg-info-100 dark:bg-info-900/40 text-info-700 dark:text-info-400';
+      case 'allowance': return 'bg-success-100 dark:bg-success-900/40 text-success-700 dark:text-success-400';
+      case 'flexible': return 'bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-400';
+      case 'retirement': return 'bg-warning-100 dark:bg-warning-900/40 text-warning-700 dark:text-warning-400';
+      default: return 'bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-slate-300';
+    }
+  };
+
+  const filteredBenefits = benefits.filter(benefit => {
+    const matchesSearch = benefit.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         benefit.planName?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || benefit.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const stats = analytics ? {
+    totalActive: analytics.totalActiveBenefits,
+    monthlyCost: analytics.totalMonthlyCost,
+    annualCost: analytics.totalAnnualCost,
+    byType: analytics.benefitsByType,
+    topBenefits: analytics.topBenefits.slice(0, 3)
+  } : null;
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-4">
+            <div className="p-3 bg-brand-600 rounded-2xl shadow-lg shadow-brand-600/30">
+              <Heart size={32} />
+            </div>
+            Benefits Management
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-2 font-medium">Comprehensive employee benefits administration and management.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="md">
+            <Upload size={16} className="mr-2" />
+            Import
+          </Button>
+          <Button variant="outline" size="md">
+            <Download size={16} className="mr-2" />
+            Export
+          </Button>
+          <Button variant="outline" size="md">
+            <Settings size={16} className="mr-2" />
+            Configure
+          </Button>
+          <Button variant="primary" size="md">
+            <Plus size={16} className="mr-2" />
+            Add Benefit
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      ) : stats ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white dark:bg-[#111111] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-success-500/5 rounded-full -mr-8 -mt-8"></div>
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-4 rounded-2xl bg-success-500/10 group-hover:scale-110 transition-transform duration-500">
+                <CheckCircle2 size={24} className="text-success-600" />
+              </div>
+            </div>
+            <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">Active Benefits</p>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{stats.totalActive}</h3>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-[#111111] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-info-500/5 rounded-full -mr-8 -mt-8"></div>
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-4 rounded-2xl bg-info-500/10 group-hover:scale-110 transition-transform duration-500">
+                <DollarSign size={24} className="text-info-600" />
+              </div>
+            </div>
+            <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">Monthly Cost</p>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                Rp {stats.monthlyCost.toLocaleString()}
+              </h3>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-[#111111] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-500/5 rounded-full -mr-8 -mt-8"></div>
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-4 rounded-2xl bg-brand-500/10 group-hover:scale-110 transition-transform duration-500">
+                <TrendingUp size={24} className="text-brand-600 dark:text-brand-400" />
+              </div>
+            </div>
+            <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">Annual Cost</p>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                Rp {stats.annualCost.toLocaleString()}
+              </h3>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-[#111111] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-warning-500/5 rounded-full -mr-8 -mt-8"></div>
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-4 rounded-2xl bg-warning-500/10 group-hover:scale-110 transition-transform duration-500">
+                <Users size={24} className="text-warning-600" />
+              </div>
+            </div>
+            <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">Coverage Rate</p>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">87%</h3>
+              <span className="text-xs font-bold text-warning-500">+5% from last month</span>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Sidebar */}
+        <div className="lg:col-span-1">
+          <div className="bg-white dark:bg-[#111111] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quick Actions</h2>
+            <div className="space-y-3">
+              <button className="w-full p-4 border border-slate-200 dark:border-neutral-800 rounded-xl hover:bg-slate-50 dark:hover:bg-neutral-800/60 transition-colors text-left group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-info-100 dark:bg-info-900/40 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Shield className="w-5 h-5 text-info-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Insurance Plans</h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">Manage health & life insurance</p>
+                  </div>
+                </div>
+              </button>
+
+              <button className="w-full p-4 border border-slate-200 dark:border-neutral-800 rounded-xl hover:bg-slate-50 dark:hover:bg-neutral-800/60 transition-colors text-left group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-success-100 dark:bg-success-900/40 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <DollarSign className="w-5 h-5 text-success-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Allowances</h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">Configure employee allowances</p>
+                  </div>
+                </div>
+              </button>
+
+              <button className="w-full p-4 border border-slate-200 dark:border-neutral-800 rounded-xl hover:bg-slate-50 dark:hover:bg-neutral-800/60 transition-colors text-left group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-brand-100 dark:bg-brand-900/40 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <TrendingUp className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Flexible Benefits</h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">Cafeteria plan management</p>
+                  </div>
+                </div>
+              </button>
+
+              <button className="w-full p-4 border border-slate-200 dark:border-neutral-800 rounded-xl hover:bg-slate-50 dark:hover:bg-neutral-800/60 transition-colors text-left group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-warning-100 dark:bg-warning-900/40 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Users className="w-5 h-5 text-warning-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Retirement Plans</h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">Pension & 401k management</p>
+                  </div>
+                </div>
+              </button>
+
+              <div className="border-t border-slate-200 dark:border-neutral-800 pt-4 mt-4">
+                <button className="w-full p-3 bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-400 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/60 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Open Enrollment
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Benefits */}
+          {stats?.topBenefits && (
+            <div className="bg-white dark:bg-[#111111] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6 mt-6">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Top Benefits</h2>
+              <div className="space-y-3">
+                {stats.topBenefits.map((benefit, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-brand-100 dark:bg-brand-900/40 rounded-lg flex items-center justify-center">
+                        <span className="text-xs font-bold text-brand-600 dark:text-brand-400">{index + 1}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">{benefit.name}</p>
+                        <p className="text-xs text-slate-700 dark:text-slate-300">{benefit.count} employees</p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-brand-600 dark:text-brand-400">{benefit.percentage}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Main Content Area */}
+        <div className="lg:col-span-3">
+          <div className="bg-white dark:bg-[#111111] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm overflow-hidden">
+            {/* Tabs */}
+            <div className="border-b border-slate-200 dark:border-neutral-800">
+              <nav className="flex">
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'overview'
+                      ? 'border-brand-600 text-brand-600 dark:text-brand-400'
+                      : 'border-transparent text-slate-700 dark:text-slate-300 hover:text-slate-700'
+                  }`}
+                >
+                  Overview
+                </button>
+                <button
+                  onClick={() => setActiveTab('enrollments')}
+                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'enrollments'
+                      ? 'border-brand-600 text-brand-600 dark:text-brand-400'
+                      : 'border-transparent text-slate-700 dark:text-slate-300 hover:text-slate-700'
+                  }`}
+                >
+                  Employee Benefits
+                </button>
+                <button
+                  onClick={() => setActiveTab('analytics')}
+                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'analytics'
+                      ? 'border-brand-600 text-brand-600 dark:text-brand-400'
+                      : 'border-transparent text-slate-700 dark:text-slate-300 hover:text-slate-700'
+                  }`}
+                >
+                  Analytics
+                </button>
+              </nav>
+            </div>
+
+            <div className="p-6">
+              {activeTab === 'overview' && (
+                <div className="space-y-6">
+                  {/* Recent Activity */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Recent Activity</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4 p-4 border border-slate-100 dark:border-neutral-800 rounded-lg">
+                        <div className="w-10 h-10 bg-success-100 dark:bg-success-900/40 rounded-full flex items-center justify-center">
+                          <CheckCircle2 className="w-5 h-5 text-success-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">John Doe enrolled in Health Insurance Plan</p>
+                          <p className="text-xs text-slate-700 dark:text-slate-300">2 hours ago</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 p-4 border border-slate-100 dark:border-neutral-800 rounded-lg">
+                        <div className="w-10 h-10 bg-info-100 dark:bg-info-900/40 rounded-full flex items-center justify-center">
+                          <Plus className="w-5 h-5 text-info-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">New Dental Insurance Plan added</p>
+                          <p className="text-xs text-slate-700 dark:text-slate-300">1 day ago</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 p-4 border border-slate-100 dark:border-neutral-800 rounded-lg">
+                        <div className="w-10 h-10 bg-warning-100 dark:bg-warning-900/40 rounded-full flex items-center justify-center">
+                          <Clock className="w-5 h-5 text-warning-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">Open enrollment period starts next week</p>
+                          <p className="text-xs text-slate-700 dark:text-slate-300">3 days ago</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Upcoming Renewals */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Upcoming Renewals</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 border border-warning-200 dark:border-warning-900/60 bg-warning-50 dark:bg-warning-900/20 rounded-lg">
+                        <div className="flex items-center gap-3 mb-2">
+                          <AlertCircle className="w-5 h-5 text-warning-600" />
+                          <span className="font-semibold text-warning-900 dark:text-warning-300">Health Insurance</span>
+                        </div>
+                        <p className="text-sm text-warning-700 dark:text-warning-400">Annual renewal due in 15 days</p>
+                        <p className="text-xs text-warning-600 dark:text-warning-400 mt-1">12 employees affected</p>
+                      </div>
+
+                      <div className="p-4 border border-info-200 dark:border-info-900/60 bg-info-50 dark:bg-info-900/20 rounded-lg">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Shield className="w-5 h-5 text-info-600" />
+                          <span className="font-semibold text-info-900 dark:text-info-300">Life Insurance</span>
+                        </div>
+                        <p className="text-sm text-info-700 dark:text-info-400">Monthly renewal in 7 days</p>
+                        <p className="text-xs text-info-600 dark:text-info-400 mt-1">8 employees affected</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'enrollments' && (
+                <div className="space-y-6">
+                  {/* Filters */}
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        placeholder="Search employees or benefits..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                      />
+                    </div>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="px-4 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="pending">Pending</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="terminated">Terminated</option>
+                    </select>
+                  </div>
+
+                  {/* Benefits List */}
+                  <div className="space-y-4">
+                    {loading ? (
+                      <div className="space-y-4">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div key={i} className="p-4 border border-slate-200 dark:border-neutral-800 rounded-lg">
+                            <div className="animate-pulse">
+                              <div className="h-4 bg-slate-200 dark:bg-neutral-700 rounded mb-2"></div>
+                              <div className="h-3 bg-slate-200 dark:bg-neutral-700 rounded w-3/4"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : filteredBenefits.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Heart className="w-16 h-16 text-slate-700 dark:text-slate-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No benefits found</h3>
+                        <p className="text-slate-700 dark:text-slate-300">Try adjusting your search or filter criteria</p>
+                      </div>
+                    ) : (
+                      filteredBenefits.map((benefit) => (
+                        <div key={benefit.id} className="p-6 border border-slate-200 dark:border-neutral-800 rounded-xl hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-4">
+                              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getBenefitTypeColor(benefit.benefitType)}`}>
+                                {getBenefitTypeIcon(benefit.benefitType)}
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-slate-900 dark:text-white mb-1">{benefit.employeeName}</h3>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{benefit.planName || benefit.benefitType}</p>
+                                <div className="flex items-center gap-4 text-sm text-slate-700 dark:text-slate-300">
+                                  <span>Rp {benefit.amount.toLocaleString()}</span>
+                                  <span>•</span>
+                                  <span>{benefit.frequency}</span>
+                                  <span>•</span>
+                                  <span>Since {new Date(benefit.effectiveDate).toLocaleDateString()}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <Badge tone={getStatusTone(benefit.status)}>{getStatusLabel(benefit.status)}</Badge>
+
+                              <div className="flex gap-2">
+                                <button className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded-lg transition-colors">
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded-lg transition-colors">
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button className="p-2 text-slate-600 dark:text-slate-400 hover:text-danger-600 hover:bg-danger-50 dark:hover:bg-danger-950/40 rounded-lg transition-colors">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'analytics' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Benefits by Type */}
+                    <div className="bg-slate-50 dark:bg-neutral-800/60 p-6 rounded-xl">
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Benefits by Type</h3>
+                      <div className="space-y-3">
+                        {stats?.byType && Object.entries(stats.byType).map(([type, count]) => (
+                          <div key={type} className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getBenefitTypeColor(type)}`}>
+                                {getBenefitTypeIcon(type)}
+                              </div>
+                              <span className="text-sm font-medium text-slate-900 dark:text-white capitalize">{type}</span>
+                            </div>
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Enrollment Trends */}
+                    <div className="bg-slate-50 dark:bg-neutral-800/60 p-6 rounded-xl">
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Enrollment Trends</h3>
+                      <div className="text-center py-8">
+                        <TrendingUp className="w-12 h-12 text-slate-600 dark:text-slate-400 mx-auto mb-4" />
+                        <p className="text-slate-700 dark:text-slate-300">Analytics chart will be displayed here</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">Integration with charting library needed</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BenefitsDashboard;
