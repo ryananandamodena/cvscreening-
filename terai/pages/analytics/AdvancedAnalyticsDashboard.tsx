@@ -92,7 +92,7 @@ const AdvancedAnalyticsDashboard: React.FC = () => {
       diversityScore: calculateDiversityScore(workforceMetrics.diversityMetrics),
       hiringNeeds: predictiveAnalytics.hiringNeeds.departmentsNeedingHire.length,
       skillGaps: predictiveAnalytics.skillDemand.skillGapAnalysis.length,
-      systemHealth: realTimeMetrics?.systemHealth || 0
+      pendingApprovals: realTimeMetrics?.pendingApprovals || 0
     };
   }, [workforceMetrics, performanceAnalytics, predictiveAnalytics, realTimeMetrics]);
 
@@ -187,14 +187,16 @@ const AdvancedAnalyticsDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Demo data notice: the analytics API is not implemented on the backend yet
-          (see analytics.service.ts) — every number below is hardcoded sample data,
-          not a live query. Remove this banner once real endpoints are wired up. */}
-      <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300">
+      {/* Workforce/performance/turnover-risk/hiring-need numbers below are now computed
+          live from the database (see analytics_extended_repository.go). Predictive
+          numbers are a simple rule-based heuristic, not a trained ML model. Skill-gap
+          and growth-forecast analytics are not implemented yet and render empty. */}
+      <div className="flex items-start gap-3 p-4 rounded-xl border border-info-300 dark:border-info-700 bg-info-50 dark:bg-info-950/40 text-info-800 dark:text-info-300">
         <AlertTriangle size={20} className="shrink-0 mt-0.5" />
         <div className="text-sm font-medium">
-          Halaman ini masih menampilkan <span className="font-bold">data contoh (dummy)</span> — belum terhubung ke data HR yang sesungguhnya.
-          Jangan gunakan angka di halaman ini untuk pengambilan keputusan sampai integrasi backend selesai.
+          Data workforce, performa, dan kebutuhan hiring di halaman ini sudah live dari database.
+          Prediksi turnover menggunakan aturan sederhana (heuristik), <span className="font-bold">bukan model machine learning</span> —
+          gunakan sebagai indikasi awal, bukan angka pasti. Analisis skill-gap & proyeksi pertumbuhan belum tersedia.
         </div>
       </div>
 
@@ -250,10 +252,10 @@ const AdvancedAnalyticsDashboard: React.FC = () => {
                 <Activity size={24} className="text-info-600 dark:text-info-500" />
               </div>
             </div>
-            <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">System Health</p>
+            <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">Pending Approvals</p>
             <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{keyMetrics.systemHealth}%</h3>
-              <span className="text-xs font-bold text-info-500">operational</span>
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{keyMetrics.pendingApprovals}</h3>
+              <span className="text-xs font-bold text-info-500">live</span>
             </div>
           </div>
         </div>
@@ -481,12 +483,12 @@ const AdvancedAnalyticsDashboard: React.FC = () => {
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">System Status</h2>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-600 dark:text-slate-400">Data Freshness</span>
-                <span className="text-sm font-bold text-success-600 dark:text-success-400">Real-time</span>
+                <span className="text-sm text-slate-600 dark:text-slate-400">Employees Clocked In Today</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">{realTimeMetrics?.employeesClockedInToday || 0}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-600 dark:text-slate-400">Active Users</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">{realTimeMetrics?.activeUsers || 0}</span>
+                <span className="text-sm text-slate-600 dark:text-slate-400">Pending Leave Requests</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">{realTimeMetrics?.pendingLeaveRequests || 0}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-600 dark:text-slate-400">Last Update</span>

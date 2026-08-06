@@ -311,19 +311,13 @@ func main() {
 		// Advanced Analytics & Reports
 		protected.GET("/analytics/advanced", getAdvancedAnalyticsHandler)
 		
-		// Advanced Analytics UI endpoints (dummy JSON to prevent 404s)
-		api.GET("/analytics/realtime", func(c *gin.Context) {
-			c.JSON(404, gin.H{"error": "not_implemented"})
-		})
-		api.GET("/analytics/performance", func(c *gin.Context) {
-			c.JSON(404, gin.H{"error": "not_implemented"})
-		})
-		api.GET("/analytics/predictive", func(c *gin.Context) {
-			c.JSON(404, gin.H{"error": "not_implemented"})
-		})
-		api.GET("/analytics/workforce", func(c *gin.Context) {
-			c.JSON(404, gin.H{"error": "not_implemented"})
-		})
+		// Advanced Analytics UI endpoints — real, database-backed metrics.
+		// Predictive analytics is a rule-based heuristic (see repository doc comment),
+		// not a trained ML model; its response is flagged isHeuristic:true.
+		protected.GET("/analytics/realtime", getRealtimeAnalyticsHandler)
+		protected.GET("/analytics/performance", getAdvancedPerformanceAnalyticsHandler)
+		protected.GET("/analytics/predictive", getPredictiveAnalyticsHandler)
+		protected.GET("/analytics/workforce", getWorkforceAnalyticsHandler)
 		protected.GET("/reports", getReportsDataHandler)
 		protected.GET("/reports/screening/:id", getScreeningReportHandler)
 		protected.GET("/reports/interview/:id", getInterviewReportHandler)

@@ -129,6 +129,10 @@ export interface PredictiveAnalytics {
       timeToFill: number;
     }>;
   };
+  // true when the numbers below come from a rule-based backend heuristic
+  // (real turnover/headcount data, simple thresholds) rather than a trained
+  // ML model — always true today; kept optional for forward compatibility.
+  isHeuristic?: boolean;
 }
 
 export interface WorkforcePlanning {
@@ -231,29 +235,10 @@ export const analyticsService = {
     dateRange?: { start: string; end: string };
   }): Promise<WorkforceMetrics> => {
     const params = new URLSearchParams();
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (typeof value === 'object' && value !== null) {
-          params.append(key, JSON.stringify(value));
-        } else {
-          params.append(key, value.toString());
-        }
-      });
-    }
+    if (filters?.dateRange?.start) params.append('start', filters.dateRange.start);
+    if (filters?.dateRange?.end) params.append('end', filters.dateRange.end);
     const url = `/analytics/workforce${params.toString() ? `?${params.toString()}` : ''}`;
-    // return apiService.get<WorkforceMetrics>(url).catch(() => ({
-    return Promise.resolve({
-      totalEmployees: 245,
-      activeEmployees: 238,
-      inactiveEmployees: 7,
-      newHiresThisMonth: 12,
-      terminationsThisMonth: 2,
-      turnoverRate: 4.2,
-      averageTenure: 3.5,
-      headcountByDepartment: { 'Engineering': 85, 'Sales': 45, 'Marketing': 25, 'HR': 10, 'Finance': 80 },
-      headcountByLocation: { 'Jakarta': 100, 'Bandung': 45, 'Surabaya': 40, 'Medan': 35, 'Bali': 25 },
-      diversityMetrics: { genderDistribution: { male: 140, female: 105 }, ageDistribution: { '20-29': 90, '30-39': 100, '40-49': 40, '50+': 15 } }
-    } as WorkforceMetrics);
+    return apiService.get<WorkforceMetrics>(url);
   },
 
   // Performance Analytics
@@ -262,43 +247,10 @@ export const analyticsService = {
     period?: string;
     ratingRange?: { min: number; max: number };
   }): Promise<PerformanceAnalytics> => {
-    const params = new URLSearchParams();
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (typeof value === 'object' && value !== null) {
-          params.append(key, JSON.stringify(value));
-        } else {
-          params.append(key, value.toString());
-        }
-      });
-    }
-    const url = `/analytics/performance${params.toString() ? `?${params.toString()}` : ''}`;
-    // return apiService.get<PerformanceAnalytics>(url).catch(() => ({
-    return Promise.resolve({
-      averagePerformanceRating: 4.2,
-      performanceDistribution: { '5': 15, '4': 45, '3': 30, '2': 8, '1': 2 },
-      topPerformers: [
-        { employeeId: 1, employeeName: 'Budi Santoso', rating: 4.9, department: 'Engineering' },
-        { employeeId: 2, employeeName: 'Siti Aminah', rating: 4.8, department: 'Sales' },
-        { employeeId: 3, employeeName: 'Agus Pratama', rating: 4.7, department: 'Marketing' },
-        { employeeId: 4, employeeName: 'Rina Wijaya', rating: 4.6, department: 'HR' },
-        { employeeId: 5, employeeName: 'Hendra Setiawan', rating: 4.5, department: 'Finance' }
-      ],
-      performanceTrends: [
-        { month: 'Jan', averageRating: 3.8, highPerformers: 12, lowPerformers: 5 },
-        { month: 'Feb', averageRating: 3.9, highPerformers: 14, lowPerformers: 4 },
-        { month: 'Mar', averageRating: 4.0, highPerformers: 15, lowPerformers: 4 },
-        { month: 'Apr', averageRating: 4.1, highPerformers: 18, lowPerformers: 3 },
-        { month: 'May', averageRating: 4.2, highPerformers: 20, lowPerformers: 2 }
-      ],
-      performanceByDepartment: [
-        { department: 'Engineering', averageRating: 4.3, employeeCount: 85 },
-        { department: 'Sales', averageRating: 4.1, employeeCount: 45 },
-        { department: 'Marketing', averageRating: 4.0, employeeCount: 25 },
-        { department: 'HR', averageRating: 4.2, employeeCount: 10 },
-        { department: 'Finance', averageRating: 3.9, employeeCount: 80 }
-      ]
-    } as PerformanceAnalytics);
+    // Note: the backend does not yet support filtering by department/period/ratingRange —
+    // it returns org-wide performance metrics. Filters are accepted here for API stability
+    // but currently ignored server-side.
+    return apiService.get<PerformanceAnalytics>('/analytics/performance');
   },
 
   // Compensation Analytics
@@ -379,43 +331,25 @@ export const analyticsService = {
     } as TrainingAnalytics);
   },
 
-  // Predictive Analytics
+  // Predictive Analytics — turnoverPrediction and hiringNeeds.departmentsNeedingHire
+  // come from a real rule-based backend heuristic (see repository/analytics_extended_repository.go).
+  // predictedGrowth and skillDemand are not backed by any real model yet — left empty
+  // rather than filled with invented numbers; the UI should treat empty as "not available".
   getPredictiveAnalytics: async (timeframe?: string): Promise<PredictiveAnalytics> => {
     const url = timeframe ? `/analytics/predictive?timeframe=${timeframe}` : '/analytics/predictive';
-    // return apiService.get<PredictiveAnalytics>(url).catch(() => ({
-    return Promise.resolve({
-      turnoverPrediction: {
-        riskCategories: { high: 8, medium: 24, low: 213 },
-        predictedTurnoverRate: 5.4,
-        keyRiskFactors: [
-          { factor: 'Kompensasi di Bawah Pasar', impact: 0.8, affectedEmployees: 45 },
-          { factor: 'Kurangnya Pengembangan Karir', impact: 0.7, affectedEmployees: 60 },
-          { factor: 'Beban Kerja Berlebih', impact: 0.6, affectedEmployees: 35 },
-          { factor: 'Jarak Tempuh Ke Kantor', impact: 0.5, affectedEmployees: 25 },
-          { factor: 'Kurangnya Apresiasi', impact: 0.4, affectedEmployees: 50 }
-        ]
-      },
+    const real = await apiService.get<any>(url);
+    return {
+      turnoverPrediction: real.turnoverPrediction,
       hiringNeeds: {
-        departmentsNeedingHire: [
-          { department: 'Engineering', requiredHeadcount: 15, currentHeadcount: 85, urgency: 'high' },
-          { department: 'Sales', requiredHeadcount: 10, currentHeadcount: 45, urgency: 'medium' },
-          { department: 'Marketing', requiredHeadcount: 5, currentHeadcount: 25, urgency: 'low' },
-          { department: 'HR', requiredHeadcount: 2, currentHeadcount: 10, urgency: 'low' },
-          { department: 'Finance', requiredHeadcount: 8, currentHeadcount: 80, urgency: 'medium' }
-        ],
+        departmentsNeedingHire: real.hiringNeeds?.departmentsNeedingHire || [],
         predictedGrowth: []
       },
       skillDemand: {
         emergingSkills: [],
-        skillGapAnalysis: [
-          { skill: 'AI/Machine Learning', gapSize: 20, timeToFill: 45 },
-          { skill: 'Cloud Architecture', gapSize: 15, timeToFill: 30 },
-          { skill: 'Data Analytics', gapSize: 12, timeToFill: 25 },
-          { skill: 'Digital Marketing', gapSize: 8, timeToFill: 20 },
-          { skill: 'Financial Modeling', gapSize: 5, timeToFill: 15 }
-        ]
-      }
-    } as PredictiveAnalytics);
+        skillGapAnalysis: []
+      },
+      isHeuristic: real.isHeuristic ?? true
+    };
   },
 
   getTurnoverPrediction: async (filters?: {
@@ -547,19 +481,15 @@ export const analyticsService = {
     return () => {};
   },
 
+  // Real backend snapshot — a small set of live operational counters, not "active
+  // users"/"system health" (those aren't measured anywhere in this app yet).
   getRealTimeMetrics: async (): Promise<{
-    activeUsers: number;
-    systemHealth: number;
-    dataFreshness: number;
+    employeesClockedInToday: number;
+    pendingApprovals: number;
+    pendingLeaveRequests: number;
     lastUpdate: string;
   }> => {
-    // return apiService.get<{activeUsers: number; systemHealth: number; dataFreshness: number; lastUpdate: string}>('/analytics/realtime').catch(() => ({
-    return Promise.resolve({
-      activeUsers: 142,
-      systemHealth: 99.9,
-      dataFreshness: 100,
-      lastUpdate: new Date().toISOString()
-    });
+    return apiService.get('/analytics/realtime');
   }
 };
 
