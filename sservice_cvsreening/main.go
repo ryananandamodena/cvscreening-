@@ -108,9 +108,14 @@ func main() {
 			log.Printf("Failed to run payroll deductions schema migration: %v", err)
 		}
 
-		// Create test users for development/testing
-		if err := CreateTestUsers(context.Background()); err != nil {
-			log.Printf("Warning: Failed to create test users: %v", err)
+		// Create test users for development/testing only — never in production,
+		// where this would seed known-password admin/test accounts on a public server.
+		if appEnv := os.Getenv("APP_ENV"); appEnv != "production" {
+			if err := CreateTestUsers(context.Background()); err != nil {
+				log.Printf("Warning: Failed to create test users: %v", err)
+			}
+		} else {
+			log.Println("APP_ENV=production: skipping test user seeding")
 		}
 
 		// Apply database indexes for performance
@@ -213,12 +218,9 @@ func main() {
 
 	// =====================================================
 	// SYSTEM & SETTINGS ROUTES
-	// ==================== MANAGER/ADMIN ROUTES ====================
-	admin := api.Group("/")
-	admin.Use(AuthMiddleware(), RoleMiddleware("Super Admin", "HR Admin", "HR Manager", "Manager", "Admin", "admin"))
-	{
-		// ... (Analytics Dashboard)
-	}
+	// NOTE: no routes are registered directly under a generic
+	// "admin"-role group — admin-only endpoints below are scoped
+	// individually with AdminOnly()/RoleMiddleware() as needed.
 
 	protected := api.Group("/")
 	protected.Use(AuthMiddleware())

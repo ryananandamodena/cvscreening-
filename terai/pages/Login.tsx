@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, Zap } from 'lucide-react';
 import { apiService } from '../services/api.service';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { Button } from '../components/ui/Button';
 
 const Login = () => {
@@ -13,6 +14,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { addToast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +24,7 @@ const Login = () => {
       // Using navigate for standard HashRouter transition
       navigate('/', { replace: true });
     } catch (err) {
-      alert(t('login.failed') + (err as any).message);
+      addToast('error', t('login.failed') || 'Login failed. Please check your credentials.');
       console.error("Login attempt failed:", err);
     } finally {
       setLoading(false);

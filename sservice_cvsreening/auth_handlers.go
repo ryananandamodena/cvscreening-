@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -77,6 +78,18 @@ func registerHandler(c *gin.Context) {
 	})
 }
 
+// logLoginFailure safely records a failed login attempt without risking
+// JSON/log injection from user-supplied input (e.g. an email containing
+// quote characters).
+func logLoginFailure(c *gin.Context, reason, email string) {
+	payload, err := json.Marshal(gin.H{"error": reason, "email": email})
+	if err != nil {
+		log.Printf("Failed to marshal login failure log: %v", err)
+		return
+	}
+	repository.LogActivity(c.Request.Context(), 0, "login_failed", "user", 0, string(payload), c.ClientIP())
+}
+
 func loginHandler(c *gin.Context) {
 	var payload struct {
 		Email    string `json:"email" binding:"required"`
@@ -90,14 +103,14 @@ func loginHandler(c *gin.Context) {
 
 	user, err := repository.GetUserByEmail(c.Request.Context(), payload.Email)
 	if err != nil || user == nil {
-		repository.LogActivity(c.Request.Context(), 0, "login_failed", "user", 0, `{"error": "User not found", "email": "`+payload.Email+`"}`, c.ClientIP())
+		logLoginFailure(c, "User not found", payload.Email)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
 	// Check password
 	if !CheckPassword(payload.Password, user.PasswordHash) {
-		repository.LogActivity(c.Request.Context(), 0, "login_failed", "user", 0, `{"error": "Invalid password", "email": "`+payload.Email+`"}`, c.ClientIP())
+		logLoginFailure(c, "Invalid password", payload.Email)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
