@@ -102,6 +102,43 @@ func (s *EmailService) SendScreeningResult(email, candidateName, status string) 
 	go s.SendEmail([]string{email}, subject, body)
 }
 
+// SendApprovalDecisionEmail notifies the requester once their request clears (or fails) an approval step
+func (s *EmailService) SendApprovalDecisionEmail(email, requesterName, moduleLabel, summary, decision, comment string) {
+	statusColor := "#16a34a"
+	statusLabel := "Disetujui"
+	switch decision {
+	case "rejected":
+		statusColor, statusLabel = "#dc2626", "Ditolak"
+	case "returned":
+		statusColor, statusLabel = "#d97706", "Dikembalikan untuk Revisi"
+	}
+
+	subject := fmt.Sprintf("[%s] Pengajuan Anda %s", moduleLabel, statusLabel)
+	body := fmt.Sprintf(`
+		<h2>Update Pengajuan: %s</h2>
+		<p>Halo %s,</p>
+		<p>Pengajuan Anda (<strong>%s</strong>) telah <span style="color:%s;font-weight:bold">%s</span>.</p>
+		<p><strong>Komentar:</strong> %s</p>
+		<br>
+		<p>Silakan cek Approval Center untuk detail lengkap.</p>
+	`, moduleLabel, requesterName, summary, statusColor, statusLabel, comment)
+
+	go s.SendEmail([]string{email}, subject, body)
+}
+
+// SendApprovalPendingEmail notifies an approver that a new request is waiting for their action
+func (s *EmailService) SendApprovalPendingEmail(email, approverName, moduleLabel, requesterName, summary string) {
+	subject := fmt.Sprintf("[%s] Menunggu Persetujuan Anda", moduleLabel)
+	body := fmt.Sprintf(`
+		<h2>Pengajuan Baru Menunggu Persetujuan</h2>
+		<p>Halo %s,</p>
+		<p><strong>%s</strong> mengajukan: %s</p>
+		<p>Silakan buka Approval Center untuk meninjau pengajuan ini.</p>
+	`, approverName, requesterName, summary)
+
+	go s.SendEmail([]string{email}, subject, body)
+}
+
 func (s *EmailService) SendAssessmentInvite(email, candidateName, assessmentTitle, link string) {
 	subject := fmt.Sprintf("Assessment Invitation: %s", assessmentTitle)
 	body := fmt.Sprintf(`

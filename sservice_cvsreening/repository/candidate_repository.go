@@ -204,3 +204,18 @@ func SearchCandidates(ctx context.Context, filters *models.SearchFilters) ([]mod
 
 	return candidates, nil
 }
+
+// UpdateCandidateStatus updates the status of a candidate
+func UpdateCandidateStatus(ctx context.Context, id int, status string) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+
+	_, err := GetDB().Exec(ctx, `
+		UPDATE candidates 
+		SET status = $1, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $2 AND deleted_at IS NULL
+	`, status, id)
+
+	return err
+}

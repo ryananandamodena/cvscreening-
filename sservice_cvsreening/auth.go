@@ -102,3 +102,23 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// GetUserIDFromContext retrieves the user ID from the Gin context
+func GetUserIDFromContext(c *gin.Context) int {
+	if uid, exists := c.Get("userID"); exists {
+		if id, ok := uid.(int); ok {
+			return id
+		}
+	}
+	return 0
+}
+
+// GetUserEmailFromContext retrieves the user email from the Gin context
+func GetUserEmailFromContext(c *gin.Context) string {
+	if email, exists := c.Get("email"); exists {
+		if val, ok := email.(string); ok {
+			return val
+		}
+	}
+	return ""
+}

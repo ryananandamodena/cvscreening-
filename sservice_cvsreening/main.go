@@ -79,6 +79,35 @@ func main() {
 		if err := repository.RunSeed("migration_add_expected_answers.sql"); err != nil {
 			log.Printf("Failed to run expected answers migration: %v", err)
 		}
+		// Run database migration (if not done yet)
+		if err := repository.RunSeed("schema_extended_modules.sql"); err != nil {
+			log.Printf("Failed to run extended modules schema migration: %v", err)
+		}
+		if err := repository.RunSeed("schema_documents_extra.sql"); err != nil {
+			log.Printf("Failed to run documents extras schema migration: %v", err)
+		}
+		if err := repository.RunSeed("schema_office_settings.sql"); err != nil {
+			log.Printf("Failed to run office settings schema migration: %v", err)
+		}
+		if err := repository.RunSeed("schema_attendance_correction.sql"); err != nil {
+			log.Printf("Failed to run attendance correction schema migration: %v", err)
+		}
+		if err := repository.RunSeed("schema_approval_engine.sql"); err != nil {
+			log.Printf("Failed to run approval engine schema migration: %v", err)
+		}
+		if err := repository.RunSeed("schema_overtime_request.sql"); err != nil {
+			log.Printf("Failed to run overtime request schema migration: %v", err)
+		}
+		if err := repository.RunSeed("schema_payroll_grades.sql"); err != nil {
+			log.Printf("Failed to run payroll grades schema migration: %v", err)
+		}
+		if err := repository.RunSeed("schema_payroll_tax_config.sql"); err != nil {
+			log.Printf("Failed to run payroll tax config schema migration: %v", err)
+		}
+		if err := repository.RunSeed("schema_payroll_deductions.sql"); err != nil {
+			log.Printf("Failed to run payroll deductions schema migration: %v", err)
+		}
+
 		// Create test users for development/testing
 		if err := CreateTestUsers(context.Background()); err != nil {
 			log.Printf("Warning: Failed to create test users: %v", err)
@@ -123,12 +152,12 @@ func main() {
 
 	api := r.Group("/api")
 
-	// Public Auth Routes - Stricter Rate Limit (20 req/min)
+	// Public Auth Routes - Stricter Rate Limit (20 req/min overall)
 	auth := api.Group("/")
 	auth.Use(RateLimitMiddleware(20, time.Minute))
 	{
 		auth.POST("/register", registerHandler)
-		auth.POST("/login", loginHandler)
+		auth.POST("/login", RateLimitMiddleware(30, time.Minute), loginHandler)
 		auth.POST("/refresh", refreshTokenHandler)
 	}
 
@@ -137,6 +166,9 @@ func main() {
 
 	// Live Interview WebSocket (no auth required for WS handshake)
 	api.GET("/ai/live-interview", liveInterviewHandler)
+
+	// Evaluate Video Answer endpoint (Public for candidate interview)
+	api.POST("/ai/evaluate-answer", evaluateAnswerHandler)
 
 	// Public Job Listing (for Careers page)
 	api.GET("/jobs", getJobsHandler)
@@ -178,7 +210,16 @@ func main() {
 	// Serve uploaded files (Recordings)
 	r.Static("/uploads", "./uploads")
 
-	// ==================== PROTECTED ROUTES (Requires JWT Auth) ====================
+
+	// =====================================================
+	// SYSTEM & SETTINGS ROUTES
+	// ==================== MANAGER/ADMIN ROUTES ====================
+	admin := api.Group("/")
+	admin.Use(AuthMiddleware(), RoleMiddleware("Super Admin", "HR Admin", "HR Manager", "Manager", "Admin", "admin"))
+	{
+		// ... (Analytics Dashboard)
+	}
+
 	protected := api.Group("/")
 	protected.Use(AuthMiddleware())
 	{
@@ -191,6 +232,7 @@ func main() {
 		protected.GET("/jobs/:id/leaderboard", getLeaderboardHandler)
 
 		// Analytics & Settings
+		protected.GET("/analytics/dashboard", getHRAnalyticsHandler)
 		protected.GET("/analytics", getAnalyticsHandler)
 		protected.GET("/settings", getSettingsHandler)
 		protected.POST("/settings", updateSettingsHandler)
@@ -266,6 +308,20 @@ func main() {
 
 		// Advanced Analytics & Reports
 		protected.GET("/analytics/advanced", getAdvancedAnalyticsHandler)
+		
+		// Advanced Analytics UI endpoints (dummy JSON to prevent 404s)
+		api.GET("/analytics/realtime", func(c *gin.Context) {
+			c.JSON(404, gin.H{"error": "not_implemented"})
+		})
+		api.GET("/analytics/performance", func(c *gin.Context) {
+			c.JSON(404, gin.H{"error": "not_implemented"})
+		})
+		api.GET("/analytics/predictive", func(c *gin.Context) {
+			c.JSON(404, gin.H{"error": "not_implemented"})
+		})
+		api.GET("/analytics/workforce", func(c *gin.Context) {
+			c.JSON(404, gin.H{"error": "not_implemented"})
+		})
 		protected.GET("/reports", getReportsDataHandler)
 		protected.GET("/reports/screening/:id", getScreeningReportHandler)
 		protected.GET("/reports/interview/:id", getInterviewReportHandler)
@@ -285,6 +341,161 @@ func main() {
 		protected.POST("/integrations/:type/send", whatsappSendHandler)
 		protected.GET("/integrations/:type/templates", whatsappTemplatesHandler)
 
+		// Attendance & Shifts
+		protected.POST("/attendance/clock-in", clockInHandler)
+		protected.POST("/attendance/clock-out", clockOutHandler)
+		protected.POST("/attendance/break-start", breakStartHandler)
+		protected.POST("/attendance/break-end", breakEndHandler)
+		protected.GET("/attendance/today-breaks", getTodayBreaksHandler)
+		protected.GET("/attendance/qr-token", getQRTokenHandler)
+		protected.POST("/attendance/face-enrollment", enrollFaceHandler)
+		protected.GET("/attendance/face-enrollment/status", getFaceEnrollmentStatusHandler)
+		protected.GET("/attendance/today", getTodayAttendanceHandler)
+		protected.GET("/attendance/history", getAttendanceHistoryHandler)
+		protected.GET("/attendance/team", getTeamAttendanceHandler)
+		protected.GET("/attendance/reports/monthly", getMonthlyAttendanceReportHandler)
+		protected.GET("/attendance/office-location", getOfficeLocationHandler)
+		protected.PUT("/attendance/office-location", updateOfficeLocationHandler)
+
+		// Attendance Corrections
+		protected.POST("/attendance/corrections", createCorrectionHandler)
+		protected.GET("/attendance/corrections", getCorrectionsHandler)
+		protected.PUT("/attendance/corrections/:id/manager-review", managerReviewCorrectionHandler)
+		protected.PUT("/attendance/corrections/:id/hr-review", hrReviewCorrectionHandler)
+		protected.PUT("/attendance/corrections/:id/cancel", cancelCorrectionHandler)
+
+		// Master Approval Engine
+		protected.POST("/approvals/flows", createApprovalFlowHandler)
+		protected.GET("/approvals/flows", getApprovalFlowsHandler)
+		protected.PUT("/approvals/flows/:id/active", setApprovalFlowActiveHandler)
+		protected.DELETE("/approvals/flows/:id", deleteApprovalFlowHandler)
+		protected.GET("/approvals/requests/mine", getMyApprovalRequestsHandler)
+		protected.GET("/approvals/requests/pending", getPendingApprovalsHandler)
+		protected.GET("/approvals/requests/:id", getApprovalRequestHandler)
+		protected.PUT("/approvals/requests/:id/act", actOnApprovalRequestHandler)
+		protected.PUT("/approvals/requests/:id/cancel", cancelApprovalRequestHandler)
+		protected.POST("/approvals/delegations", createDelegationHandler)
+		protected.GET("/approvals/delegations", getMyDelegationsHandler)
+		protected.PUT("/approvals/delegations/:id/deactivate", deactivateDelegationHandler)
+
+		// Overtime Request (reference module using the Master Approval Engine)
+		protected.POST("/overtime/requests", createOvertimeRequestHandler)
+		protected.GET("/overtime/requests/mine", getMyOvertimeRequestsHandler)
+		// NOTE: static paths MUST come before wildcard (:id) in Gin
+		protected.GET("/shifts", getShiftsHandler)
+		protected.POST("/shifts", createShiftHandler)
+		protected.POST("/shifts/assign", assignShiftHandler)
+		protected.GET("/shifts/assignments", getEmployeeShiftAssignmentsHandler)
+		protected.DELETE("/shifts/assignments/:id", removeShiftAssignmentHandler)
+		protected.PUT("/shifts/:id", updateShiftHandler)
+		protected.DELETE("/shifts/:id", deleteShiftHandler)
+		protected.GET("/employees/:id/shift", getEmployeeShiftHandler)
+
+
+		// Leave Management
+		protected.GET("/leave/types", getLeaveTypesHandler)
+		protected.GET("/leave/balances", getLeaveBalancesHandler)
+		protected.GET("/leave/requests", getLeaveRequestsHandler)
+		protected.GET("/leave/requests/:id", getLeaveRequestByIDHandler)
+		protected.POST("/leave/requests", createLeaveRequestHandler)
+		protected.PUT("/leave/requests/:id/approve", approveLeaveRequestHandler)
+		protected.PUT("/leave/requests/:id/reject", rejectLeaveRequestHandler)
+		protected.PUT("/leave/requests/:id/cancel", cancelLeaveRequestHandler)
+		protected.GET("/holidays", getHolidaysHandler)
+
+		// Core HR Management
+		// NOTE: static paths (/employees/stats/summary) MUST come before wildcard (/employees/:id)
+		protected.GET("/employees", getEmployeesHandler)
+		protected.GET("/employees/me", getMyEmployeeHandler)
+		protected.GET("/employees/stats/summary", getEmployeeStatsHandler)
+		protected.POST("/employees", createEmployeeHandler)
+		protected.POST("/candidates/convert", convertCandidateHandler)
+		protected.GET("/employees/:id", getEmployeeByIDHandler)
+		protected.PUT("/employees/:id", updateEmployeeHandler)
+		protected.DELETE("/employees/:id", deleteEmployeeHandler)
+
+		// Contracts
+		protected.GET("/employees/:id/contracts", getEmployeeContractsHandler)
+		protected.POST("/employees/:id/contracts", createContractHandler)
+		protected.GET("/contracts/expiring", getExpiringContractsHandler)
+		protected.POST("/contracts/:id/sign", signContractHandler)
+
+		// Payroll (Phase 3) - Moved to financeOnly group
+		// protected.GET("/payroll/periods", GetPayrollPeriods)
+		// ...
+
+		// Performance Management
+		protected.GET("/performance/reviews", getPerformanceReviewsHandler)
+		protected.POST("/performance/reviews", createPerformanceReviewHandler)
+		protected.PUT("/performance/reviews/:id", updatePerformanceReviewHandler)
+		protected.POST("/performance/reviews/:id/analyze", analyzePerformanceHandler)
+
+		// Advanced AI Features
+		protected.POST("/ai/chatbot", aiChatbotHandler)
+
+		// Training & Development
+		protected.GET("/performance/reviews/:id", getPerformanceReviewByIDHandler)
+		protected.GET("/performance/goals", getGoalsHandler)
+		protected.POST("/performance/goals", createGoalHandler)
+		protected.PUT("/performance/goals/:id", updateGoalHandler)
+		protected.DELETE("/performance/goals/:id", deleteGoalHandler)
+		protected.GET("/performance/analytics", getPerformanceAnalyticsHandler)
+
+		// Training & Development
+		protected.GET("/training/programs", getTrainingProgramsHandler)
+		protected.POST("/training/programs", createTrainingProgramHandler)
+		protected.POST("/training/programs/:id/enroll", enrollInTrainingHandler)
+		protected.GET("/training/my-trainings", getMyTrainingsHandler)
+		protected.GET("/training/employee", getTrainingEmployeeHandler)
+
+		// Benefits
+		protected.GET("/benefits/plans", getBenefitPlansHandler)
+		protected.GET("/benefits/employee", getEmployeeBenefitsHandler)
+		protected.GET("/benefits/analytics", getBenefitsAnalyticsHandler)
+
+		// Compensation
+		protected.GET("/compensation/bands", getCompensationBandsHandler)
+		protected.POST("/compensation/bands", upsertCompensationBandHandler)
+		protected.GET("/compensation/grades", getSalaryGradesHandler)
+		protected.GET("/compensation/structures", getCompensationStructuresHandler)
+		protected.GET("/compensation/analytics", getCompensationAnalyticsHandler)
+
+		// Succession Planning
+		protected.GET("/succession/plans", getSuccessionPlansHandler)
+		protected.GET("/succession/candidates", getSuccessionCandidatesHandler)
+		protected.GET("/succession/nine-box", getNineBoxGridHandler)
+
+		// Document Management
+		protected.GET("/documents", getDocumentsHandler)
+		protected.POST("/documents", createDocumentHandler)
+		protected.GET("/documents/policies", getPoliciesHandler)
+		protected.GET("/documents/contracts", getDocumentContractsHandler)
+		protected.GET("/documents/compliance", getComplianceRecordsHandler)
+
+		// Onboarding
+		protected.GET("/onboarding/sessions", getOnboardingSessionsHandler)
+		protected.POST("/onboarding/sessions", createOnboardingSessionHandler)
+		protected.GET("/onboarding/sessions/:sessionId/tasks", getOnboardingTasksHandler)
+		protected.POST("/onboarding/sessions/:sessionId/tasks", createOnboardingTaskHandler)
+		protected.PUT("/onboarding/tasks/:taskId", updateOnboardingTaskHandler)
+		protected.GET("/onboarding/templates", getOnboardingTemplatesHandler)
+		protected.POST("/onboarding/templates", createOnboardingTemplateHandler)
+		protected.PUT("/onboarding/templates/:id/active", setOnboardingTemplateActiveHandler)
+		protected.DELETE("/onboarding/templates/:id", deleteOnboardingTemplateHandler)
+
+		// Organization
+		protected.GET("/departments", getDepartmentsHandler)
+		protected.GET("/departments/:id", getDepartmentByIDHandler)
+		protected.POST("/departments", createDepartmentHandler)
+		protected.PUT("/departments/:id", updateDepartmentHandler)
+		protected.DELETE("/departments/:id", deleteDepartmentHandler)
+
+		protected.GET("/positions", getPositionsHandler)
+		protected.GET("/positions/:id", getPositionByIDHandler)
+		protected.POST("/positions", createPositionHandler)
+		protected.PUT("/positions/:id", updatePositionHandler)
+		protected.DELETE("/positions/:id", deletePositionHandler)
+
 		// User Management (Admin only)
 		adminOnly := protected.Group("/")
 		adminOnly.Use(AdminOnly())
@@ -295,7 +506,46 @@ func main() {
 			adminOnly.PUT("/users/:id", updateUserHandler)
 			adminOnly.DELETE("/users/:id", deleteUserHandler)
 			adminOnly.PATCH("/users/:id/status", toggleUserStatusHandler)
+
+			// Audit Trail (Admin / HR Manager only)
+			adminOnly.GET("/audit-trail", getAuditTrailHandler)
 		}
+
+		// Finance Management (Admin & Finance only)
+		financeOnly := protected.Group("/")
+		financeOnly.Use(FinanceOrAdmin())
+		{
+			// Payroll
+			financeOnly.GET("/payroll/periods", GetPayrollPeriods)
+			financeOnly.POST("/payroll/periods", CreatePayrollPeriod)
+			financeOnly.PUT("/payroll/periods/:id/status", UpdatePayrollPeriodStatus)
+			financeOnly.GET("/payroll/configurations", GetSalaryConfigurations)
+			financeOnly.POST("/payroll/configurations", UpdateSalaryConfiguration)
+			financeOnly.POST("/payroll/generate/:id", GeneratePayroll)
+			financeOnly.GET("/payroll/payslips", GetPayslips)
+			financeOnly.GET("/payroll/grades", GetPayGrades)
+			financeOnly.PUT("/payroll/grades", UpdatePayGrade)
+			financeOnly.GET("/payroll/bpjs-config", GetBPJSRateConfig)
+			financeOnly.PUT("/payroll/bpjs-config", UpdateBPJSRateConfig)
+			financeOnly.GET("/payroll/tax-brackets", GetPPh21TERBrackets)
+			financeOnly.PUT("/payroll/tax-brackets/:category", UpdatePPh21TERBrackets)
+			financeOnly.POST("/payroll/simulate", SimulatePayroll)
+
+			financeOnly.GET("/payroll/deduction-types", GetDeductionTypes)
+			financeOnly.POST("/payroll/deduction-types", CreateDeductionType)
+			financeOnly.PUT("/payroll/deduction-types/:id", UpdateDeductionType)
+			financeOnly.DELETE("/payroll/deduction-types/:id", DeleteDeductionType)
+			financeOnly.GET("/payroll/employees/:employeeId/deductions", GetEmployeeDeductions)
+			financeOnly.POST("/payroll/employee-deductions", CreateEmployeeDeduction)
+			financeOnly.PUT("/payroll/employee-deductions/:id/active", SetEmployeeDeductionActive)
+			financeOnly.DELETE("/payroll/employee-deductions/:id", DeleteEmployeeDeduction)
+		}
+
+		// Payroll self-service — any authenticated employee views their own payslips;
+		// a manager additionally sees their direct reports' payslips.
+		protected.GET("/payroll/my-payslips", GetMyPayslips)
+		protected.GET("/payroll/my-payslips/:id/components", GetMyPayslipDetail)
+		protected.GET("/payroll/team-payslips", GetTeamPayslips)
 	}
 
 	r.GET("/health", func(c *gin.Context) {

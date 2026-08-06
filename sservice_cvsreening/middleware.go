@@ -96,6 +96,11 @@ func AdminOnly() gin.HandlerFunc {
 	return RoleMiddleware("admin")
 }
 
+// FinanceOrAdmin middleware - finance and admins can access
+func FinanceOrAdmin() gin.HandlerFunc {
+	return RoleMiddleware("admin", "finance")
+}
+
 // RecruiterOrAdmin middleware - recruiters and admins can access
 func RecruiterOrAdmin() gin.HandlerFunc {
 	return RoleMiddleware("admin", "recruiter")

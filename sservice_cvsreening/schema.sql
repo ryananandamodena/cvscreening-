@@ -436,3 +436,4 @@ CREATE INDEX IF NOT EXISTS idx_integrations_type ON integrations (type);
 -- =====================================================
 -- DONE! Schema creation complete.
 -- =====================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL;

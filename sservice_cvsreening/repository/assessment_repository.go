@@ -507,7 +507,6 @@ func GetAssessmentAttemptResult(ctx context.Context, attemptID int) (*Assessment
 		return nil, fmt.Errorf("failed to fetch attempt: %w", err)
 	}
 	result.TimeSpent = result.TimeSpent / 60 // convert seconds to minutes
-	result.AssessmentType = result.AssessmentType
 
 	// Initialize proctoring
 	result.ProctoringData = map[string]interface{}{"tabSwitches": 0, "focusLosses": 0}

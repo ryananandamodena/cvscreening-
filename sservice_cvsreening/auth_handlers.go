@@ -119,6 +119,7 @@ func loginHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"token":        token,
 		"refreshToken": refreshToken,
+		"expires_in":   86400, // 24 hours in seconds
 		"user": gin.H{
 			"id":    user.ID,
 			"email": user.Email,

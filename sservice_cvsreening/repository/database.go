@@ -75,6 +75,43 @@ func RunMigrations() error {
 
 	log.Println("✅ Database schema applied successfully")
 
+	// Run core HR schema
+	coreHrContent, err := os.ReadFile("schema_core_hr.sql")
+	if err == nil {
+		_, err = db.Exec(context.Background(), string(coreHrContent))
+		if err != nil {
+			log.Printf("Warning: Failed to execute schema_core_hr.sql: %v", err)
+		} else {
+			log.Println("✅ Core HR schema applied successfully")
+		}
+	} else {
+		log.Printf("Warning: Could not read schema_core_hr.sql: %v", err)
+	}
+
+	// Run payroll schema
+	payrollContent, err := os.ReadFile("schema_payroll.sql")
+	if err == nil {
+		_, err = db.Exec(context.Background(), string(payrollContent))
+		if err != nil {
+			log.Printf("Warning: Failed to execute schema_payroll.sql: %v", err)
+		} else {
+			log.Println("✅ Payroll schema applied successfully")
+		}
+	}
+
+	// Run attendance & leave schema
+	attendanceContent, err := os.ReadFile("schema_attendance_leave.sql")
+	if err == nil {
+		_, err = db.Exec(context.Background(), string(attendanceContent))
+		if err != nil {
+			log.Printf("Warning: Failed to execute schema_attendance_leave.sql: %v", err)
+		} else {
+			log.Println("✅ Attendance & Leave schema applied successfully")
+		}
+	} else {
+		log.Printf("Warning: Could not read schema_attendance_leave.sql: %v", err)
+	}
+
 	// Run schema updates for existing tables
 	if err := RunSchemaUpdates(); err != nil {
 		log.Printf("Warning: Failed to run schema updates: %v", err)
