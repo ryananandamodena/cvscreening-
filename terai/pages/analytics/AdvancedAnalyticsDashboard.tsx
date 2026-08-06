@@ -187,6 +187,17 @@ const AdvancedAnalyticsDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Demo data notice: the analytics API is not implemented on the backend yet
+          (see analytics.service.ts) — every number below is hardcoded sample data,
+          not a live query. Remove this banner once real endpoints are wired up. */}
+      <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300">
+        <AlertTriangle size={20} className="shrink-0 mt-0.5" />
+        <div className="text-sm font-medium">
+          Halaman ini masih menampilkan <span className="font-bold">data contoh (dummy)</span> — belum terhubung ke data HR yang sesungguhnya.
+          Jangan gunakan angka di halaman ini untuk pengambilan keputusan sampai integrasi backend selesai.
+        </div>
+      </div>
+
       {/* Key Metrics Dashboard */}
       {keyMetrics && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
