@@ -2,7 +2,7 @@
 import { ScreeningResult } from "../types";
 
 /**
- * RecruitAI Enterprise - AI Service Layer
+ * HumanIQ - AI Service Layer
  * 
  * SECURITY NOTE: All AI operations are proxied through the backend API for security.
  * The Gemini API key is NEVER exposed in the frontend bundle. All AI requests
@@ -223,7 +223,7 @@ export class AIService {
   async setupLiveInterview(config: LiveInterviewConfig): Promise<WebSocket> {
     const baseUrl = this.getBaseUrl().replace('http', 'ws');
 
-    const defaultSystemInstruction = `You are an expert AI Interviewer for RecruitAI. 
+    const defaultSystemInstruction = `You are an expert AI Interviewer for HumanIQ. 
         Your tone is professional, encouraging, and highly technical. 
         Ask one question at a time. Do not provide answers. 
         Analyze the candidate's technical depth and communication skills.`;
@@ -309,6 +309,34 @@ export class AIService {
       data: this.encodeBase64(new Uint8Array(int16.buffer)),
       mimeType: 'audio/pcm;rate=16000',
     };
+  }
+
+  /**
+   * Evaluate a video answer using the backend AI service
+   */
+  async evaluateVideoAnswer(question: string, videoBlob: Blob, lang: string): Promise<{ transcript: string, evaluation: string }> {
+    try {
+      const baseUrl = this.getBaseUrl();
+      const formData = new FormData();
+      formData.append('question', question);
+      formData.append('lang', lang);
+      formData.append('video_file', videoBlob, 'answer.webm');
+
+      const response = await fetch(`${baseUrl}/ai/evaluate-answer`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Video evaluation failed: ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('evaluateVideoAnswer error:', error);
+      throw error;
+    }
   }
 
   /**

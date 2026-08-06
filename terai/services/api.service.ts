@@ -54,7 +54,7 @@ function onTokenRefreshed(token: string) {
 }
 
 class APIService {
-  private baseURL: string = "/api";
+  private baseURL: string = import.meta.env.VITE_API_BASE_URL || "/api";
 
   /**
    * Get the authorization header with the current access token
@@ -278,12 +278,14 @@ class APIService {
           return this.request<T>(path, options, retries - 1, backoff * 2);
         }
 
+        let errorMessage = `API Error: ${response.statusText}`;
         try {
           const errorData = await response.json();
-          throw new Error(errorData.error || `API Error: ${response.statusText}`);
+          errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (e) {
-          throw new Error(`API Error: ${response.statusText}`);
+          // response body wasn't valid JSON — keep the generic status-text message
         }
+        throw new Error(errorMessage);
       }
 
       if (response.status === 204) {
@@ -374,9 +376,31 @@ class APIService {
 
   /**
    * Login and store tokens securely
+   * IMPORTANT: Uses direct fetch (not this.request) to avoid injecting
+   * stale auth tokens that would cause 401 loops.
    */
   async login(credentials: any): Promise<{ access_token: string; user: any }> {
-    const res = await this.request<any>("/login", { method: 'POST', body: JSON.stringify(credentials) });
+    // Clear any stale auth data FIRST to prevent token contamination
+    this.clearAuthData();
+
+    const response = await fetch(`${this.baseURL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Login failed';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || `Login failed (${response.status})`;
+      } catch {
+        errorMessage = `Login failed: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const res = await response.json();
 
     if (res.token) {
       // Store tokens securely

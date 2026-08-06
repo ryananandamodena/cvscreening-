@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   DollarSign, Calendar, Briefcase, FileText, Plus, ChevronRight,
-  CheckCircle2, Clock, AlertCircle, Filter, Search, Download, RefreshCw
+  CheckCircle2, Clock, AlertCircle, Filter, Search, Download, RefreshCw, Layers, ShieldCheck, Wallet2
 } from 'lucide-react';
-import { payrollService, PayrollPeriod, SalaryConfiguration, Payslip } from '../../services/payroll.service';
+import { payrollService, PayrollPeriod, SalaryConfiguration, Payslip, PayGrade } from '../../services/payroll.service';
 import { useToast } from '../../contexts/ToastContext';
 import { PageSkeleton } from '../../components/SkeletonLoader';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import TaxConfigPanel from './TaxConfigPanel';
+import DeductionManagementPanel from './DeductionManagementPanel';
 
 const PayrollDashboard: React.FC = () => {
   const { showToast } = useToast();
@@ -26,6 +28,9 @@ const PayrollDashboard: React.FC = () => {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<SalaryConfiguration | null>(null);
 
+  const [grades, setGrades] = useState<PayGrade[]>([]);
+  const [editingGrade, setEditingGrade] = useState<PayGrade | null>(null);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -34,12 +39,14 @@ const PayrollDashboard: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const [periodData, configData] = await Promise.all([
+      const [periodData, configData, gradeData] = await Promise.all([
         payrollService.getPeriods(),
-        payrollService.getSalaryConfigs()
+        payrollService.getSalaryConfigs(),
+        payrollService.getPayGrades()
       ]);
       setPeriods(periodData || []);
       setConfigs(configData || []);
+      setGrades(gradeData || []);
     } catch (err) {
       console.error('Failed to fetch payroll data', err);
       setError('Gagal memuat data payroll. Silakan refresh halaman atau coba lagi nanti.');
@@ -75,16 +82,34 @@ const PayrollDashboard: React.FC = () => {
     if (!editingConfig) return;
 
     try {
-      await payrollService.updateSalaryConfig(editingConfig);
+      const res: any = await payrollService.updateSalaryConfig(editingConfig);
       setIsConfigModalOpen(false);
       setEditingConfig(null);
       fetchData();
-      showToast('success', 'Data komponen gaji berhasil diperbarui');
+      if (res?.message?.includes('memerlukan approval')) {
+        showToast('success', res.message);
+      } else {
+        showToast('success', 'Data komponen gaji berhasil diperbarui');
+      }
     } catch (err) {
       console.error('Failed to update config', err);
       const errorMessage = 'Gagal memperbarui konfigurasi gaji.';
       setError(errorMessage);
       showToast('error', errorMessage);
+    }
+  };
+
+  const submitGrade = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingGrade) return;
+    try {
+      await payrollService.updatePayGrade(editingGrade);
+      setEditingGrade(null);
+      fetchData();
+      showToast('success', `Grade ${editingGrade.name} berhasil diperbarui`);
+    } catch (err) {
+      console.error('Failed to update grade', err);
+      showToast('error', 'Gagal memperbarui salary grade');
     }
   };
 
@@ -157,7 +182,7 @@ const PayrollDashboard: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <div className="w-full space-y-8 animate-in fade-in duration-700">
       {/* Error Display */}
       {error && (
         <div className="bg-danger-50 dark:bg-danger-500/10 border border-danger-200 dark:border-danger-500/20 rounded-xl p-4 mb-6">
@@ -248,6 +273,9 @@ const PayrollDashboard: React.FC = () => {
           {[
             { id: 'periods', label: 'Cycle Management', icon: Calendar },
             { id: 'configs', label: 'Salary Architect', icon: Briefcase },
+            { id: 'grades', label: 'Salary Grades', icon: Layers },
+            { id: 'tax', label: 'Pajak & BPJS', icon: ShieldCheck },
+            { id: 'deductions', label: 'Potongan Lain', icon: Wallet2 },
             { id: 'payslips', label: 'Disbursement Archive', icon: FileText }
           ].map(tab => (
             <button
@@ -326,6 +354,7 @@ const PayrollDashboard: React.FC = () => {
                   <thead>
                     <tr className="bg-slate-50 dark:bg-neutral-800/50 border-b border-slate-200 dark:border-neutral-800">
                        <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Employee</th>
+                       <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Grade</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Base Salary</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Total Allowance</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Insurance Type</th>
@@ -346,6 +375,13 @@ const PayrollDashboard: React.FC = () => {
                               </div>
                            </div>
                         </td>
+                        <td className="px-8 py-6">
+                          {c.gradeName && c.gradeName !== 'Unassigned' ? (
+                            <Badge tone={(c.gradeLevel || 0) >= 5 ? 'brand' : 'neutral'}>{c.gradeName}</Badge>
+                          ) : (
+                            <span className="text-xs text-slate-500 dark:text-slate-400">No Position</span>
+                          )}
+                        </td>
                         <td className="px-8 py-6 font-black text-slate-900 dark:text-white">Rp {c.baseSalary.toLocaleString()}</td>
                         <td className="px-8 py-6 text-success-600 dark:text-success-400 font-bold">Rp {(c.transportAllowance + c.mealAllowance + c.positionAllowance).toLocaleString()}</td>
                         <td className="px-8 py-6">
@@ -365,6 +401,62 @@ const PayrollDashboard: React.FC = () => {
                </table>
             </div>
           )}
+
+          {activeTab === 'grades' && (
+            <div className="bg-white dark:bg-neutral-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-neutral-800 rounded-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+              <div className="px-8 py-5 border-b border-slate-200 dark:border-neutral-800">
+                <p className="text-sm text-slate-600 dark:text-slate-400">Rentang gaji &amp; kebijakan per level jabatan — dari Staff sampai C-Level/CEO.</p>
+              </div>
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-neutral-800/50 border-b border-slate-200 dark:border-neutral-800">
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Level</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Rentang Gaji</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Lembur</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Perubahan Gaji</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-neutral-800">
+                  {grades.map(g => (
+                    <tr key={g.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="px-8 py-6">
+                        <p className="font-bold text-slate-900 dark:text-white">{g.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Level {g.level}</p>
+                      </td>
+                      <td className="px-8 py-6 text-slate-700 dark:text-slate-300 font-medium">
+                        Rp {g.minSalary.toLocaleString()} — Rp {g.maxSalary.toLocaleString()}
+                      </td>
+                      <td className="px-8 py-6">
+                        <Badge tone={g.isOvertimeEligible ? 'success' : 'neutral'}>{g.isOvertimeEligible ? 'Eligible' : 'Exempt'}</Badge>
+                      </td>
+                      <td className="px-8 py-6">
+                        {g.requiresApprovalForChange ? (
+                          <span className="flex items-center gap-1.5 text-warning-600 dark:text-warning-400 font-bold text-xs">
+                            <ShieldCheck size={14} /> Perlu Approval
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-500 dark:text-slate-400">Langsung Diterapkan</span>
+                        )}
+                      </td>
+                      <td className="px-8 py-6">
+                        <button
+                          onClick={() => setEditingGrade(g)}
+                          className="text-brand-600 dark:text-brand-400 font-black text-xs uppercase tracking-widest hover:text-brand-700 dark:hover:text-brand-300"
+                        >
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {activeTab === 'tax' && <TaxConfigPanel />}
+
+          {activeTab === 'deductions' && <DeductionManagementPanel employees={configs} />}
 
           {activeTab === 'payslips' && (
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
@@ -540,6 +632,99 @@ const PayrollDashboard: React.FC = () => {
                 </Button>
                 <Button type="submit">
                   Save Changes
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Salary Grade Modal */}
+      {editingGrade && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-50/80 dark:bg-neutral-900/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+            <div className="px-6 py-5 border-b border-slate-200/80 dark:border-neutral-800/80 flex justify-between items-center bg-white/50 dark:bg-neutral-800/50">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="text-brand-600 dark:text-brand-400" /> Edit Grade: {editingGrade.name}
+              </h2>
+              <button onClick={() => setEditingGrade(null)} className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white transition-colors">✕</button>
+            </div>
+            <form onSubmit={submitGrade} className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Gaji Minimum (Rp)</label>
+                  <input
+                    type="number" required min="0"
+                    value={editingGrade.minSalary || 0}
+                    onChange={(e) => setEditingGrade({ ...editingGrade, minSalary: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-900 dark:text-white outline-none focus:border-brand-500 transition-all font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Gaji Maksimum (Rp)</label>
+                  <input
+                    type="number" required min="0"
+                    value={editingGrade.maxSalary || 0}
+                    onChange={(e) => setEditingGrade({ ...editingGrade, maxSalary: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-900 dark:text-white outline-none focus:border-brand-500 transition-all font-mono"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Transport Default</label>
+                  <input
+                    type="number" min="0"
+                    value={editingGrade.defaultTransportAllowance || 0}
+                    onChange={(e) => setEditingGrade({ ...editingGrade, defaultTransportAllowance: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-900 dark:text-white outline-none focus:border-brand-500 transition-all font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Meal Default</label>
+                  <input
+                    type="number" min="0"
+                    value={editingGrade.defaultMealAllowance || 0}
+                    onChange={(e) => setEditingGrade({ ...editingGrade, defaultMealAllowance: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-900 dark:text-white outline-none focus:border-brand-500 transition-all font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Position Default</label>
+                  <input
+                    type="number" min="0"
+                    value={editingGrade.defaultPositionAllowance || 0}
+                    onChange={(e) => setEditingGrade({ ...editingGrade, defaultPositionAllowance: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-900 dark:text-white outline-none focus:border-brand-500 transition-all font-mono"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingGrade.isOvertimeEligible}
+                    onChange={(e) => setEditingGrade({ ...editingGrade, isOvertimeEligible: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  Eligible Lembur
+                </label>
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingGrade.requiresApprovalForChange}
+                    onChange={(e) => setEditingGrade({ ...editingGrade, requiresApprovalForChange: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  Perubahan Gaji Perlu Approval
+                </label>
+              </div>
+              <div className="pt-2 flex justify-end gap-3">
+                <Button type="button" variant="ghost" onClick={() => setEditingGrade(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Save Grade
                 </Button>
               </div>
             </form>

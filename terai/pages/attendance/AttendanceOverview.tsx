@@ -1,44 +1,73 @@
 import React, { useState, useEffect } from 'react';
 import {
   Clock, MapPin, Camera, AlertCircle, CheckCircle2, History,
-  CalendarDays, Coffee, Sunrise, Sunset
+  CalendarDays, Coffee, Sunrise, Sunset, Users
 } from 'lucide-react';
 import { attendanceService } from '../../services/attendance.service';
+import { employeeService } from '../../services/employee.service';
 import { Attendance, Shift } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../guards/AuthGuard';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import TeamAttendance from './TeamAttendance';
+import ClockInModal from './ClockInModal';
+import QRScanModal from './QRScanModal';
+import MyCorrections from './MyCorrections';
+import MonthlyReport from './MonthlyReport';
+
+const HR_ROLES = ['admin', 'hr', 'hr_admin', 'hr_manager', 'hiring_manager', 'manager'];
 
 const AttendanceOverview: React.FC = () => {
   const { showToast } = useToast();
+  const { role } = useAuth();
+  const canViewTeam = !!role && HR_ROLES.includes(role.toLowerCase());
+  const [activeTab, setActiveTab] = useState<'mine' | 'team' | 'reports'>('mine');
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [todayRecord, setTodayRecord] = useState<Attendance | null>(null);
   const [activeShift, setActiveShift] = useState<Shift | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<Attendance[]>([]);
+  const [clockModal, setClockModal] = useState<'in' | 'out' | null>(null);
+  const [qrModal, setQrModal] = useState<'in' | 'out' | null>(null);
+  const [employeeId, setEmployeeId] = useState<number | null>(null);
+  const [breaks, setBreaks] = useState<Array<{ id: number; breakStart: string; breakEnd?: string }>>([]);
+  const [breakBusy, setBreakBusy] = useState(false);
 
-  // We hardcode employee ID 1 for MVP test
-  const MOCK_EMPLOYEE_ID = 1;
+  const onBreak = breaks.some((b) => !b.breakEnd);
 
   useEffect(() => {
     // Update time every second
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    
-    fetchDailyStatus();
+
+    employeeService.getMyEmployee()
+      .then((emp: any) => setEmployeeId(emp.id))
+      .catch(() => {
+        setError('Akun Anda belum terhubung dengan data karyawan.');
+        setLoading(false);
+      });
 
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (employeeId) fetchDailyStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeeId]);
+
   const fetchDailyStatus = async () => {
+    if (!employeeId) return;
     setLoading(true);
     setError(null);
     try {
-      const [attRes, shiftRes, histRes] = await Promise.all([
-        attendanceService.getTodayAttendance(MOCK_EMPLOYEE_ID).catch(() => null),
-        attendanceService.getEmployeeShift(MOCK_EMPLOYEE_ID).catch(() => null),
-        attendanceService.getHistory(MOCK_EMPLOYEE_ID).catch(() => [])
+      const [attRes, shiftRes, histRes, breaksRes] = await Promise.all([
+        attendanceService.getTodayAttendance(employeeId).catch(() => null),
+        attendanceService.getEmployeeShift(employeeId).catch(() => null),
+        attendanceService.getHistory(employeeId).catch(() => []),
+        attendanceService.getTodayBreaks().catch(() => [])
       ]);
+      setBreaks(breaksRes || []);
 
       if (attRes && attRes.status !== 'not_clocked_in') {
         setTodayRecord(attRes);
@@ -59,56 +88,33 @@ const AttendanceOverview: React.FC = () => {
     }
   };
 
-  const getLocation = (): Promise<GeolocationPosition> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocation not supported by browser"));
-      } else {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
-      }
-    });
-  };
-
-  const handleClockAction = async (type: 'in' | 'out') => {
-    try {
-      // Simulate getting location
-      let locationData = { lat: -6.2088, lng: 106.8456, address: "Jakarta (Simulated Area)" };
-      
-      try {
-        const pos = await getLocation();
-        locationData = { lat: pos.coords.latitude, lng: pos.coords.longitude, address: "Current Network Location" };
-      } catch (locErr) {
-        console.warn("Using default location due to error", locErr);
-      }
-
-      // Simulated photo
-      const mockPhoto = "data:image/png;base64,...(photo data)...";
-
-      if (type === 'in') {
-        await attendanceService.clockIn({
-          employeeId: MOCK_EMPLOYEE_ID,
-          location: locationData,
-          photo: mockPhoto
-        });
-      } else {
-        await attendanceService.clockOut({
-          employeeId: MOCK_EMPLOYEE_ID,
-          location: locationData,
-          photo: mockPhoto,
-          notes: "End of scheduled shift"
-        });
-      }
-      
-      // Refresh status
-      await fetchDailyStatus();
-    } catch (err) {
-      alert("Failed to record attendance: " + (err as any).message);
-    }
+  const handleClockSuccess = async () => {
+    setClockModal(null);
+    showToast('success', clockModal === 'in' ? 'Clock in berhasil dicatat' : 'Clock out berhasil dicatat');
+    await fetchDailyStatus();
   };
 
   const formatTime = (timeStr?: string) => {
     if (!timeStr) return '--:--';
     return new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleBreakAction = async () => {
+    setBreakBusy(true);
+    try {
+      if (onBreak) {
+        await attendanceService.breakEnd();
+        showToast('success', 'Istirahat selesai');
+      } else {
+        await attendanceService.breakStart();
+        showToast('success', 'Istirahat dimulai');
+      }
+      await fetchDailyStatus();
+    } catch (err) {
+      showToast('error', (err as any).message || 'Gagal mencatat istirahat');
+    } finally {
+      setBreakBusy(false);
+    }
   };
 
   return (
@@ -137,8 +143,42 @@ const AttendanceOverview: React.FC = () => {
           </h1>
           <p className="text-slate-600 dark:text-slate-400 font-medium mt-1">Manage your daily clock-ins and monitor shift schedules.</p>
         </div>
+
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-neutral-800 p-1 rounded-xl w-fit flex-wrap">
+          <button
+            onClick={() => setActiveTab('mine')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
+              activeTab === 'mine' ? 'bg-white dark:bg-neutral-900 text-brand-600 dark:text-brand-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            <Clock size={16} /> My Attendance
+          </button>
+          {canViewTeam && (
+            <button
+              onClick={() => setActiveTab('team')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
+                activeTab === 'team' ? 'bg-white dark:bg-neutral-900 text-brand-600 dark:text-brand-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              <Users size={16} /> Team Attendance
+            </button>
+          )}
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
+              activeTab === 'reports' ? 'bg-white dark:bg-neutral-900 text-brand-600 dark:text-brand-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            <CalendarDays size={16} /> Monthly Report
+          </button>
+        </div>
       </div>
 
+      {activeTab === 'team' && canViewTeam ? (
+        <TeamAttendance />
+      ) : activeTab === 'reports' ? (
+        <MonthlyReport />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Clock In/Out Panel */}
@@ -155,26 +195,66 @@ const AttendanceOverview: React.FC = () => {
           <div className="w-full space-y-4 z-10">
             {!todayRecord?.clockIn ? (
               <Button
-                onClick={() => handleClockAction('in')}
+                onClick={() => setClockModal('in')}
                 size="lg"
                 className="w-full !py-5 !text-xl !rounded-2xl bg-gradient-to-r from-success-500 to-success-600 hover:from-success-400 hover:to-success-500 shadow-lg shadow-success-500/20"
                 icon={<Sunrise size={28} />}
               >
                 CLOCK IN
               </Button>
-            ) : !todayRecord?.clockOut ? (
-              <Button
-                onClick={() => handleClockAction('out')}
-                size="lg"
-                className="w-full !py-5 !text-xl !rounded-2xl bg-gradient-to-r from-danger-500 to-danger-600 hover:from-danger-400 hover:to-danger-500 shadow-lg shadow-danger-500/20"
-                icon={<Sunset size={28} />}
-              >
-                CLOCK OUT
-              </Button>
-            ) : (
+            ) : null}
+            {!todayRecord?.clockIn && (
+              <button onClick={() => setQrModal('in')} className="w-full text-center text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline">
+                Scan QR Kiosk untuk Clock In
+              </button>
+            )}
+            {todayRecord?.clockIn && !todayRecord?.clockOut ? (
+              <>
+                <Button
+                  onClick={() => setClockModal('out')}
+                  size="lg"
+                  className="w-full !py-5 !text-xl !rounded-2xl bg-gradient-to-r from-danger-500 to-danger-600 hover:from-danger-400 hover:to-danger-500 shadow-lg shadow-danger-500/20"
+                  icon={<Sunset size={28} />}
+                >
+                  CLOCK OUT
+                </Button>
+                <button onClick={() => setQrModal('out')} className="w-full text-center text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline">
+                  Scan QR Kiosk untuk Clock Out
+                </button>
+                <Button
+                  onClick={handleBreakAction}
+                  loading={breakBusy}
+                  variant={onBreak ? 'danger' : 'outline'}
+                  size="md"
+                  className="w-full !rounded-xl"
+                  icon={<Coffee size={18} />}
+                >
+                  {onBreak ? 'Selesai Istirahat' : 'Mulai Istirahat'}
+                </Button>
+                {todayRecord?.breakMinutes ? (
+                  <p className="text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    Total istirahat hari ini: {todayRecord.breakMinutes} menit
+                  </p>
+                ) : null}
+              </>
+            ) : todayRecord?.clockIn && todayRecord?.clockOut ? (
               <div className="w-full py-5 bg-white dark:bg-neutral-800 border-2 border-slate-200 dark:border-neutral-700 text-slate-700 dark:text-slate-300 font-bold text-lg rounded-2xl flex flex-col items-center justify-center gap-2">
                 <CheckCircle2 size={24} className="text-success-500" />
                 Shift Completed
+              </div>
+            ) : null}
+
+            {todayRecord && (todayRecord.status === 'late' || !!todayRecord.earlyLeaveMinutes || !!todayRecord.overtimeHours) && (
+              <div className="flex flex-wrap gap-2 justify-center">
+                {todayRecord.status === 'late' && (
+                  <Badge tone="warning">Telat {todayRecord.lateMinutes} menit</Badge>
+                )}
+                {!!todayRecord.earlyLeaveMinutes && (
+                  <Badge tone="warning">Pulang cepat {todayRecord.earlyLeaveMinutes} menit</Badge>
+                )}
+                {!!todayRecord.overtimeHours && (
+                  <Badge tone="info">Lembur {todayRecord.overtimeHours.toFixed(1)} jam</Badge>
+                )}
               </div>
             )}
           </div>
@@ -254,6 +334,29 @@ const AttendanceOverview: React.FC = () => {
         </div>
 
       </div>
+      )}
+
+      {activeTab === 'mine' && employeeId && <MyCorrections />}
+
+      {clockModal && (
+        <ClockInModal
+          mode={clockModal}
+          onClose={() => setClockModal(null)}
+          onSuccess={handleClockSuccess}
+        />
+      )}
+
+      {qrModal && (
+        <QRScanModal
+          mode={qrModal}
+          onClose={() => setQrModal(null)}
+          onSuccess={async () => {
+            setQrModal(null);
+            showToast('success', qrModal === 'in' ? 'Clock in via QR berhasil' : 'Clock out via QR berhasil');
+            await fetchDailyStatus();
+          }}
+        />
+      )}
     </div>
   );
 };

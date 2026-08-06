@@ -100,7 +100,7 @@ class PDFReportService {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(18);
         doc.setTextColor(255, 255, 255);
-        doc.text('RecruitAI', 15, 16);
+        doc.text('HumanIQ', 15, 16);
 
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
@@ -229,7 +229,7 @@ class PDFReportService {
             doc.setPage(i);
             doc.setFontSize(7);
             doc.setTextColor(...COLORS.muted);
-            doc.text(`RecruitAI — Confidential | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+            doc.text(`HumanIQ — Confidential | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
         }
 
         return doc.output('blob');
@@ -314,7 +314,7 @@ class PDFReportService {
             doc.setPage(i);
             doc.setFontSize(7);
             doc.setTextColor(...COLORS.muted);
-            doc.text(`RecruitAI — Confidential | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+            doc.text(`HumanIQ — Confidential | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
         }
 
         return doc.output('blob');
@@ -392,7 +392,7 @@ class PDFReportService {
             doc.setPage(i);
             doc.setFontSize(7);
             doc.setTextColor(...COLORS.muted);
-            doc.text(`RecruitAI — Confidential | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+            doc.text(`HumanIQ — Confidential | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
         }
 
         return doc.output('blob');
@@ -436,7 +436,7 @@ class PDFReportService {
         // Footer
         doc.setFontSize(7);
         doc.setTextColor(...COLORS.muted);
-        doc.text('RecruitAI — Confidential | Page 1 of 1', 105, 290, { align: 'center' });
+        doc.text('HumanIQ — Confidential | Page 1 of 1', 105, 290, { align: 'center' });
 
         return doc.output('blob');
     }
@@ -472,7 +472,7 @@ class PDFReportService {
             doc.setPage(i);
             doc.setFontSize(7);
             doc.setTextColor(...COLORS.muted);
-            doc.text(`RecruitAI — Confidential | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+            doc.text(`HumanIQ — Confidential | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
         }
 
         return doc.output('blob');
