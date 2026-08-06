@@ -8,11 +8,11 @@ $body = @{
 } | ConvertTo-Json
 
 Write-Host "Testing Gemini AI Screening API..." -ForegroundColor Cyan
-Write-Host "Sending request to: http://localhost:8080/api/screening" -ForegroundColor Yellow
+Write-Host "Sending request to: http://localhost:8082/api/screening" -ForegroundColor Yellow
 Write-Host ""
 
 try {
-    $response = Invoke-RestMethod -Uri "http://localhost:8080/api/screening" `
+    $response = Invoke-RestMethod -Uri "http://localhost:8082/api/screening" `
                                   -Method Post `
                                   -Headers $headers `
                                   -Body $body

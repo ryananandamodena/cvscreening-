@@ -1,4 +1,4 @@
-$result = Invoke-RestMethod -Uri "http://localhost:8080/api/screening" `
+$result = Invoke-RestMethod -Uri "http://localhost:8082/api/screening" `
     -Method Post `
     -Headers @{"Content-Type" = "application/json" } `
     -Body '{"jd":"React developer needed","cv":"I know React"}' `

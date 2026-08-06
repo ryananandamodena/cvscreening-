@@ -30,7 +30,7 @@ Write-Host "Sending detailed CV for analysis..." -ForegroundColor Yellow
 Write-Host ""
 
 try {
-    $response = Invoke-RestMethod -Uri "http://localhost:8080/api/screening" `
+    $response = Invoke-RestMethod -Uri "http://localhost:8082/api/screening" `
         -Method Post `
         -Headers $headers `
         -Body $body

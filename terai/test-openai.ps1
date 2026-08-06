@@ -2,7 +2,7 @@ $body = '{"jd":"Senior Full-Stack Developer with React, TypeScript, Node.js, Go,
 
 Write-Host "`n🧪 Testing OpenAI CV Screening...`n" -ForegroundColor Cyan
 
-$response = Invoke-RestMethod -Uri "http://localhost:8080/api/screening" -Method Post -Headers @{"Content-Type" = "application/json" } -Body $body
+$response = Invoke-RestMethod -Uri "http://localhost:8082/api/screening" -Method Post -Headers @{"Content-Type" = "application/json" } -Body $body
 
 Write-Host "✅ SUCCESS! OpenAI Analysis:`n" -ForegroundColor Green
 Write-Host "════════════════════════════════════════" -ForegroundColor Cyan
