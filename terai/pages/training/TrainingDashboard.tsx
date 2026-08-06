@@ -107,7 +107,7 @@ const TrainingDashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <div className="w-full space-y-8 animate-in fade-in duration-700">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -133,7 +133,7 @@ const TrainingDashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white dark:bg-[#111111] p-4 rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
+        <div className="bg-white dark:bg-[#000000] p-4 rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Available Programs</p>
@@ -143,7 +143,7 @@ const TrainingDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#111111] p-4 rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
+        <div className="bg-white dark:bg-[#000000] p-4 rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">My Enrollments</p>
@@ -153,7 +153,7 @@ const TrainingDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#111111] p-4 rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
+        <div className="bg-white dark:bg-[#000000] p-4 rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Completed</p>
@@ -163,7 +163,7 @@ const TrainingDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#111111] p-4 rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
+        <div className="bg-white dark:bg-[#000000] p-4 rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">In Progress</p>
@@ -173,7 +173,7 @@ const TrainingDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#111111] p-4 rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
+        <div className="bg-white dark:bg-[#000000] p-4 rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Training Hours</p>
@@ -185,7 +185,7 @@ const TrainingDashboard: React.FC = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white dark:bg-[#111111] rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
+      <div className="bg-white dark:bg-[#000000] rounded-xl border border-slate-200/60 dark:border-neutral-800 shadow-sm">
         <div className="border-b border-slate-200 dark:border-neutral-800">
           <nav className="flex">
             <button
@@ -280,7 +280,7 @@ const TrainingDashboard: React.FC = () => {
                     const isEnrolled = myTrainings.some(t => t.programId === program.id);
 
                     return (
-                      <div key={program.id} className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                      <div key={program.id} className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-xl p-6 hover:shadow-lg transition-shadow">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{program.title}</h3>
@@ -372,7 +372,7 @@ const TrainingDashboard: React.FC = () => {
                   const program = programs.find(p => p.id === training.programId);
 
                   return (
-                    <div key={training.id} className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl p-6">
+                    <div key={training.id} className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-xl p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           <h3 className="font-semibold text-slate-900 dark:text-white mb-1">{training.programTitle}</h3>

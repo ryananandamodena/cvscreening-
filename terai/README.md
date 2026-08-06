@@ -1,20 +1,30 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Attendance Management System - Backend
 
-# Run and deploy your AI Studio app
+## Directory Structure
+```
+backend/
+├── go.mod           # Go module definition
+├── main.go          # Application entry point
+├── handlers/        # HTTP request handlers
+│   └── attendance.go
+├── services/        # Business logic services
+│   └── attendance.go
+├── models/          # Data models
+│   └── attendance.go
+├── middleware/      # HTTP middleware
+│   └── auth.go
+├── pkg/
+│   ├── config/      # Configuration files
+│   │   ├── database.go
+│   │   └── app.go
+│   └── utils/       # Utility functions
+│       └── helpers.go
+└── internal/
+    └── config/      # Internal configuration
+        └── app.go
+```
 
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/drive/103lPlFxXqPFZ3bRhCuipBs5ONFeMR6xj
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Setup
+1. Install Go dependencies: `go mod download`
+2. Configure database connection in `pkg/config/app.go`
+3. Run the application: `go run main.go`

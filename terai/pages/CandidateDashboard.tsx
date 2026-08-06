@@ -127,7 +127,7 @@ const CandidateDashboard: React.FC = () => {
                         <div className="flex items-center gap-4">
                             <Link to="/careers" className="flex items-center gap-2 text-brand-600 hover:text-brand-700">
                                 <Briefcase className="w-6 h-6" />
-                                <span className="font-bold text-xl">RecruitAI</span>
+                                <span className="font-bold text-xl">HumanIQ</span>
                             </Link>
                             <span className="text-slate-700 dark:text-slate-300">|</span>
                             <span className="text-slate-700 dark:text-slate-300">{t('candidate.dashboard.title')}</span>

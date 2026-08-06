@@ -1,6 +1,7 @@
 import React from 'react';
-import { Search } from 'lucide-react';
+import { Search, Moon, Sun, Monitor } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useTheme } from '../contexts/ThemeContext';
 import NotificationBell from '../components/NotificationBell';
 
 interface HeaderProps {
@@ -9,9 +10,10 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ collapsed }) => {
     const { t } = useLanguage();
-    
+    const { theme, setTheme } = useTheme();
+
     return (
-        <header className="sticky top-0 z-40 w-full h-16 bg-white dark:bg-[#111111] border-b border-slate-200 dark:border-neutral-800 px-6 sm:px-10 flex items-center justify-between transition-all shadow-sm">
+        <header className="sticky top-0 z-40 w-full h-16 bg-white dark:bg-[#000000] border-b border-slate-200 dark:border-neutral-800 px-6 sm:px-10 flex items-center justify-between transition-all shadow-sm">
             <div className="relative w-full max-w-md group hidden md:block">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 focus-within:text-brand-600 transition-colors" size={16} />
                 <input
@@ -22,6 +24,13 @@ const Header: React.FC<HeaderProps> = ({ collapsed }) => {
             </div>
 
             <div className="flex items-center gap-4 ml-auto">
+                <button
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}
+                    className="p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-neutral-800/50 border border-transparent hover:border-slate-200/50 dark:hover:border-neutral-700/50 transition-colors"
+                    title={theme === 'dark' ? 'Light Mode' : theme === 'light' ? 'System' : 'Dark Mode'}
+                >
+                    {theme === 'dark' ? <Moon size={18} className="text-brand-400" /> : theme === 'light' ? <Sun size={18} className="text-amber-500" /> : <Monitor size={18} className="text-slate-600 dark:text-slate-400" />}
+                </button>
                 <NotificationBell />
                 <div className="h-6 w-px bg-slate-200 dark:bg-neutral-700 mx-2 hidden sm:block"></div>
                 <button className="flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-slate-100/50 dark:hover:bg-neutral-800/50 transition-colors border border-transparent hover:border-slate-200/50 dark:hover:border-neutral-700/50">

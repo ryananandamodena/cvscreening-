@@ -117,7 +117,7 @@ const PositionManagement: React.FC = () => {
         </Button>
       </div>
 
-      <div className="bg-white/50 dark:bg-[#111111] backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800 rounded-2xl p-4">
+      <div className="bg-white/50 dark:bg-[#000000] backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800 rounded-2xl p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" size={18} />
@@ -142,11 +142,11 @@ const PositionManagement: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white/50 dark:bg-[#111111] backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800 rounded-2xl overflow-hidden">
+      <div className="bg-white/50 dark:bg-[#000000] backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800 rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-200/50 dark:border-neutral-800 bg-white/50 dark:bg-[#111111]">
+              <tr className="border-b border-slate-200/50 dark:border-neutral-800 bg-white/50 dark:bg-[#000000]">
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">Position</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">Department</th>
                 <th className="px-6 py-4 text-center text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">Job Level</th>
@@ -167,7 +167,7 @@ const PositionManagement: React.FC = () => {
               ) : filteredPositions.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 mb-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 mb-4">
                       <Briefcase className="text-slate-600 dark:text-slate-400" size={32} />
                     </div>
                     <p className="text-slate-700 dark:text-slate-300 font-medium">No positions found</p>
@@ -227,7 +227,7 @@ const PositionManagement: React.FC = () => {
             onClick={() => setIsModalOpen(false)} 
           />
           
-          <div className="relative w-full max-w-2xl bg-white dark:bg-[#111111] border border-slate-200/50 dark:border-neutral-800 shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="relative w-full max-w-2xl bg-white dark:bg-[#000000] border border-slate-200/50 dark:border-neutral-800 shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="px-8 py-6 border-b border-slate-200 dark:border-neutral-800 flex justify-between items-center bg-slate-50/50 dark:bg-neutral-900/50">
               <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
                 <div className="p-2 bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-xl">
@@ -252,7 +252,7 @@ const PositionManagement: React.FC = () => {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-slate-400 font-bold"
+                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-slate-400 font-bold"
                     placeholder="e.g. Senior Frontend Engineer"
                   />
                 </div>
@@ -263,7 +263,7 @@ const PositionManagement: React.FC = () => {
                     type="text"
                     value={formData.code}
                     onChange={(e) => setFormData({...formData, code: e.target.value})}
-                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-slate-400 uppercase font-bold"
+                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-slate-400 uppercase font-bold"
                     placeholder="e.g. SFE"
                   />
                 </div>
@@ -277,7 +277,7 @@ const PositionManagement: React.FC = () => {
                     required
                     value={formData.level}
                     onChange={(e) => setFormData({...formData, level: parseInt(e.target.value)})}
-                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all font-bold"
+                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all font-bold"
                   />
                 </div>
                 
@@ -286,7 +286,7 @@ const PositionManagement: React.FC = () => {
                   <select
                     value={formData.departmentId}
                     onChange={(e) => setFormData({...formData, departmentId: e.target.value})}
-                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all appearance-none font-bold"
+                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all appearance-none font-bold"
                   >
                     <option value="">-- No Department --</option>
                     {departments.map(dept => (
@@ -301,7 +301,7 @@ const PositionManagement: React.FC = () => {
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                     rows={4}
-                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all resize-none placeholder:text-slate-400 font-medium"
+                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all resize-none placeholder:text-slate-400 font-medium"
                     placeholder="Brief description of the position..."
                   />
                 </div>

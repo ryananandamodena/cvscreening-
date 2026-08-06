@@ -6,7 +6,7 @@
  * 
  * Default port: 8081 (consistent with ai.service.ts and other services)
  */
-export const APP_NAME = 'RecruitAI Enterprise';
+export const APP_NAME = 'HumanIQ';
 
 /**
  * Base URL for API requests

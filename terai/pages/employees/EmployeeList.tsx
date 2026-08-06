@@ -3,7 +3,7 @@ import {
   Users, Search, Plus, Filter, MoreVertical, 
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Briefcase
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { employeeService } from '../../services/employee.service';
 import { Employee, Department } from '../../types';
 import Button from '../../components/ui/Button';
@@ -11,12 +11,13 @@ import Badge from '../../components/ui/Badge';
 
 const EmployeeList: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    departmentId: '',
+    departmentId: searchParams.get('departmentId') || '',
     employmentStatus: 'active'
   });
   
@@ -79,7 +80,8 @@ const EmployeeList: React.FC = () => {
   const getStatusBadgeTone = (status: string): 'success' | 'warning' | 'danger' | 'neutral' => {
     switch (status) {
       case 'active': return 'success';
-      case 'resigned': return 'warning';
+      case 'on leave': return 'warning';
+      case 'resigned': return 'neutral';
       case 'terminated': return 'danger';
       default: return 'neutral';
     }
@@ -119,7 +121,7 @@ const EmployeeList: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white/50 dark:bg-[#111111]/50 backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800/50 rounded-2xl shadow-sm p-4">
+      <div className="bg-white/50 dark:bg-[#000000]/50 backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800/50 rounded-2xl shadow-sm p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" size={18} />
@@ -148,6 +150,7 @@ const EmployeeList: React.FC = () => {
               className="w-40 px-4 py-2.5 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-brand-500 transition-colors appearance-none"
             >
               <option value="active">Active</option>
+              <option value="on leave">On Leave</option>
               <option value="resigned">Resigned</option>
               <option value="terminated">Terminated</option>
               <option value="">All Statuses</option>
@@ -156,11 +159,11 @@ const EmployeeList: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white/50 dark:bg-[#111111]/50 backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800/50 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white/50 dark:bg-[#000000]/50 backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800/50 rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-200/50 dark:border-neutral-800/50 bg-white/50 dark:bg-[#111111]/50">
+              <tr className="border-b border-slate-200/50 dark:border-neutral-800/50 bg-white/50 dark:bg-[#000000]/50">
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">Employee</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">Role & Dept</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">Type</th>
@@ -182,7 +185,7 @@ const EmployeeList: React.FC = () => {
               ) : employees.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 mb-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 mb-4">
                       <Users className="text-slate-600 dark:text-slate-400" size={32} />
                     </div>
                     <p className="text-slate-700 dark:text-slate-300 font-medium">No employees found</p>
@@ -219,7 +222,14 @@ const EmployeeList: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-slate-700 dark:text-slate-300">{emp.positionName || 'No Position'}</div>
-                      <div className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-0.5">
+                      <div
+                        className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-0.5 hover:text-brand-600 dark:hover:text-brand-400 cursor-pointer w-fit"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (emp.departmentId) navigate(`/organizations/departments?departmentId=${emp.departmentId}`);
+                        }}
+                        title="Lihat departemen"
+                      >
                         <Briefcase size={12} />
                         {emp.departmentName || 'No Department'}
                       </div>
@@ -266,7 +276,7 @@ const EmployeeList: React.FC = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-200/50 dark:border-neutral-800/50 bg-white/30 dark:bg-[#111111]/30 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-slate-200/50 dark:border-neutral-800/50 bg-white/30 dark:bg-[#000000]/30 flex items-center justify-between">
             <div className="text-sm text-slate-600 dark:text-slate-400">
               Showing <span className="font-medium text-slate-900 dark:text-white">{(page - 1) * 10 + 1}</span> to <span className="font-medium text-slate-900 dark:text-white">{Math.min(page * 10, total)}</span> of <span className="font-medium text-slate-900 dark:text-white">{total}</span> employees
             </div>

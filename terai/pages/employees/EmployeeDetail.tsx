@@ -78,7 +78,7 @@ const EmployeeDetail: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto mt-8">
+      <div className="w-full mt-8">
         <div className="bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-3">
             <AlertCircle className="h-6 w-6 text-danger-500 flex-shrink-0" />
@@ -95,7 +95,7 @@ const EmployeeDetail: React.FC = () => {
   if (!employee) return null;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="w-full space-y-6 animate-in fade-in duration-500">
       {/* Header & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <button
@@ -119,14 +119,14 @@ const EmployeeDetail: React.FC = () => {
       </div>
 
       {/* Employee Profile Header Card */}
-      <div className="bg-slate-50/40 dark:bg-[#111111]/40 backdrop-blur-3xl border border-slate-200/50 dark:border-white/5 rounded-2xl overflow-hidden relative shadow-2xl">
+      <div className="bg-slate-50/40 dark:bg-[#000000]/40 backdrop-blur-3xl border border-slate-200/50 dark:border-white/5 rounded-2xl overflow-hidden relative shadow-2xl">
         <div className="h-40 bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700 opacity-90 relative">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
           <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white dark:from-neutral-900/80 to-transparent"></div>
         </div>
         <div className="px-10 pb-10">
           <div className="flex flex-col md:flex-row gap-8 items-start relative -mt-16">
-            <div className="w-32 h-32 rounded-2xl bg-white dark:bg-[#111111] border-4 border-white dark:border-neutral-900 shadow-2xl overflow-hidden shrink-0 flex items-center justify-center ring-1 ring-black/5 dark:ring-white/10">
+            <div className="w-32 h-32 rounded-2xl bg-white dark:bg-[#000000] border-4 border-white dark:border-neutral-900 shadow-2xl overflow-hidden shrink-0 flex items-center justify-center ring-1 ring-black/5 dark:ring-white/10">
               {employee.photoUrl ? (
                 <img src={employee.photoUrl} alt={employee.fullName} className="w-full h-full object-cover" />
               ) : (
@@ -178,7 +178,7 @@ const EmployeeDetail: React.FC = () => {
             className={`px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 ${
               activeTab === tab
                 ? 'bg-brand-600 text-white shadow-xl shadow-brand-600/30 -translate-y-0.5'
-                : 'bg-white/50 dark:bg-[#111111]/50 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-slate-300 border border-slate-200/50 dark:border-white/5'
+                : 'bg-white/50 dark:bg-[#000000]/50 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-slate-300 border border-slate-200/50 dark:border-white/5'
             }`}
           >
             {tab}
@@ -187,7 +187,7 @@ const EmployeeDetail: React.FC = () => {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-slate-50/30 dark:bg-[#111111]/30 backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-white/5 p-10 min-h-[500px] shadow-inner ring-1 ring-black/5 dark:ring-white/5">
+      <div className="bg-slate-50/30 dark:bg-[#000000]/30 backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-white/5 p-10 min-h-[500px] shadow-inner ring-1 ring-black/5 dark:ring-white/5">
         {activeTab === 'profile' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-8">
@@ -196,14 +196,14 @@ const EmployeeDetail: React.FC = () => {
                 <div className="h-px flex-1 bg-gradient-to-r from-slate-700 to-transparent"></div>
               </div>
               <div className="grid gap-4">
-                <div className="group flex items-center gap-5 p-5 bg-white/50 dark:bg-[#111111]/50 rounded-2xl border border-slate-200/50 dark:border-white/5 hover:border-brand-500/30 transition-all">
+                <div className="group flex items-center gap-5 p-5 bg-white/50 dark:bg-[#000000]/50 rounded-2xl border border-slate-200/50 dark:border-white/5 hover:border-brand-500/30 transition-all">
                   <div className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-2xl text-slate-700 dark:text-slate-300 group-hover:text-brand-600 dark:group-hover:text-brand-400 group-hover:bg-brand-500/10 transition-all shadow-inner"><Mail size={22} /></div>
                   <div>
                     <p className="text-[10px] text-slate-700 dark:text-slate-300 font-black uppercase tracking-widest mb-1">Company Email</p>
                     <p className="text-slate-900 dark:text-slate-200 font-bold text-lg">{employee.email}</p>
                   </div>
                 </div>
-                <div className="group flex items-center gap-5 p-5 bg-white/50 dark:bg-[#111111]/50 rounded-2xl border border-slate-200/50 dark:border-white/5 hover:border-brand-500/30 transition-all">
+                <div className="group flex items-center gap-5 p-5 bg-white/50 dark:bg-[#000000]/50 rounded-2xl border border-slate-200/50 dark:border-white/5 hover:border-brand-500/30 transition-all">
                   <div className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-2xl text-slate-700 dark:text-slate-300 group-hover:text-brand-600 dark:group-hover:text-brand-400 group-hover:bg-brand-500/10 transition-all shadow-inner"><Phone size={22} /></div>
                   <div>
                     <p className="text-[10px] text-slate-700 dark:text-slate-300 font-black uppercase tracking-widest mb-1">Direct Line</p>
@@ -219,7 +219,7 @@ const EmployeeDetail: React.FC = () => {
                 <div className="h-px flex-1 bg-gradient-to-r from-slate-700 to-transparent"></div>
               </div>
               <div className="grid gap-4">
-                <div className="group flex items-center gap-5 p-5 bg-white/50 dark:bg-[#111111]/50 rounded-2xl border border-slate-200/50 dark:border-white/5 transition-all">
+                <div className="group flex items-center gap-5 p-5 bg-white/50 dark:bg-[#000000]/50 rounded-2xl border border-slate-200/50 dark:border-white/5 transition-all">
                   <div className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-2xl text-slate-700 dark:text-slate-300 shadow-inner"><Calendar size={22} /></div>
                   <div>
                     <p className="text-[10px] text-slate-700 dark:text-slate-300 font-black uppercase tracking-widest mb-1">Service Inception</p>
@@ -228,7 +228,7 @@ const EmployeeDetail: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <div className="group flex items-center gap-5 p-5 bg-white/50 dark:bg-[#111111]/50 rounded-2xl border border-slate-200/50 dark:border-white/5 transition-all">
+                <div className="group flex items-center gap-5 p-5 bg-white/50 dark:bg-[#000000]/50 rounded-2xl border border-slate-200/50 dark:border-white/5 transition-all">
                   <div className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-2xl text-slate-700 dark:text-slate-300 shadow-inner"><ShieldAlert size={22} /></div>
                   <div>
                     <p className="text-[10px] text-slate-700 dark:text-slate-300 font-black uppercase tracking-widest mb-1">Contract Class</p>
@@ -248,7 +248,7 @@ const EmployeeDetail: React.FC = () => {
 
         {activeTab === 'documents' && (
           <div className="text-center py-20 animate-in fade-in duration-700">
-            <div className="inline-flex justify-center p-8 bg-white/50 dark:bg-[#111111]/50 ring-1 ring-black/5 dark:ring-white/10 rounded-full mb-8 shadow-2xl">
+            <div className="inline-flex justify-center p-8 bg-white/50 dark:bg-[#000000]/50 ring-1 ring-black/5 dark:ring-white/10 rounded-full mb-8 shadow-2xl">
               <FileText size={48} className="text-slate-600 dark:text-slate-400" />
             </div>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 uppercase tracking-widest">Encrypted Document Vault</h3>
@@ -289,7 +289,7 @@ const EmployeeDetail: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-6 bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm">
+                <div className="p-6 bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm">
                   <h5 className="font-black text-slate-700 dark:text-slate-300 uppercase text-xs tracking-widest mb-4">Journey Stats</h5>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-sm">
@@ -306,7 +306,7 @@ const EmployeeDetail: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="p-6 bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl flex items-center justify-center group cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-800 transition-all shadow-sm" onClick={() => navigate('/onboarding')}>
+                <div className="p-6 bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl flex items-center justify-center group cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-800 transition-all shadow-sm" onClick={() => navigate('/onboarding')}>
                   <div className="text-center">
                      <p className="text-brand-600 dark:text-brand-400 font-black uppercase text-xs tracking-widest group-hover:scale-110 transition-transform">Control System Dashboard</p>
                      <p className="text-slate-700 dark:text-slate-300 text-xs mt-1">Manage journey tasks & items</p>

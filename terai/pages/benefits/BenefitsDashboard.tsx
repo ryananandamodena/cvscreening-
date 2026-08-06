@@ -96,7 +96,7 @@ const BenefitsDashboard: React.FC = () => {
   } : null;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <div className="w-full space-y-8 animate-in fade-in duration-700">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -137,7 +137,7 @@ const BenefitsDashboard: React.FC = () => {
         </div>
       ) : stats ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-[#111111] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+          <div className="bg-white dark:bg-[#000000] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-success-500/5 rounded-full -mr-8 -mt-8"></div>
             <div className="flex justify-between items-start mb-6">
               <div className="p-4 rounded-2xl bg-success-500/10 group-hover:scale-110 transition-transform duration-500">
@@ -150,7 +150,7 @@ const BenefitsDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#111111] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+          <div className="bg-white dark:bg-[#000000] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-info-500/5 rounded-full -mr-8 -mt-8"></div>
             <div className="flex justify-between items-start mb-6">
               <div className="p-4 rounded-2xl bg-info-500/10 group-hover:scale-110 transition-transform duration-500">
@@ -165,7 +165,7 @@ const BenefitsDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#111111] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+          <div className="bg-white dark:bg-[#000000] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-500/5 rounded-full -mr-8 -mt-8"></div>
             <div className="flex justify-between items-start mb-6">
               <div className="p-4 rounded-2xl bg-brand-500/10 group-hover:scale-110 transition-transform duration-500">
@@ -180,7 +180,7 @@ const BenefitsDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#111111] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+          <div className="bg-white dark:bg-[#000000] p-6 rounded-[32px] border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-warning-500/5 rounded-full -mr-8 -mt-8"></div>
             <div className="flex justify-between items-start mb-6">
               <div className="p-4 rounded-2xl bg-warning-500/10 group-hover:scale-110 transition-transform duration-500">
@@ -200,7 +200,7 @@ const BenefitsDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Sidebar */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-[#111111] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6">
+          <div className="bg-white dark:bg-[#000000] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quick Actions</h2>
             <div className="space-y-3">
               <button className="w-full p-4 border border-slate-200 dark:border-neutral-800 rounded-xl hover:bg-slate-50 dark:hover:bg-neutral-800/60 transition-colors text-left group">
@@ -262,7 +262,7 @@ const BenefitsDashboard: React.FC = () => {
 
           {/* Top Benefits */}
           {stats?.topBenefits && (
-            <div className="bg-white dark:bg-[#111111] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6 mt-6">
+            <div className="bg-white dark:bg-[#000000] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6 mt-6">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Top Benefits</h2>
               <div className="space-y-3">
                 {stats.topBenefits.map((benefit, index) => (
@@ -286,7 +286,7 @@ const BenefitsDashboard: React.FC = () => {
 
         {/* Main Content Area */}
         <div className="lg:col-span-3">
-          <div className="bg-white dark:bg-[#111111] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-[#000000] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm overflow-hidden">
             {/* Tabs */}
             <div className="border-b border-slate-200 dark:border-neutral-800">
               <nav className="flex">

@@ -139,7 +139,7 @@ const PerformanceDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
+      <div className="w-full space-y-8 animate-in fade-in duration-700">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <CardSkeleton key={i} />
@@ -158,7 +158,7 @@ const PerformanceDashboard: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <div className="w-full space-y-8 animate-in fade-in duration-700">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -205,7 +205,7 @@ const PerformanceDashboard: React.FC = () => {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-[#111111] p-6 rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+          <div className="bg-white dark:bg-[#000000] p-6 rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-500/5 rounded-full -mr-8 -mt-8"></div>
             <div className="flex justify-between items-start mb-6">
               <div className="p-4 rounded-2xl bg-brand-500/10 group-hover:scale-110 transition-transform duration-500">
@@ -220,7 +220,7 @@ const PerformanceDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#111111] p-6 rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+          <div className="bg-white dark:bg-[#000000] p-6 rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-success-500/5 rounded-full -mr-8 -mt-8"></div>
             <div className="flex justify-between items-start mb-6">
               <div className="p-4 rounded-2xl bg-success-500/10 group-hover:scale-110 transition-transform duration-500">
@@ -235,7 +235,7 @@ const PerformanceDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#111111] p-6 rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+          <div className="bg-white dark:bg-[#000000] p-6 rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-warning-500/5 rounded-full -mr-8 -mt-8"></div>
             <div className="flex justify-between items-start mb-6">
               <div className="p-4 rounded-2xl bg-warning-500/10 group-hover:scale-110 transition-transform duration-500">
@@ -250,7 +250,7 @@ const PerformanceDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#111111] p-6 rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+          <div className="bg-white dark:bg-[#000000] p-6 rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-500/5 rounded-full -mr-8 -mt-8"></div>
             <div className="flex justify-between items-start mb-6">
               <div className="p-4 rounded-2xl bg-brand-500/10 group-hover:scale-110 transition-transform duration-500">
@@ -270,7 +270,7 @@ const PerformanceDashboard: React.FC = () => {
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Reviews */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#111111] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6">
+        <div className="lg:col-span-2 bg-white dark:bg-[#000000] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Recent Reviews</h2>
             <button className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium text-sm flex items-center gap-2">
@@ -343,7 +343,7 @@ const PerformanceDashboard: React.FC = () => {
         </div>
 
         {/* Goals Overview */}
-        <div className="bg-white dark:bg-[#111111] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6">
+        <div className="bg-white dark:bg-[#000000] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Goal Progress</h2>
             <button className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium text-sm flex items-center gap-2">
@@ -390,7 +390,7 @@ const PerformanceDashboard: React.FC = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white dark:bg-[#111111] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6">
+      <div className="bg-white dark:bg-[#000000] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6">
         <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <button className="p-4 border border-slate-200 dark:border-neutral-800 rounded-xl hover:bg-slate-50 dark:hover:bg-neutral-900 transition-colors text-left">

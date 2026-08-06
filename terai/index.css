@@ -38,16 +38,16 @@
   --primary-hover: #dc2626;
   --primary-glow: transparent;
 
-  --bg-page: #0a0a0a;
-  --bg-card: #171717;
-  --bg-sidebar: #171717;
+  --bg-page: #000000; /* Pure black */
+  --bg-card: #0d0d0d;
+  --bg-sidebar: #0d0d0d;
 
-  --text-main: #f9fafb;
+  --text-main: #ffffff;
   --text-secondary: #a1a1aa;
-  --text-inverted: #0a0a0a;
+  --text-inverted: #000000;
 
   --border-color: #262626;
-  --bg-hover: #1f1f1f;
+  --bg-hover: #1a1a1a;
 }
 
 .dark body {

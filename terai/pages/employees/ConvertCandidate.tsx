@@ -124,7 +124,7 @@ const ConvertCandidate: React.FC = () => {
         
         {/* Left Col: Candidate Selection & Preview */}
         <div className="md:col-span-1 space-y-6">
-          <div className="bg-white/50 dark:bg-[#111111] backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-6">
+          <div className="bg-white/50 dark:bg-[#000000] backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
               <UserSearch className="text-brand-600 dark:text-brand-400" size={20} /> Select Candidate
             </h2>
@@ -172,7 +172,7 @@ const ConvertCandidate: React.FC = () => {
 
         {/* Right Col: Conversion Form */}
         <div className="md:col-span-2">
-          <form onSubmit={handleSubmit} className="bg-white/80 dark:bg-[#111111] backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-8 space-y-6">
+          <form onSubmit={handleSubmit} className="bg-white/80 dark:bg-[#000000] backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-8 space-y-6">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-200/50 dark:border-neutral-800 pb-4">Employment Configuration</h2>
             
             <div className="space-y-4">

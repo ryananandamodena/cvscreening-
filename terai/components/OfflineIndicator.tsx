@@ -30,8 +30,8 @@ export const OfflineIndicator: React.FC = () => {
     if (!isOffline) return null;
 
     return (
-        <div className="fixed bottom-4 left-4 z-[9999] bg-slate-900/90 text-white px-4 py-3 rounded-xl shadow-lg backdrop-blur-sm flex items-center gap-3 animate-in slide-in-from-bottom-4">
-            <WifiOff size={20} className="text-rose-400" />
+        <div className="fixed bottom-4 left-4 z-[9999] bg-slate-50/90 dark:bg-slate-900/90 text-slate-900 dark:text-white px-4 py-3 rounded-xl shadow-lg backdrop-blur-sm flex items-center gap-3 animate-in slide-in-from-bottom-4">
+            <WifiOff size={20} className="text-rose-600 dark:text-rose-400" />
             <span className="font-bold text-sm">You are currently offline</span>
         </div>
     );

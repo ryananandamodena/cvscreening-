@@ -9,7 +9,7 @@ const typeIcons: Record<NotificationType, React.ReactNode> = {
     interview_scheduled: <Calendar size={16} className="text-blue-500" />,
     assessment_created: <ClipboardList size={16} className="text-amber-500" />,
     candidate_applied: <UserPlus size={16} className="text-violet-500" />,
-    info: <Info size={16} className="text-slate-400" />,
+    info: <Info size={16} className="text-slate-600 dark:text-slate-400" />,
 };
 
 const typeBgColors: Record<NotificationType, string> = {
@@ -54,7 +54,7 @@ const NotificationBell: React.FC = () => {
             {/* Bell Button */}
             <button
                 onClick={() => setOpen(!open)}
-                className="p-2 text-slate-500 hover:bg-slate-100 rounded-xl relative transition-all active:scale-95"
+                className="p-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 rounded-xl relative transition-all active:scale-95"
             >
                 <Bell size={20} />
                 {unreadCount > 0 && (
@@ -81,7 +81,7 @@ const NotificationBell: React.FC = () => {
                             {unreadCount > 0 && (
                                 <button
                                     onClick={markAllAsRead}
-                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                                     title={t('notifications.markAllRead')}
                                 >
                                     <CheckCheck size={16} />
@@ -90,7 +90,7 @@ const NotificationBell: React.FC = () => {
                             {notifications.length > 0 && (
                                 <button
                                     onClick={clearAll}
-                                    className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                                     title={t('notifications.clearAll')}
                                 >
                                     <Trash2 size={16} />
@@ -104,10 +104,10 @@ const NotificationBell: React.FC = () => {
                         {notifications.length === 0 ? (
                             <div className="py-12 px-4 text-center">
                                 <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 rounded-2xl flex items-center justify-center">
-                                    <Bell size={20} className="text-slate-300" />
+                                    <Bell size={20} className="text-slate-700 dark:text-slate-300" />
                                 </div>
-                                <p className="text-xs font-bold text-slate-400">{t('notifications.empty')}</p>
-                                <p className="text-[10px] text-slate-300 mt-1">{t('notifications.emptySub')}</p>
+                                <p className="text-xs font-bold text-slate-600 dark:text-slate-400">{t('notifications.empty')}</p>
+                                <p className="text-[10px] text-slate-700 dark:text-slate-300 mt-1">{t('notifications.emptySub')}</p>
                             </div>
                         ) : (
                             notifications.slice(0, 15).map((notif) => (
@@ -127,14 +127,14 @@ const NotificationBell: React.FC = () => {
                                             </p>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); removeNotification(notif.id); }}
-                                                className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-rose-400 transition-all"
+                                                className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:text-rose-400 transition-all"
                                             >
                                                 <X size={12} />
                                             </button>
                                         </div>
-                                        <p className="text-[10px] text-slate-400 mt-0.5 truncate">{notif.message}</p>
+                                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 truncate">{notif.message}</p>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[9px] text-slate-300 font-medium">{timeAgo(notif.timestamp, t)}</span>
+                                            <span className="text-[9px] text-slate-700 dark:text-slate-300 font-medium">{timeAgo(notif.timestamp, t)}</span>
                                             {!notif.read && (
                                                 <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
                                             )}
@@ -148,7 +148,7 @@ const NotificationBell: React.FC = () => {
                     {/* Footer */}
                     {notifications.length > 15 && (
                         <div className="px-4 py-2 border-t border-slate-100 text-center">
-                            <p className="text-[10px] text-slate-400 font-medium">
+                            <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">
                                 +{notifications.length - 15} {t('notifications.more')}
                             </p>
                         </div>

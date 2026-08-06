@@ -227,7 +227,7 @@ const AdvancedAnalytics: React.FC = () => {
     const stats = data?.overview;
 
     return (
-        <motion.div variants={staggerContainer} initial="initial" animate="animate" className="max-w-7xl mx-auto space-y-8 pb-20 px-4 md:px-8 pt-6">
+        <motion.div variants={staggerContainer} initial="initial" animate="animate" className="w-full space-y-8 pb-20 px-4 md:px-8 pt-6">
             {/* Header Area */}
             <motion.div variants={fadeUpVariant} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
                 <div>

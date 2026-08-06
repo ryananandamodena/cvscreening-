@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Building2, Plus, Edit2, Trash2, Search, 
+import {
+  Building2, Plus, Edit2, Trash2, Search,
   Users, ChevronRight, Briefcase
 } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { organizationService } from '../../services/organization.service';
 import { Department } from '../../types';
 import Button from '../../components/ui/Button';
 
 const DepartmentManagement: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const highlightDeptId = searchParams.get('departmentId');
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -107,7 +111,7 @@ const DepartmentManagement: React.FC = () => {
         </Button>
       </div>
 
-      <div className="bg-white/50 dark:bg-[#111111] backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800 rounded-2xl p-4">
+      <div className="bg-white/50 dark:bg-[#000000] backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800 rounded-2xl p-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" size={18} />
           <input
@@ -126,14 +130,21 @@ const DepartmentManagement: React.FC = () => {
             <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : filteredDepartments.length === 0 ? (
-          <div className="col-span-3 text-center py-12 bg-white/50 dark:bg-[#111111] rounded-2xl border border-slate-200/50 dark:border-neutral-800">
+          <div className="col-span-3 text-center py-12 bg-white/50 dark:bg-[#000000] rounded-2xl border border-slate-200/50 dark:border-neutral-800">
             <Building2 className="mx-auto text-slate-700 dark:text-slate-300 mb-3" size={32} />
             <h3 className="text-lg font-medium text-slate-900 dark:text-white">No departments found</h3>
             <p className="text-slate-600 dark:text-slate-400">Add a new department to get started.</p>
           </div>
         ) : (
           filteredDepartments.map((dept) => (
-            <div key={dept.id} className="bg-white/50 dark:bg-[#111111] backdrop-blur-xl border border-slate-200/50 dark:border-neutral-800 rounded-2xl overflow-hidden hover:border-slate-300 dark:hover:border-neutral-700 transition-colors group">
+            <div
+              key={dept.id}
+              className={`bg-white/50 dark:bg-[#000000] backdrop-blur-xl border rounded-2xl overflow-hidden hover:border-slate-300 dark:hover:border-neutral-700 transition-colors group ${
+                highlightDeptId && parseInt(highlightDeptId, 10) === dept.id
+                  ? 'border-brand-500 ring-2 ring-brand-500/30'
+                  : 'border-slate-200/50 dark:border-neutral-800'
+              }`}
+            >
               <div className="p-5 border-b border-slate-200/50 dark:border-neutral-800">
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex items-center gap-3">
@@ -160,7 +171,11 @@ const DepartmentManagement: React.FC = () => {
               </div>
               <div className="p-4 bg-white/30 dark:bg-neutral-900/30">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
+                  <div
+                    className="flex items-center gap-2 cursor-pointer hover:text-brand-600 dark:hover:text-brand-400"
+                    onClick={() => navigate(`/employees?departmentId=${dept.id}`)}
+                    title="Lihat karyawan di departemen ini"
+                  >
                     <Users size={16} className="text-slate-700 dark:text-slate-300" />
                     <div>
                       <div className="text-xs text-slate-700 dark:text-slate-300 font-medium uppercase tracking-wider">Employees</div>
@@ -188,7 +203,7 @@ const DepartmentManagement: React.FC = () => {
             onClick={() => setIsModalOpen(false)} 
           />
           
-          <div className="relative w-full max-w-2xl bg-white dark:bg-[#111111] border border-slate-200/50 dark:border-neutral-800 shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="relative w-full max-w-2xl bg-white dark:bg-[#000000] border border-slate-200/50 dark:border-neutral-800 shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="px-8 py-6 border-b border-slate-200 dark:border-neutral-800 flex justify-between items-center bg-slate-50/50 dark:bg-neutral-900/50">
               <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
                 <div className="p-2 bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-xl">
@@ -213,7 +228,7 @@ const DepartmentManagement: React.FC = () => {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-slate-400 font-bold"
+                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-slate-400 font-bold"
                     placeholder="e.g. Engineering, Sales, Human Resources"
                   />
                 </div>
@@ -225,7 +240,7 @@ const DepartmentManagement: React.FC = () => {
                       type="text"
                       value={formData.code}
                       onChange={(e) => setFormData({...formData, code: e.target.value})}
-                      className="w-full px-5 py-4 bg-white/50 dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-slate-400 uppercase font-bold"
+                      className="w-full px-5 py-4 bg-white/50 dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-slate-400 uppercase font-bold"
                       placeholder="e.g. ENG, SLS, HR"
                     />
                   </div>
@@ -235,7 +250,7 @@ const DepartmentManagement: React.FC = () => {
                     <select
                       value={formData.parentId}
                       onChange={(e) => setFormData({...formData, parentId: e.target.value})}
-                      className="w-full px-5 py-4 bg-white/50 dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all appearance-none font-bold"
+                      className="w-full px-5 py-4 bg-white/50 dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all appearance-none font-bold"
                     >
                       <option value="">-- None (Top Level) --</option>
                       {departments
@@ -253,7 +268,7 @@ const DepartmentManagement: React.FC = () => {
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                     rows={4}
-                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all resize-none placeholder:text-slate-400 font-medium"
+                    className="w-full px-5 py-4 bg-white/50 dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all resize-none placeholder:text-slate-400 font-medium"
                     placeholder="Brief description of the department's function..."
                   />
                 </div>

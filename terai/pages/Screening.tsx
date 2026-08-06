@@ -64,7 +64,7 @@ export default function Screening() {
     <div className="min-h-screen bg-slate-50/50 pb-20">
       {/* Sticky Top Header */}
       <div className="sticky top-0 z-30 bg-white/70 backdrop-blur-xl border-b border-slate-200/50 pt-8 pb-4 px-6 md:px-10">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="w-full flex flex-col md:flex-row md:items-end justify-between gap-4">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
             <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
               {t('screening.title') || 'CV Screening'}
@@ -86,7 +86,7 @@ export default function Screening() {
         </div>
 
         {/* Modern Animated Tabs */}
-        <div className="max-w-7xl mx-auto mt-8 flex overflow-x-auto hide-scrollbar gap-2">
+        <div className="w-full mt-8 flex overflow-x-auto hide-scrollbar gap-2">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -113,7 +113,7 @@ export default function Screening() {
       </div>
 
       {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-6 md:px-10 pt-8">
+      <main className="w-full px-6 md:px-10 pt-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -289,7 +289,7 @@ const BulkScreeningTab: React.FC = () => {
 
   if (results.length > 0) {
     return (
-      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-500">
+      <div className="w-full space-y-8 animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center space-y-4 mb-8">
           <div className="size-20 bg-emerald-50 border border-emerald-100 rounded-3xl flex items-center justify-center mx-auto shadow-sm shadow-emerald-100">
             <CheckCircle2 size={36} className="text-emerald-500" />
@@ -344,7 +344,7 @@ const BulkScreeningTab: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto grid md:grid-cols-5 gap-8">
+    <div className="w-full grid md:grid-cols-5 gap-8">
       <div className="md:col-span-2 space-y-6">
         <div className="bg-white p-6 rounded-3xl border border-slate-200/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
            <h3 className="font-bold text-slate-800 mb-4">1. Select Target Job</h3>
@@ -452,7 +452,7 @@ const LeaderboardTab: React.FC<{ onViewDetail: (id: number) => void }> = ({ onVi
   }, [selectedJob]);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-500">
+    <div className="w-full space-y-8 animate-in fade-in zoom-in-95 duration-500">
       <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
@@ -781,7 +781,7 @@ const ScreeningDetail: React.FC<{ id: string; onBack: () => void }> = ({ id, onB
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="min-h-screen bg-slate-50/50 pb-20">
       <div className="sticky top-0 z-30 bg-white/70 backdrop-blur-xl border-b border-slate-200/50 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={onBack} className="size-10 bg-white border border-slate-200 rounded-full flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm text-slate-600">
                <ChevronLeft size={20} />
@@ -811,7 +811,7 @@ const ScreeningDetail: React.FC<{ id: string; onBack: () => void }> = ({ id, onB
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8 grid md:grid-cols-3 gap-8">
+      <div className="w-full px-6 py-8 grid md:grid-cols-3 gap-8">
         {/* Main Content Pane */}
         <div className="md:col-span-2 space-y-6">
            <div className="bg-white p-8 md:p-12 rounded-[2rem] border border-slate-200/50 shadow-sm min-h-[600px] overflow-hidden relative">

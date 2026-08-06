@@ -707,7 +707,7 @@ const LiveInterview = () => {
         ? 'You MUST speak, ask all questions, and provide all evaluations entirely in Bahasa Indonesia. Do NOT use English at all.'
         : 'You MUST speak, ask all questions, and provide all evaluations entirely in English. Do NOT use Indonesian at all.';
 
-      let systemInstruction = `You are an expert AI Interviewer for RecruitAI. 
+      let systemInstruction = `You are an expert AI Interviewer for HumanIQ. 
         Your tone is professional, encouraging, and highly technical. 
         Ask one question at a time. Do not provide answers. 
         Analyze the candidate's technical depth and communication skills.
@@ -1559,7 +1559,7 @@ const LiveInterview = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.interviewer')}</label>
-                      <input type="text" name="interviewer" placeholder="RecruitAI Agent" className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500 transition-all" />
+                      <input type="text" name="interviewer" placeholder="HumanIQ Agent" className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 ring-brand-500 transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest pl-1">{t('liveInterview.modal.type')}</label>

@@ -41,7 +41,7 @@ const CandidateLogin: React.FC = () => {
                             <Briefcase className="w-8 h-8 text-white" />
                         </div>
                         <span className="font-black text-3xl tracking-tight text-brand-600 dark:text-brand-400">
-                            RecruitAI
+                            HumanIQ
                         </span>
                     </Link>
                     <h1 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">{t('candidate.login.title')}</h1>

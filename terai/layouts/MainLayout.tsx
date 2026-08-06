@@ -22,7 +22,7 @@ const MainLayout: React.FC = () => {
 
                 {/* Page Content */}
                 <main className="flex-1 overflow-y-auto p-6 scroll-smooth">
-                    <div className="w-full max-w-[1600px] mx-auto animate-fade-in">
+                    <div className="w-full animate-fade-in">
                         <Outlet />
                     </div>
                 </main>

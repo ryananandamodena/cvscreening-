@@ -59,7 +59,7 @@ const CompensationDashboard: React.FC = () => {
   } : null;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <div className="w-full space-y-8 animate-in fade-in duration-700">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -119,7 +119,7 @@ const CompensationDashboard: React.FC = () => {
             <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">Average Salary</p>
             <div className="flex items-baseline gap-2">
               <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                Rp {stats.averageSalary.toLocaleString()}
+                Rp {(stats.averageSalary ?? 0).toLocaleString()}
               </h3>
             </div>
           </div>
@@ -133,7 +133,7 @@ const CompensationDashboard: React.FC = () => {
             </div>
             <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">Compa Ratio</p>
             <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{stats.compaRatio.toFixed(2)}</h3>
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{(stats.compaRatio ?? 0).toFixed(2)}</h3>
               <span className="text-xs font-bold text-info-500">vs market</span>
             </div>
           </div>
@@ -224,14 +224,14 @@ const CompensationDashboard: React.FC = () => {
               {grades.slice(0, 5).map((grade) => (
                 <div key={grade.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-neutral-800/40 rounded-lg">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{grade.name}</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{grade.name || '-'}</p>
                     <p className="text-xs text-slate-700 dark:text-slate-300">
-                      Rp {grade.minSalary.toLocaleString()} - {grade.maxSalary.toLocaleString()}
+                      Rp {(grade.minSalary ?? 0).toLocaleString()} - {(grade.maxSalary ?? 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                      Rp {grade.midpoint.toLocaleString()}
+                      Rp {(grade.midpoint ?? 0).toLocaleString()}
                     </p>
                     <p className="text-xs text-slate-700 dark:text-slate-300">midpoint</p>
                   </div>

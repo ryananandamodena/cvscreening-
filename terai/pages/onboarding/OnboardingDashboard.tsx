@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, CheckCircle2, CircleDashed, Clock, Calendar, 
-  ChevronRight, Filter, AlertCircle, Plus
+  ChevronRight, AlertCircle, Plus
 } from 'lucide-react';
-import { onboardingService, OnboardingSession, OnboardingTask } from '../../services/onboarding.service';
+import { onboardingService, OnboardingSession, OnboardingTask, OnboardingTemplate } from '../../services/onboarding.service';
 import { employeeService } from '../../services/employee.service';
 import { Employee } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import ManageTemplatesModal from './ManageTemplatesModal';
+import AddTaskModal from './AddTaskModal';
 
 const OnboardingDashboard: React.FC = () => {
   const { showToast } = useToast();
@@ -18,11 +20,37 @@ const OnboardingDashboard: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [newSessionData, setNewSessionData] = useState({ employeeId: '', templateId: '' });
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [templates, setTemplates] = useState<OnboardingTemplate[]>([]);
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
+  const [addTaskForSession, setAddTaskForSession] = useState<number | null>(null);
+  const [busyTaskId, setBusyTaskId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchSessions();
     fetchEmployees();
+    fetchTemplates();
   }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      setTemplates(await onboardingService.getTemplates());
+    } catch (err) {
+      console.error('Failed to load templates', err);
+    }
+  };
+
+  const handleToggleTask = async (task: OnboardingTask) => {
+    setBusyTaskId(task.id);
+    try {
+      const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+      await onboardingService.updateTaskStatus(task.id, task.sessionId, newStatus);
+      fetchSessions();
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to update task');
+    } finally {
+      setBusyTaskId(null);
+    }
+  };
 
   const fetchSessions = async () => {
     setLoading(true);
@@ -109,8 +137,8 @@ const OnboardingDashboard: React.FC = () => {
           <p className="text-slate-600 dark:text-slate-400 font-medium mt-1">Track and manage new hire journey progressions across departments.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="md" className="flex items-center gap-2">
-             <Filter size={18} /> Filter
+          <Button variant="outline" size="md" onClick={() => setShowTemplateManager(true)}>
+            Manage Templates
           </Button>
           <Button
              variant="primary"
@@ -123,17 +151,17 @@ const OnboardingDashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-6 opacity-5"><Users size={80} /></div>
           <p className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">Active Onboardings</p>
           <p className="text-4xl font-black text-slate-900 dark:text-white">{activeCount}</p>
         </div>
-        <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-6 opacity-5 text-emerald-500"><CheckCircle2 size={80} /></div>
           <p className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">Completed (This Month)</p>
           <p className="text-4xl font-black text-emerald-600 dark:text-emerald-400">{completedThisMonth}</p>
         </div>
-        <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-6 opacity-5 text-amber-500"><Clock size={80} /></div>
           <p className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">Overdue Tasks</p>
           <p className={`text-4xl font-black ${overdueTasksCount > 0 ? 'text-danger-600 dark:text-danger-500' : 'text-amber-600 dark:text-amber-400'}`}>{overdueTasksCount}</p>
@@ -141,7 +169,7 @@ const OnboardingDashboard: React.FC = () => {
       </div>
 
 
-      <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6">
+      <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6">
         <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Active Sessions</h2>
 
         {loading ? (
@@ -194,22 +222,43 @@ const OnboardingDashboard: React.FC = () => {
 
                 </div>
 
-                {/* Sub-tasks quick view */}
-                {session.tasks && session.tasks.length > 0 && (
-                  <div className="mt-6 pt-4 border-t border-slate-200 dark:border-neutral-800">
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-3">Pending Action Items</p>
+                {/* Task checklist */}
+                <div className="mt-6 pt-4 border-t border-slate-200 dark:border-neutral-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">Checklist</p>
+                    <Button variant="ghost" size="sm" icon={<Plus size={14} />} onClick={() => setAddTaskForSession(session.id)}>
+                      Add Task
+                    </Button>
+                  </div>
+                  {!session.tasks || session.tasks.length === 0 ? (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Belum ada task. Klik "Add Task" untuk menambahkan.</p>
+                  ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {session.tasks.filter(t => t.status === 'pending').map(task => (
-                         <div key={task.id} className="flex flex-col gap-1 p-3 bg-white dark:bg-neutral-900 rounded-xl border border-slate-200 dark:border-neutral-800">
-                           <div className="flex items-start justify-between">
-                             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{task.title}</span>
-                             <Badge tone="neutral">{task.assignedRole}</Badge>
+                      {session.tasks.map(task => (
+                         <button
+                           key={task.id}
+                           onClick={() => handleToggleTask(task)}
+                           disabled={busyTaskId === task.id}
+                           className="flex items-start gap-3 p-3 bg-white dark:bg-neutral-900 rounded-xl border border-slate-200 dark:border-neutral-800 text-left hover:border-brand-300 dark:hover:border-brand-700 transition-colors"
+                         >
+                           {task.status === 'completed' ? (
+                             <CheckCircle2 size={18} className="text-success-500 shrink-0 mt-0.5" />
+                           ) : (
+                             <CircleDashed size={18} className="text-slate-400 shrink-0 mt-0.5" />
+                           )}
+                           <div className="flex-1">
+                             <span className={`text-sm font-medium ${task.status === 'completed' ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
+                               {task.title}
+                             </span>
+                             <div className="mt-1">
+                               <Badge tone="neutral">{task.assignedRole}</Badge>
+                             </div>
                            </div>
-                         </div>
+                         </button>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ))
             )}
@@ -220,7 +269,7 @@ const OnboardingDashboard: React.FC = () => {
       {/* New Session Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+          <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-neutral-800 flex justify-between items-center bg-slate-50/50 dark:bg-neutral-900/50">
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">Start New Onboarding</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">✕</button>
@@ -244,13 +293,20 @@ const OnboardingDashboard: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Onboarding Template</label>
                 <select
-                  disabled
-                  value=""
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-700 dark:text-slate-300 outline-none appearance-none transition-colors opacity-50 cursor-not-allowed"
+                  value={newSessionData.templateId}
+                  onChange={(e) => setNewSessionData({ ...newSessionData, templateId: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-900 dark:text-white outline-none focus:border-brand-500 appearance-none transition-colors"
                 >
-                  <option value="">-- Template Feature Coming Soon --</option>
+                  <option value="">-- Tanpa Template (Kosong) --</option>
+                  {templates.filter(t => t.isActive).map(t => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.tasks.length} task)</option>
+                  ))}
                 </select>
-                <p className="text-xs text-slate-700 dark:text-slate-300 mt-1">Sessions will be created as Blank Templates for now.</p>
+                {templates.length === 0 && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Belum ada template. Klik "Manage Templates" untuk membuat.
+                  </p>
+                )}
               </div>
 
               <div className="pt-4 flex justify-end gap-3 mt-6">
@@ -274,6 +330,22 @@ const OnboardingDashboard: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {showTemplateManager && (
+        <ManageTemplatesModal
+          templates={templates}
+          onClose={() => setShowTemplateManager(false)}
+          onChanged={fetchTemplates}
+        />
+      )}
+
+      {addTaskForSession !== null && (
+        <AddTaskModal
+          sessionId={addTaskForSession}
+          onClose={() => setAddTaskForSession(null)}
+          onCreated={() => { setAddTaskForSession(null); fetchSessions(); }}
+        />
       )}
     </div>
   );

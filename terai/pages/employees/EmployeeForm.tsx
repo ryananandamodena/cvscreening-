@@ -148,7 +148,7 @@ const EmployeeForm: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* Personal Details Section */}
-        <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6">
+        <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6">
           <div className="flex items-center gap-2 mb-6 text-slate-900 dark:text-white border-b border-slate-200 dark:border-neutral-800 pb-4">
             <User size={20} className="text-brand-600 dark:text-brand-400" />
             <h2 className="text-lg font-semibold">Personal Information</h2>
@@ -227,7 +227,7 @@ const EmployeeForm: React.FC = () => {
         </div>
 
         {/* Career / Employment Details Section */}
-        <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6">
+        <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6">
           <div className="flex items-center gap-2 mb-6 text-slate-900 dark:text-white border-b border-slate-200 dark:border-neutral-800 pb-4">
             <Briefcase size={20} className="text-brand-600 dark:text-brand-400" />
             <h2 className="text-lg font-semibold">Employment Details</h2>

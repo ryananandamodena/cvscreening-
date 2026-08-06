@@ -1,11 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Plus, LogOut, Menu, Globe, Moon, Sun, Monitor, ChevronRight } from 'lucide-react';
+import { Plus, LogOut, Globe, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_ROUTES } from '../config/routes';
 import { apiService } from '../services/api.service';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useTheme } from '../contexts/ThemeContext';
 
 interface SidebarProps {
     collapsed: boolean;
@@ -15,7 +14,6 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
     const location = useLocation();
     const { lang, setLang, t } = useLanguage();
-    const { theme, setTheme } = useTheme();
 
     const sectionKeys = ['section.overview', 'section.coreHr', 'section.recruitment', 'section.resources', 'section.system'] as const;
 
@@ -24,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
             initial={false}
             animate={{ width: collapsed ? 88 : 280 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed left-0 top-0 h-screen bg-white dark:bg-[#111111] border-r border-slate-200 dark:border-neutral-800 z-50 flex flex-col shadow-sm"
+            className="fixed left-0 top-0 h-screen bg-white dark:bg-[#000000] border-r border-slate-200 dark:border-neutral-800 z-50 flex flex-col shadow-sm"
         >
             {/* Brand Header */}
             <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 dark:border-neutral-800">
@@ -40,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
                                 exit={{ opacity: 0, x: -10 }}
                                 className="font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white"
                             >
-                                RecruitAI
+                                HumanIQ
                             </motion.span>
                         )}
                     </AnimatePresence>
@@ -108,23 +106,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
             </nav>
 
             {/* Footer Workspace Toggles */}
-            <div className="p-4 border-t border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#111111]">
+            <div className="p-4 border-t border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#000000]">
                 <div className="grid gap-1.5">
-                     <button
-                        onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}
-                        className={`flex items-center gap-4 p-3.5 w-full rounded-2xl transition-all text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-white overflow-hidden whitespace-nowrap ${collapsed ? 'justify-center' : ''}`}
-                        title={collapsed ? (theme === 'dark' ? 'Light Mode' : theme === 'light' ? 'System' : 'Dark Mode') : ''}
-                    >
-                        {theme === 'dark' ? <Moon size={20} className="shrink-0 text-brand-400" /> : theme === 'light' ? <Sun size={20} className="shrink-0 text-amber-500" /> : <Monitor size={20} className="shrink-0 text-slate-600 dark:text-slate-400" />}
-                        <AnimatePresence>
-                            {!collapsed && (
-                                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="font-bold text-xs uppercase tracking-widest text-slate-600 dark:text-slate-400">
-                                    {theme === 'dark' ? '🌙 Dark' : theme === 'light' ? '☀️ Light' : '💻 System'}
-                                </motion.span>
-                            )}
-                        </AnimatePresence>
-                    </button>
-
                      <button
                         onClick={() => setLang(lang === 'id' ? 'en' : 'id')}
                         className={`flex items-center gap-4 p-3.5 w-full rounded-2xl transition-all text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-white overflow-hidden whitespace-nowrap ${collapsed ? 'justify-center' : ''}`}

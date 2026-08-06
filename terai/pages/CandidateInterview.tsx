@@ -909,7 +909,7 @@ const CandidateInterview = () => {
                         <BrainCircuit className="text-slate-900 dark:text-white" size={18} />
                     </div>
                     <div>
-                        <h1 className="font-bold text-slate-900 dark:text-white text-sm">RecruitAI</h1>
+                        <h1 className="font-bold text-slate-900 dark:text-white text-sm">HumanIQ</h1>
                         <p className="text-[10px] text-slate-900 dark:text-white/60 font-medium">{activeInterview?.candidateName}</p>
                     </div>
                 </div>

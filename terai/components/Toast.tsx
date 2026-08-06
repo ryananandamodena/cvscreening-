@@ -64,7 +64,7 @@ export const Toast: React.FC<ToastProps> = ({ id, type, message, duration = 3000
                     setIsVisible(false);
                     setTimeout(onClose, 300);
                 }}
-                className="shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
+                className="shrink-0 text-slate-600 dark:text-slate-400 hover:text-slate-600 transition-colors"
             >
                 <X size={16} />
             </button>

@@ -146,7 +146,7 @@ const GoalManagement: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <div className="w-full space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
@@ -160,13 +160,13 @@ const GoalManagement: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-5"><p className="text-slate-600 dark:text-slate-400 text-xs uppercase font-bold">Total</p><p className="text-3xl font-black text-slate-900 dark:text-white">{stats.total}</p></div>
-        <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-5"><p className="text-slate-600 dark:text-slate-400 text-xs uppercase font-bold">In Progress</p><p className="text-3xl font-black text-info-600 dark:text-info-400">{stats.inProgress}</p></div>
-        <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-5"><p className="text-slate-600 dark:text-slate-400 text-xs uppercase font-bold">Completed</p><p className="text-3xl font-black text-success-600 dark:text-success-400">{stats.completed}</p></div>
-        <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-5"><p className="text-slate-600 dark:text-slate-400 text-xs uppercase font-bold">Overdue</p><p className="text-3xl font-black text-danger-600 dark:text-danger-400">{stats.overdue}</p></div>
+        <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-5"><p className="text-slate-600 dark:text-slate-400 text-xs uppercase font-bold">Total</p><p className="text-3xl font-black text-slate-900 dark:text-white">{stats.total}</p></div>
+        <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-5"><p className="text-slate-600 dark:text-slate-400 text-xs uppercase font-bold">In Progress</p><p className="text-3xl font-black text-info-600 dark:text-info-400">{stats.inProgress}</p></div>
+        <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-5"><p className="text-slate-600 dark:text-slate-400 text-xs uppercase font-bold">Completed</p><p className="text-3xl font-black text-success-600 dark:text-success-400">{stats.completed}</p></div>
+        <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-5"><p className="text-slate-600 dark:text-slate-400 text-xs uppercase font-bold">Overdue</p><p className="text-3xl font-black text-danger-600 dark:text-danger-400">{stats.overdue}</p></div>
       </div>
 
-      <div className="bg-white/80 dark:bg-[#111111]/80 border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white/80 dark:bg-[#000000]/80 border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-slate-600 dark:text-slate-400">Loading goals...</div>
         ) : error ? (
@@ -203,7 +203,7 @@ const GoalManagement: React.FC = () => {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
-          <form onSubmit={handleSubmit} className="w-full max-w-lg bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="w-full max-w-lg bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6 space-y-4">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">{editingGoal ? 'Edit Goal' : 'New Goal'}</h2>
             <input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Title" className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-900 dark:text-white" />
             <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Description" className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-900 dark:text-white min-h-24" />

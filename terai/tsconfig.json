@@ -1,29 +1,62 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "experimentalDecorators": true,
-    "useDefineForClassFields": false,
-    "module": "ESNext",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "skipLibCheck": true,
-    "types": [
-      "node"
-    ],
-    "moduleResolution": "bundler",
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "allowJs": true,
-    "jsx": "react-jsx",
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    },
-    "allowImportingTsExtensions": true,
-    "noEmit": true
-  }
+    "compilerOptions":  {
+                            "target":  "ES2022",
+                            "experimentalDecorators":  true,
+                            "useDefineForClassFields":  false,
+                            "module":  "ESNext",
+                            "lib":  [
+                                        "ES2022",
+                                        "DOM",
+                                        "DOM.Iterable"
+                                    ],
+                            "skipLibCheck":  true,
+                            "types":  [
+                                          "node"
+                                      ],
+                            "moduleResolution":  "bundler",
+                            "isolatedModules":  true,
+                            "moduleDetection":  "force",
+                            "allowJs":  true,
+                            "jsx":  "react-jsx",
+                            "paths":  {
+                                          "@/*":  [
+                                                      "./*"
+                                                  ]
+                                      },
+                            "allowImportingTsExtensions":  true,
+                            "noEmit":  true
+                        },
+    "include":  [
+                    "*.ts",
+                    "*.tsx",
+                    "components/**/*.ts",
+                    "components/**/*.tsx",
+                    "config/**/*.ts",
+                    "config/**/*.tsx",
+                    "contexts/**/*.ts",
+                    "contexts/**/*.tsx",
+                    "data/**/*.ts",
+                    "data/**/*.tsx",
+                    "guards/**/*.ts",
+                    "guards/**/*.tsx",
+                    "i18n/**/*.ts",
+                    "i18n/**/*.tsx",
+                    "layouts/**/*.ts",
+                    "layouts/**/*.tsx",
+                    "pages/**/*.ts",
+                    "pages/**/*.tsx",
+                    "routes/**/*.ts",
+                    "routes/**/*.tsx",
+                    "services/**/*.ts",
+                    "services/**/*.tsx",
+                    "utils/**/*.ts",
+                    "utils/**/*.tsx"
+                ],
+    "exclude":  [
+                    "node_modules",
+                    "dist",
+                    "backend",
+                    "frontend",
+                    "mobile"
+                ]
 }

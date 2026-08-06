@@ -110,7 +110,7 @@ const EmployeeContracts: React.FC<EmployeeContractsProps> = ({ employeeId }) => 
       </div>
 
       {contracts.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-[#111111] border border-dashed border-slate-200 dark:border-neutral-800 rounded-2xl">
+        <div className="text-center py-12 bg-white dark:bg-[#000000] border border-dashed border-slate-200 dark:border-neutral-800 rounded-2xl">
           <FileText size={48} className="text-slate-600 dark:text-slate-400 mx-auto mb-4" />
           <h4 className="text-lg font-medium text-slate-700 dark:text-slate-300">No contracts assigned</h4>
           <p className="text-slate-700 dark:text-slate-300 text-sm mt-1">This employee doesn't have any formal contracts in the system.</p>
@@ -118,7 +118,7 @@ const EmployeeContracts: React.FC<EmployeeContractsProps> = ({ employeeId }) => 
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {contracts.map((contract) => (
-            <div key={contract.id} className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-5 hover:border-slate-300 dark:hover:border-neutral-700 transition-all group">
+            <div key={contract.id} className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm p-5 hover:border-slate-300 dark:hover:border-neutral-700 transition-all group">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${contract.status === 'active' ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400' : 'bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-slate-300'}`}>
@@ -185,7 +185,7 @@ const EmployeeContracts: React.FC<EmployeeContractsProps> = ({ employeeId }) => 
       {/* New Contract Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="px-8 py-6 border-b border-slate-200 dark:border-neutral-800 flex justify-between items-center bg-slate-50/50 dark:bg-neutral-900/50">
               <div>
                 <h2 className="text-xl font-black text-slate-900 dark:text-white">Issue Employment Contract</h2>
@@ -270,7 +270,7 @@ const EmployeeContracts: React.FC<EmployeeContractsProps> = ({ employeeId }) => 
       {/* Signature Modal */}
       {signModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="px-8 py-6 border-b border-slate-200 dark:border-neutral-800 flex justify-between items-center bg-slate-50/50 dark:bg-neutral-900/50">
               <div>
                 <h2 className="text-xl font-black text-slate-900 dark:text-white">Sign Contract</h2>

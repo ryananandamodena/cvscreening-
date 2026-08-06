@@ -198,8 +198,8 @@ const EmployeePortal: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a]">
       {/* Header */}
-      <header className="bg-white dark:bg-[#111111] shadow-sm border-b border-slate-200 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <header className="bg-white dark:bg-[#000000] shadow-sm border-b border-slate-200 dark:border-neutral-800">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-4">
               <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
@@ -233,7 +233,7 @@ const EmployeePortal: React.FC = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-brand-600 to-brand-800 rounded-2xl p-8 text-white mb-8">
           <div className="flex items-center justify-between">
@@ -265,7 +265,7 @@ const EmployeePortal: React.FC = () => {
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {quickStats.map((stat, index) => (
-            <div key={index} className="bg-white dark:bg-[#111111] rounded-xl p-6 shadow-sm border border-slate-200 dark:border-neutral-800">
+            <div key={index} className="bg-white dark:bg-[#000000] rounded-xl p-6 shadow-sm border border-slate-200 dark:border-neutral-800">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{stat.label}</p>
@@ -286,7 +286,7 @@ const EmployeePortal: React.FC = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Quick Actions */}
-            <div className="bg-white dark:bg-[#111111] rounded-xl p-6 shadow-sm border border-slate-200 dark:border-neutral-800">
+            <div className="bg-white dark:bg-[#000000] rounded-xl p-6 shadow-sm border border-slate-200 dark:border-neutral-800">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quick Actions</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {quickActions.map((action, index) => (
@@ -311,7 +311,7 @@ const EmployeePortal: React.FC = () => {
 
             {/* Pending Requests */}
             {pendingRequests.length > 0 && (
-              <div className="bg-white dark:bg-[#111111] rounded-xl p-6 shadow-sm border border-slate-200 dark:border-neutral-800">
+              <div className="bg-white dark:bg-[#000000] rounded-xl p-6 shadow-sm border border-slate-200 dark:border-neutral-800">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Pending Requests</h3>
                 <div className="space-y-4">
                   {pendingRequests.map((request) => (
@@ -353,7 +353,7 @@ const EmployeePortal: React.FC = () => {
           {/* Sidebar */}
           <div className="space-y-8">
             {/* Recent Activity */}
-            <div className="bg-white dark:bg-[#111111] rounded-xl p-6 shadow-sm border border-slate-200 dark:border-neutral-800">
+            <div className="bg-white dark:bg-[#000000] rounded-xl p-6 shadow-sm border border-slate-200 dark:border-neutral-800">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Recent Activity</h3>
               <div className="space-y-4">
                 {recentActivities.map((activity) => (
@@ -372,7 +372,7 @@ const EmployeePortal: React.FC = () => {
             </div>
 
             {/* Upcoming Events */}
-            <div className="bg-white dark:bg-[#111111] rounded-xl p-6 shadow-sm border border-slate-200 dark:border-neutral-800">
+            <div className="bg-white dark:bg-[#000000] rounded-xl p-6 shadow-sm border border-slate-200 dark:border-neutral-800">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Upcoming</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-neutral-800/60 rounded-lg">

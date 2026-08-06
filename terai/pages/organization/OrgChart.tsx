@@ -57,7 +57,7 @@ const OrgNode = ({ node, isRoot = false }: { node: any, isRoot?: boolean }) => {
 
       {/* Node Card */}
       <div
-        className={`relative group bg-white dark:bg-[#111111] border ${isRoot ? 'border-brand-500 shadow-brand-500/20' : 'border-slate-300 dark:border-neutral-700'} rounded-2xl p-4 w-60 shadow-sm transition-all hover:border-brand-400`}
+        className={`relative group bg-white dark:bg-[#000000] border ${isRoot ? 'border-brand-500 shadow-brand-500/20' : 'border-slate-300 dark:border-neutral-700'} rounded-2xl p-4 w-60 shadow-sm transition-all hover:border-brand-400`}
       >
         <div className="flex flex-col items-center text-center">
            <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-black mb-3 ${isRoot ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-slate-300 group-hover:bg-brand-500/20 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors'}`}>
@@ -120,19 +120,19 @@ const OrgChart: React.FC = () => {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white/50 dark:bg-[#111111] border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-4">
+        <div className="bg-white/50 dark:bg-[#000000] border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-4">
            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-2"><Users size={16}/> <span className="font-medium text-xs uppercase tracking-wider">Total Headcount</span></div>
            <p className="text-2xl font-black text-slate-900 dark:text-white">124</p>
         </div>
-        <div className="bg-white/50 dark:bg-[#111111] border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-4">
+        <div className="bg-white/50 dark:bg-[#000000] border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-4">
            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-2"><Building2 size={16}/> <span className="font-medium text-xs uppercase tracking-wider">Departments</span></div>
            <p className="text-2xl font-black text-slate-900 dark:text-white">8</p>
         </div>
-        <div className="bg-white/50 dark:bg-[#111111] border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-4">
+        <div className="bg-white/50 dark:bg-[#000000] border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-4">
            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-2"><User size={16}/> <span className="font-medium text-xs uppercase tracking-wider">Avg Direct Reports</span></div>
            <p className="text-2xl font-black text-slate-900 dark:text-white">4.2</p>
         </div>
-        <div className="bg-white/50 dark:bg-[#111111] border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-4">
+        <div className="bg-white/50 dark:bg-[#000000] border border-slate-200/50 dark:border-neutral-800 rounded-2xl shadow-sm p-4">
            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-2"><TrendingUp size={16}/> <span className="font-medium text-xs uppercase tracking-wider">Hierarchy Depth</span></div>
            <p className="text-2xl font-black text-slate-900 dark:text-white">4 Levels</p>
         </div>

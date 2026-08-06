@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Lock, Mail, ChevronRight, Zap } from 'lucide-react';
+import { Lock, Mail, Zap } from 'lucide-react';
 import { apiService } from '../services/api.service';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from '../components/ui/Button';
@@ -9,6 +9,7 @@ import { Button } from '../components/ui/Button';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -29,79 +30,76 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-brand-50 dark:from-neutral-950 dark:via-neutral-950 dark:to-neutral-900 flex items-center justify-center p-6 font-inter">
-      <div className="w-full max-w-5xl flex bg-white dark:bg-neutral-900 rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-neutral-800">
-        <div className="flex-1 p-20 flex flex-col justify-center space-y-10">
-          <div className="flex items-center gap-3">
-            <div className="bg-brand-600 p-3 rounded-2xl shadow-xl shadow-brand-600/20">
-              <Zap size={24} className="text-white" />
-            </div>
-            <span className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">RecruitAI <span className="text-brand-600 dark:text-brand-400">Enterprise</span></span>
+    <div className="min-h-screen bg-slate-100 dark:bg-[#000000] flex items-center justify-center p-6 font-inter">
+      <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-xl shadow-md border border-slate-200 dark:border-neutral-800 p-8 sm:p-10">
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="bg-brand-600 p-2.5 rounded-xl shadow-sm mb-4">
+            <Zap size={22} className="text-white" />
           </div>
-
-          <div className="space-y-2">
-            <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">{t('login.title')}</h1>
-            <p className="text-slate-700 dark:text-slate-300 font-medium">{t('login.subtitle')}</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest px-1">{t('login.email')}</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" size={20} />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-neutral-800 border-2 border-transparent focus:border-brand-600 focus:bg-white dark:focus:bg-neutral-800 rounded-2xl transition-all outline-none font-bold text-slate-900 dark:text-white"
-                  placeholder="name@company.com"
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest px-1">{t('login.password')}</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" size={20} />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-neutral-800 border-2 border-transparent focus:border-brand-600 focus:bg-white dark:focus:bg-neutral-800 rounded-2xl transition-all outline-none font-bold text-slate-900 dark:text-white"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-            </div>
-            <Button
-              type="submit"
-              disabled={loading}
-              loading={loading}
-              size="lg"
-              className="w-full rounded-3xl font-black shadow-2xl shadow-brand-600/30"
-            >
-              {loading ? t('login.loading') : t('login.submit')} <ChevronRight size={20} />
-            </Button>
-          </form>
-
-          <div className="pt-6 border-t border-slate-100 dark:border-neutral-800 flex items-center gap-2 text-success-600 dark:text-success-500">
-            <ShieldCheck size={18} />
-            <span className="text-[10px] font-black uppercase tracking-widest">{t('login.encrypted')}</span>
-          </div>
+          <span className="text-lg font-bold text-slate-900 dark:text-white">Human<span className="text-brand-600 dark:text-brand-400">IQ</span></span>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white mt-4">{t('login.title')}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('login.subtitle')}</p>
         </div>
 
-        <div className="flex-1 bg-slate-50 dark:bg-neutral-950 relative p-20 flex flex-col justify-end overflow-hidden group">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-brand-600/20 rounded-full blur-[120px] -mr-40 -mt-40 transition-transform duration-1000 group-hover:scale-125"></div>
-          <div className="relative z-10 space-y-6">
-            <div className="size-20 bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 flex items-center justify-center">
-              <Zap size={32} className="text-slate-900 dark:text-white" />
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('login.email')}</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 focus:border-brand-600 dark:focus:border-brand-600 focus:ring-2 focus:ring-brand-600/10 rounded-lg transition-all outline-none text-sm font-medium text-slate-900 dark:text-white"
+                placeholder="name@company.com"
+                required
+              />
             </div>
-            <h2 className="text-4xl font-black text-slate-900 dark:text-white leading-tight">{t('login.heroTitle')}</h2>
-            <p className="text-slate-600 dark:text-slate-400 text-lg font-medium leading-relaxed">
-              {t('login.heroSubtitle')}
-            </p>
           </div>
-        </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('login.password')}</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 focus:border-brand-600 dark:focus:border-brand-600 focus:ring-2 focus:ring-brand-600/10 rounded-lg transition-all outline-none text-sm font-medium text-slate-900 dark:text-white"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="rounded border-slate-300 dark:border-neutral-700 text-brand-600 focus:ring-brand-600/30"
+              />
+              {t('login.rememberMe') || 'Ingat saya'}
+            </label>
+            <a href="#/forgot-password" className="font-semibold text-brand-600 dark:text-brand-400 hover:underline">
+              {t('login.forgotPassword') || 'Lupa kata sandi?'}
+            </a>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={loading}
+            loading={loading}
+            size="lg"
+            className="w-full justify-center rounded-lg"
+          >
+            {loading ? t('login.loading') : t('login.submit')}
+          </Button>
+        </form>
+
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-8">
+          © {new Date().getFullYear()} HumanIQ. All rights reserved.
+        </p>
       </div>
     </div>
   );
