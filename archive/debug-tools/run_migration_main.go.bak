@@ -1,0 +1,57 @@
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/joho/godotenv"
+)
+
+func runMigration() {
+	// Load .env
+	if err := godotenv.Load(); err != nil {
+		log.Println("Warning: .env file not found")
+	}
+
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL not set")
+	}
+
+	// Connect to database
+	conn, err := pgx.Connect(context.Background(), dbURL)
+	if err != nil {
+		log.Fatalf("Unable to connect to database: %v\n", err)
+	}
+	defer conn.Close(context.Background())
+
+	log.Println("Connected to database successfully!")
+
+	// Read SQL file
+	sqlContent, err := os.ReadFile("schema_attendance_leave.sql")
+	if err != nil {
+		log.Fatalf("Unable to read SQL file: %v\n", err)
+	}
+
+	// Execute SQL
+	log.Println("Executing schema_attendance_leave.sql...")
+	_, err = conn.Exec(context.Background(), string(sqlContent))
+	if err != nil {
+		log.Fatalf("Unable to execute SQL: %v\n", err)
+	}
+
+	log.Println("✅ Schema migration completed successfully!")
+	log.Println("✅ Tables created:")
+	log.Println("   - shifts")
+	log.Println("   - employee_shifts")
+	log.Println("   - attendances")
+	log.Println("   - leave_types")
+	log.Println("   - leave_balances")
+	log.Println("   - leave_requests")
+	log.Println("   - holidays")
+	log.Println("   - notification_templates")
+	log.Println("   - notifications")
+	log.Println("✅ Seed data inserted!")
+}
