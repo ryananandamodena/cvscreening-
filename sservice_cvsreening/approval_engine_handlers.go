@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -213,6 +215,21 @@ func actOnApprovalRequestHandler(c *gin.Context) {
 			return
 		}
 	}
+
+	userID := GetUserIDFromContext(c)
+	userEmail := GetUserEmailFromContext(c)
+	auditDetail, _ := json.Marshal(gin.H{"comment": req.Comment, "finalStatus": result.FinalStatus})
+	go repository.LogAuditTrail(context.Background(), &models.AuditTrail{
+		UserID:     &userID,
+		UserEmail:  userEmail,
+		Action:     req.Action, // approve, reject, return, delegate
+		Module:     "approval_engine",
+		EntityType: "approval_request",
+		EntityID:   &id,
+		NewValue:   auditDetail,
+		IPAddress:  c.ClientIP(),
+		UserAgent:  c.Request.UserAgent(),
+	})
 
 	notifyApprovalOutcome(c, id, result.FinalStatus, req.Comment)
 

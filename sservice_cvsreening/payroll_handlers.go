@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -96,6 +97,19 @@ func UpdateSalaryConfiguration(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	userID := GetUserIDFromContext(c)
+	userEmail := GetUserEmailFromContext(c)
+	go repository.LogAuditTrail(context.Background(), &models.AuditTrail{
+		UserID:     &userID,
+		UserEmail:  userEmail,
+		Action:     "update",
+		Module:     "payroll",
+		EntityType: "salary_configuration",
+		EntityID:   &config.EmployeeID,
+		IPAddress:  c.ClientIP(),
+		UserAgent:  c.Request.UserAgent(),
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Salary configuration updated successfully"})
 }
@@ -455,6 +469,19 @@ func GeneratePayroll(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	userID := GetUserIDFromContext(c)
+	userEmail := GetUserEmailFromContext(c)
+	go repository.LogAuditTrail(context.Background(), &models.AuditTrail{
+		UserID:     &userID,
+		UserEmail:  userEmail,
+		Action:     "generate",
+		Module:     "payroll",
+		EntityType: "payroll_period",
+		EntityID:   &periodID,
+		IPAddress:  c.ClientIP(),
+		UserAgent:  c.Request.UserAgent(),
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Payroll generated successfully for the period"})
 }
