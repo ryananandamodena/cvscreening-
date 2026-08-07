@@ -373,37 +373,43 @@ const TrainingDashboard: React.FC = () => {
 
                   return (
                     <div key={training.id} className="bg-white dark:bg-[#000000] border border-slate-200 dark:border-neutral-800 rounded-xl p-6">
+                      {/* NOTE: the backend (TrainingEnrollment, models/extended_models.go)
+                          only tracks status/score/completedAt — there is no real progress-
+                          percentage tracking, so we show the data that actually exists
+                          instead of a fabricated progress bar. */}
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           <h3 className="font-semibold text-slate-900 dark:text-white mb-1">{training.programTitle}</h3>
                           <Badge tone={getStatusTone(training.status)}>{getStatusLabel(training.status)}</Badge>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm text-slate-700 dark:text-slate-300">Progress</div>
-                          <div className="text-lg font-semibold text-slate-900 dark:text-white">{training.progress}%</div>
-                        </div>
+                        {training.score != null && (
+                          <div className="text-right">
+                            <div className="text-sm text-slate-700 dark:text-slate-300">Score</div>
+                            <div className="text-lg font-semibold text-slate-900 dark:text-white">{training.score}</div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-3 mb-4">
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-slate-600 dark:text-slate-400">Progress</span>
-                            <span className="text-slate-900 dark:text-white font-medium">{training.progress}%</span>
-                          </div>
-                          <div className="w-full bg-slate-200 dark:bg-neutral-800 rounded-full h-2">
-                            <div
-                              className="bg-brand-600 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${training.progress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-
-                        {training.score && (
-                          <div className="flex items-center gap-2">
-                            <Star className="w-4 h-4 text-warning-500" />
-                            <span className="text-sm text-slate-600 dark:text-slate-400">Score: {training.score}%</span>
-                          </div>
-                        )}
+                        {(() => {
+                          // Backend (TrainingEnrollment) actually sends completedAt/createdAt,
+                          // not completionDate/enrollmentDate as this type declares — read the
+                          // real keys defensively rather than trust the aspirational type.
+                          const raw = training as unknown as { completedAt?: string; createdAt?: string };
+                          const completedAt = training.completionDate || raw.completedAt;
+                          const createdAt = training.enrollmentDate || raw.createdAt;
+                          return completedAt ? (
+                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                              <CheckCircle2 className="w-4 h-4 text-success-500" />
+                              Selesai: {new Date(completedAt).toLocaleDateString()}
+                            </div>
+                          ) : createdAt ? (
+                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                              <Clock className="w-4 h-4 text-slate-500" />
+                              Terdaftar: {new Date(createdAt).toLocaleDateString()}
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
 
                       <div className="flex gap-2">
