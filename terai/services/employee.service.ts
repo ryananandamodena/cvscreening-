@@ -28,6 +28,16 @@ export const employeeService = {
     return res;
   },
 
+  // Pre-hire recruitment history (screenings/interviews) for an employee who was
+  // converted from a candidate — empty candidateId means they weren't.
+  getEmployeeCandidateHistory: async (id: number): Promise<{
+    candidateId: number | null;
+    screenings: Array<{ id: number; jobId?: number; score: number; status: string; createdAt: string }>;
+    interviews: Array<{ id: number; interviewType: string; scheduledAt?: string; status: string; rating?: number; interviewerNotes?: string }>;
+  }> => {
+    return apiService.get(`/employees/${id}/candidate-history`);
+  },
+
   createEmployee: async (data: Partial<Employee>) => {
     return apiService.post<any>('/employees', data);
   },

@@ -22,14 +22,28 @@ const EmployeeDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('profile');
   const [onboardingSession, setOnboardingSession] = useState<OnboardingSession | null>(null);
+  const [candidateHistory, setCandidateHistory] = useState<Awaited<ReturnType<typeof employeeService.getEmployeeCandidateHistory>> | null>(null);
+  const [candidateHistoryLoading, setCandidateHistoryLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
       const empId = parseInt(id);
       fetchEmployeeDetail(empId);
       fetchOnboardingStatus(empId);
+      fetchCandidateHistory(empId);
     }
   }, [id]);
+
+  const fetchCandidateHistory = async (empId: number) => {
+    try {
+      setCandidateHistoryLoading(true);
+      setCandidateHistory(await employeeService.getEmployeeCandidateHistory(empId));
+    } catch (err) {
+      console.error('Failed to fetch candidate history', err);
+    } finally {
+      setCandidateHistoryLoading(false);
+    }
+  };
 
   const fetchEmployeeDetail = async (empId: number) => {
     try {
@@ -171,7 +185,7 @@ const EmployeeDetail: React.FC = () => {
 
       {/* Navigation Tabs */}
       <div className="flex gap-3 overflow-x-auto layout-scrollbar pb-2 px-1">
-        {['profile', 'contracts', 'documents', 'onboarding'].map((tab) => (
+        {['profile', 'contracts', 'documents', 'onboarding', ...(candidateHistory?.candidateId ? ['recruitment'] : [])].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -237,6 +251,58 @@ const EmployeeDetail: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'recruitment' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+            {candidateHistoryLoading ? (
+              <p className="text-slate-600 dark:text-slate-400">Loading...</p>
+            ) : (
+              <>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-wider mb-4">Riwayat Screening CV</h3>
+                  {(candidateHistory?.screenings || []).length === 0 ? (
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">Tidak ada data screening.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {candidateHistory!.screenings.map((s) => (
+                        <div key={s.id} className="flex items-center justify-between p-4 bg-white/50 dark:bg-[#000000]/50 rounded-2xl border border-slate-200/50 dark:border-white/5">
+                          <div>
+                            <p className="text-slate-900 dark:text-white font-bold">Skor: {s.score}/100</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">{new Date(s.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <Badge tone={s.status === 'passed' ? 'success' : s.status === 'failed' ? 'danger' : 'neutral'}>{s.status}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-wider mb-4">Riwayat Interview</h3>
+                  {(candidateHistory?.interviews || []).length === 0 ? (
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">Tidak ada data interview.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {candidateHistory!.interviews.map((iv) => (
+                        <div key={iv.id} className="p-4 bg-white/50 dark:bg-[#000000]/50 rounded-2xl border border-slate-200/50 dark:border-white/5">
+                          <div className="flex items-center justify-between">
+                            <p className="text-slate-900 dark:text-white font-bold capitalize">{iv.interviewType} interview</p>
+                            <Badge tone={iv.status === 'completed' ? 'success' : iv.status === 'cancelled' || iv.status === 'no-show' ? 'danger' : 'neutral'}>{iv.status}</Badge>
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                            {iv.scheduledAt ? new Date(iv.scheduledAt).toLocaleString() : 'Belum dijadwalkan'}
+                            {iv.rating ? ` · Rating: ${iv.rating}/5` : ''}
+                          </p>
+                          {iv.interviewerNotes && <p className="text-sm text-slate-700 dark:text-slate-300 mt-2">{iv.interviewerNotes}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 

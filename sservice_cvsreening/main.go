@@ -431,6 +431,7 @@ func main() {
 		protected.GET("/employees/:id", getEmployeeByIDHandler)
 		protected.PUT("/employees/:id", updateEmployeeHandler)
 		protected.DELETE("/employees/:id", deleteEmployeeHandler)
+		protected.GET("/employees/:id/candidate-history", getEmployeeCandidateHistoryHandler)
 
 		// Contracts
 		protected.GET("/employees/:id/contracts", getEmployeeContractsHandler)

@@ -326,3 +326,24 @@ func signContractHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Contract signed successfully", "signatureUrl": signatureURL})
 }
+
+// getEmployeeCandidateHistoryHandler returns a converted employee's pre-hire
+// screening/interview history, if any (see repository.GetEmployeeCandidateHistory).
+func getEmployeeCandidateHistoryHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid employee ID", nil)
+		return
+	}
+	history, err := repository.GetEmployeeCandidateHistory(c.Request.Context(), id)
+	if err != nil {
+		log.Printf("ERROR in getEmployeeCandidateHistoryHandler: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to fetch candidate history", err.Error())
+		return
+	}
+	if history == nil {
+		c.JSON(http.StatusOK, gin.H{"candidateId": nil, "screenings": []interface{}{}, "interviews": []interface{}{}})
+		return
+	}
+	c.JSON(http.StatusOK, history)
+}
