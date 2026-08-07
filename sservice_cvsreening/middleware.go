@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -154,6 +155,14 @@ func RequestLogger() gin.HandlerFunc {
 func getAllowedOrigins() []string {
 	origins := os.Getenv("ALLOWED_ORIGINS")
 	if origins == "" {
+		// Silently falling back here in production means the real frontend origin
+		// is never allowed and every browser request gets blocked by CORS with no
+		// obvious cause in the logs — warn loudly instead of failing quietly.
+		if os.Getenv("APP_ENV") == "production" {
+			log.Println("WARNING: ALLOWED_ORIGINS is not set in a production environment — " +
+				"falling back to localhost-only CORS origins, which will block your real frontend. " +
+				"Set ALLOWED_ORIGINS explicitly (comma-separated) in production.")
+		}
 		// Default development origins
 		return []string{"http://localhost:3000", "http://localhost:5173"}
 	}

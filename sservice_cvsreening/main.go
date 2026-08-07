@@ -61,79 +61,39 @@ func main() {
 			log.Fatalf("Failed to run migrations: %v", err)
 		}
 
-		// Run Seeders
-		if err := repository.RunSeed("seed_psychotest.sql"); err != nil {
-			log.Printf("Failed to run seed: %v", err)
+		// Run Seeders — data-driven list instead of one if-block per file, so adding a
+		// new migration is a one-line append instead of a copy-pasted 3-line block.
+		// Order matters (later schemas can reference earlier ones' tables), so this
+		// stays a slice, not a directory scan.
+		seedFiles := []string{
+			"seed_psychotest.sql",
+			"seed_questions.sql",
+			"seed_questions_id.sql",
+			"seed_users.sql",
+			"migration_add_expected_answers.sql", // safe to re-run, uses UPDATE only
+			"schema_extended_modules.sql",
+			"schema_documents_extra.sql",
+			"schema_office_settings.sql",
+			"schema_attendance_correction.sql",
+			"schema_approval_engine.sql",
+			"schema_overtime_request.sql",
+			"schema_payroll_grades.sql",
+			"schema_payroll_tax_config.sql",
+			"schema_payroll_deductions.sql",
+			"schema_insurance.sql",
+			"schema_allowances.sql",
+			"schema_flexible_retirement.sql",
+			"schema_insurance_continuation.sql",
+			"schema_career_paths.sql",
+			"schema_leadership_programs.sql",
+			"schema_candidate_link.sql",
+			"schema_contract_approval.sql",
+			"schema_overtime_approval.sql",
 		}
-
-		// Run Seeders
-		if err := repository.RunSeed("seed_questions.sql"); err != nil {
-			log.Printf("Failed to run seed: %v", err)
-		}
-		if err := repository.RunSeed("seed_questions_id.sql"); err != nil {
-			log.Printf("Failed to run Indonesian questions seed: %v", err)
-		}
-		if err := repository.RunSeed("seed_users.sql"); err != nil {
-			log.Printf("Failed to run users seed: %v", err)
-		}
-		// Run expected answers migration (safe to re-run, uses UPDATE only)
-		if err := repository.RunSeed("migration_add_expected_answers.sql"); err != nil {
-			log.Printf("Failed to run expected answers migration: %v", err)
-		}
-		// Run database migration (if not done yet)
-		if err := repository.RunSeed("schema_extended_modules.sql"); err != nil {
-			log.Printf("Failed to run extended modules schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_documents_extra.sql"); err != nil {
-			log.Printf("Failed to run documents extras schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_office_settings.sql"); err != nil {
-			log.Printf("Failed to run office settings schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_attendance_correction.sql"); err != nil {
-			log.Printf("Failed to run attendance correction schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_approval_engine.sql"); err != nil {
-			log.Printf("Failed to run approval engine schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_overtime_request.sql"); err != nil {
-			log.Printf("Failed to run overtime request schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_payroll_grades.sql"); err != nil {
-			log.Printf("Failed to run payroll grades schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_payroll_tax_config.sql"); err != nil {
-			log.Printf("Failed to run payroll tax config schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_payroll_deductions.sql"); err != nil {
-			log.Printf("Failed to run payroll deductions schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_insurance.sql"); err != nil {
-			log.Printf("Failed to run insurance schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_allowances.sql"); err != nil {
-			log.Printf("Failed to run allowances schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_flexible_retirement.sql"); err != nil {
-			log.Printf("Failed to run flexible/retirement schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_insurance_continuation.sql"); err != nil {
-			log.Printf("Failed to run insurance continuation schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_career_paths.sql"); err != nil {
-			log.Printf("Failed to run career paths schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_leadership_programs.sql"); err != nil {
-			log.Printf("Failed to run leadership programs schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_candidate_link.sql"); err != nil {
-			log.Printf("Failed to run candidate link schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_contract_approval.sql"); err != nil {
-			log.Printf("Failed to run contract approval schema migration: %v", err)
-		}
-		if err := repository.RunSeed("schema_overtime_approval.sql"); err != nil {
-			log.Printf("Failed to run overtime approval schema migration: %v", err)
+		for _, f := range seedFiles {
+			if err := repository.RunSeed(f); err != nil {
+				log.Printf("Failed to run seed/migration %s: %v", f, err)
+			}
 		}
 
 		// Create test users for development/testing only — never in production,
@@ -187,462 +147,26 @@ func main() {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	api := r.Group("/api")
-
-	// Public Auth Routes - Stricter Rate Limit (20 req/min overall)
-	auth := api.Group("/")
-	auth.Use(RateLimitMiddleware(20, time.Minute))
-	{
-		auth.POST("/register", registerHandler)
-		auth.POST("/login", RateLimitMiddleware(30, time.Minute), loginHandler)
-		auth.POST("/refresh", refreshTokenHandler)
-	}
-
-	// ==================== PUBLIC ROUTES ====================
-	// Only endpoints that candidates/public genuinely need without login
-
-	// Live Interview WebSocket (no auth required for WS handshake)
-	api.GET("/ai/live-interview", liveInterviewHandler)
-
-	// Evaluate Video Answer endpoint (Public for candidate interview)
-	api.POST("/ai/evaluate-answer", evaluateAnswerHandler)
-
-	// Public Job Listing (for Careers page)
-	api.GET("/jobs", getJobsHandler)
-
-	// Candidate Interview Flow (accessed via unique token link)
-	api.GET("/interviews/:id", getInterviewByIDHandler)
-	api.POST("/interviews/:id/submit", submitInterviewHandler)
-	api.GET("/interviews/:id/responses", getInterviewResponsesHandler)
-	api.POST("/interviews/:id/responses", saveQuestionResponseHandler)
-	api.GET("/interviews/:id/responses/:order", getQuestionResponseHandler)
-	api.DELETE("/interviews/:id/responses/:order", deleteQuestionResponseHandler)
-	api.GET("/interviews/:id/progress", getInterviewProgressHandler)
-
-	// Assessment Taking (candidate flow)
-	api.GET("/assessments/:id", getAssessmentByIDHandler)
-	api.GET("/assessments/:id/questions", getAssessmentQuestionsHandler)
-	api.GET("/assessments/:id/templates", getAssessmentTemplatesHandler)
-	api.POST("/assessments/:id/start", startAssessmentAttemptHandler)
-	api.GET("/assessment-attempts/:id", getAssessmentAttemptHandler)
-	api.POST("/assessment-attempts/:id/submit", submitAssessmentAttemptHandler)
-	api.POST("/assessment-attempts/:id/answer", saveAssessmentAnswerHandler)
-	api.GET("/assessment-attempts/:id/answers", getAssessmentAnswersHandler)
-	api.GET("/assessment-attempts/:id/result", getAssessmentAttemptResultHandler)
-
-	// Candidate Portal Routes (Public for candidates)
-	api.POST("/candidate/register", candidatePortalRegisterHandler)
-	api.POST("/candidate/login", candidatePortalLoginHandler)
-	api.GET("/candidate/jobs", getPublicJobsHandler)
-
-	// Protected Candidate Routes (requires candidate auth)
-	candidateProtected := api.Group("/")
-	candidateProtected.Use(CandidateAuthMiddleware())
-	{
-		candidateProtected.POST("/candidate/apply", submitApplicationHandler)
-		candidateProtected.GET("/candidate/applications", getCandidateApplicationsHandler)
-		candidateProtected.GET("/candidate/applications/:id", getApplicationByIDHandler)
-	}
-
-	// Serve uploaded files (Recordings)
-	r.Static("/uploads", "./uploads")
-
+	registerPublicRoutes(r, api)
 
 	// =====================================================
 	// SYSTEM & SETTINGS ROUTES
 	// NOTE: no routes are registered directly under a generic
 	// "admin"-role group — admin-only endpoints below are scoped
 	// individually with AdminOnly()/RoleMiddleware() as needed.
-
+	//
+	// Route registration is split by module into routes_*.go files (see
+	// registerXxxRoutes below) — main() just wires them up in order. This is a
+	// pure structural split: same routes, same order, same middleware, nothing
+	// behavioral changed.
 	protected := api.Group("/")
 	protected.Use(AuthMiddleware())
-	{
-		// Screening
-		protected.POST("/screening", screeningHandler)
-		protected.GET("/screenings", getScreeningsHandler)
-		protected.GET("/screenings/:id", getScreeningByIDHandler)
-		protected.PATCH("/screenings/:id", updateScreeningStatusHandler)
-		protected.POST("/screening/bulk", bulkScreeningHandler)
-		protected.GET("/jobs/:id/leaderboard", getLeaderboardHandler)
-
-		// Analytics & Settings
-		protected.GET("/analytics/dashboard", getHRAnalyticsHandler)
-		protected.GET("/analytics", getAnalyticsHandler)
-		protected.GET("/settings", getSettingsHandler)
-		protected.POST("/settings", updateSettingsHandler)
-		protected.GET("/questions", getAllQuestionsHandler)
-
-		// Candidates
-		protected.GET("/candidates", getCandidatesHandler)
-		protected.GET("/search/candidates", searchCandidatesHandler)
-		protected.GET("/candidates/:id", getCandidateByIDHandler)
-		protected.GET("/candidates/:id/attempts", getCandidateAttemptsHandler)
-
-		// Job Management
-		protected.POST("/jobs", createJobHandler)
-		protected.GET("/jobs/:id", getJobByIDHandler)
-		protected.PUT("/jobs/:id", updateJobHandler)
-		protected.DELETE("/jobs/:id", deleteJobHandler)
-
-		// Interview Management
-		protected.POST("/interviews", createInterviewHandler)
-		protected.GET("/interviews", getInterviewsHandler)
-		protected.PUT("/interviews/:id/feedback", updateInterviewFeedbackHandler)
-		protected.POST("/interviews/:id/cancel", cancelInterviewHandler)
-		protected.POST("/interviews/:id/finalize", finalizeInterviewHandler)
-
-		// Interview Schedule
-		protected.GET("/interview-schedules", getInterviewSchedulesHandler)
-		protected.POST("/interview-schedules", createInterviewScheduleHandler)
-		protected.GET("/interview-schedules/:id", getInterviewScheduleByIDHandler)
-		protected.PUT("/interview-schedules/:id", updateInterviewScheduleHandler)
-		protected.POST("/interview-schedules/:id/cancel", cancelInterviewScheduleHandler)
-
-		// Assessment Management (CRUD by admin/recruiter)
-		protected.GET("/assessments", getAssessmentsHandler)
-		protected.POST("/assessments", createAssessmentHandler)
-		protected.PUT("/assessments/:id", updateAssessmentHandler)
-		protected.DELETE("/assessments/:id", deleteAssessmentHandler)
-		protected.POST("/assessments/:id/questions", createAssessmentQuestionHandler)
-		protected.PUT("/assessments/:id/questions/:qid", updateAssessmentQuestionHandler)
-		protected.DELETE("/assessments/:id/questions/:qid", deleteAssessmentQuestionHandler)
-		protected.POST("/assessments/:id/assign", assignAssessmentHandler)
-
-		// Interview Questions
-		protected.POST("/jobs/:id/questions", createQuestionHandler)
-		protected.GET("/jobs/:id/questions", getInterviewQuestionsHandler)
-		protected.PUT("/questions/:id", updateInterviewQuestionHandler)
-		protected.DELETE("/questions/:id", deleteQuestionHandler)
-
-		// Offer Letter Management
-		protected.GET("/offer-letters", listOfferLettersHandler)
-		protected.POST("/offer-letters", createOfferLetterHandler)
-		protected.GET("/offer-letters/:id", getOfferLetterHandler)
-		protected.PUT("/offer-letters/:id", updateOfferLetterHandler)
-		protected.PATCH("/offer-letters/:id/send", sendOfferLetterHandler)
-		protected.PATCH("/offer-letters/:id/status", updateOfferLetterStatusHandler)
-		protected.DELETE("/offer-letters/:id", deleteOfferLetterHandler)
-
-		// LinkedIn Integration
-		protected.POST("/candidates/import", importCandidateHandler)
-		protected.POST("/linkedin/search", searchLinkedInHandler)
-
-		// Interview Scorecards
-		protected.GET("/interviews/:id/scorecard", getScorecardHandler)
-		protected.GET("/interviews/:id/scorecards", getScorecardsHandler)
-		protected.POST("/interviews/:id/scorecard", createScorecardHandler)
-		protected.PUT("/scorecards/:id", updateScorecardHandler)
-		protected.DELETE("/scorecards/:id", deleteScorecardHandler)
-
-		// Recording Management
-		protected.GET("/interviews/:id/recordings", getRecordingsHandler)
-		protected.GET("/recordings/:id", getRecordingByIDHandler)
-		protected.POST("/recordings", createRecordingHandler)
-		protected.DELETE("/recordings/:id", deleteRecordingHandler)
-
-		// Advanced Analytics & Reports
-		protected.GET("/analytics/advanced", getAdvancedAnalyticsHandler)
-		
-		// Advanced Analytics UI endpoints — real, database-backed metrics.
-		// Predictive analytics is a rule-based heuristic (see repository doc comment),
-		// not a trained ML model; its response is flagged isHeuristic:true.
-		protected.GET("/analytics/realtime", getRealtimeAnalyticsHandler)
-		protected.GET("/analytics/performance", getAdvancedPerformanceAnalyticsHandler)
-		protected.GET("/analytics/predictive", getPredictiveAnalyticsHandler)
-		protected.GET("/analytics/workforce", getWorkforceAnalyticsHandler)
-		protected.GET("/reports", getReportsDataHandler)
-		protected.GET("/reports/screening/:id", getScreeningReportHandler)
-		protected.GET("/reports/interview/:id", getInterviewReportHandler)
-
-		// Skill Matching
-		protected.POST("/skill-matching", skillMatchingHandler)
-
-		// Integrations Management
-		protected.GET("/integrations", getIntegrationsHandler)
-		protected.GET("/integrations/:type", getIntegrationByTypeHandler)
-		protected.POST("/integrations/:type/connect", connectIntegrationHandler)
-		protected.POST("/integrations/:type/disconnect", disconnectIntegrationHandler)
-		protected.POST("/integrations/:type/test", testIntegrationHandler)
-		protected.POST("/integrations/:type/auth", googleCalendarAuthHandler)
-		protected.POST("/integrations/:type/sync", googleCalendarSyncHandler)
-		protected.POST("/integrations/:type/config", whatsappConfigHandler)
-		protected.POST("/integrations/:type/send", whatsappSendHandler)
-		protected.GET("/integrations/:type/templates", whatsappTemplatesHandler)
-
-		// Attendance & Shifts
-		protected.POST("/attendance/clock-in", clockInHandler)
-		protected.POST("/attendance/clock-out", clockOutHandler)
-		protected.POST("/attendance/break-start", breakStartHandler)
-		protected.POST("/attendance/break-end", breakEndHandler)
-		protected.GET("/attendance/today-breaks", getTodayBreaksHandler)
-		protected.GET("/attendance/qr-token", getQRTokenHandler)
-		protected.POST("/attendance/face-enrollment", enrollFaceHandler)
-		protected.GET("/attendance/face-enrollment/status", getFaceEnrollmentStatusHandler)
-		protected.GET("/attendance/today", getTodayAttendanceHandler)
-		protected.GET("/attendance/history", getAttendanceHistoryHandler)
-		protected.GET("/attendance/team", getTeamAttendanceHandler)
-		protected.GET("/attendance/reports/monthly", getMonthlyAttendanceReportHandler)
-		protected.GET("/attendance/office-location", getOfficeLocationHandler)
-		protected.PUT("/attendance/office-location", updateOfficeLocationHandler)
-
-		// Attendance Corrections
-		protected.POST("/attendance/corrections", createCorrectionHandler)
-		protected.GET("/attendance/corrections", getCorrectionsHandler)
-		protected.PUT("/attendance/corrections/:id/manager-review", managerReviewCorrectionHandler)
-		protected.PUT("/attendance/corrections/:id/hr-review", hrReviewCorrectionHandler)
-		protected.PUT("/attendance/corrections/:id/cancel", cancelCorrectionHandler)
-
-		// Master Approval Engine
-		protected.POST("/approvals/flows", createApprovalFlowHandler)
-		protected.GET("/approvals/flows", getApprovalFlowsHandler)
-		protected.PUT("/approvals/flows/:id/active", setApprovalFlowActiveHandler)
-		protected.DELETE("/approvals/flows/:id", deleteApprovalFlowHandler)
-		protected.GET("/approvals/requests/mine", getMyApprovalRequestsHandler)
-		protected.GET("/approvals/requests/pending", getPendingApprovalsHandler)
-		protected.GET("/approvals/requests/:id", getApprovalRequestHandler)
-		protected.PUT("/approvals/requests/:id/act", actOnApprovalRequestHandler)
-		protected.PUT("/approvals/requests/:id/cancel", cancelApprovalRequestHandler)
-		protected.POST("/approvals/delegations", createDelegationHandler)
-		protected.GET("/approvals/delegations", getMyDelegationsHandler)
-		protected.PUT("/approvals/delegations/:id/deactivate", deactivateDelegationHandler)
-
-		// Overtime Request (reference module using the Master Approval Engine)
-		protected.POST("/overtime/requests", createOvertimeRequestHandler)
-		protected.GET("/overtime/requests/mine", getMyOvertimeRequestsHandler)
-		// NOTE: static paths MUST come before wildcard (:id) in Gin
-		protected.GET("/shifts", getShiftsHandler)
-		protected.POST("/shifts", createShiftHandler)
-		protected.POST("/shifts/assign", assignShiftHandler)
-		protected.GET("/shifts/assignments", getEmployeeShiftAssignmentsHandler)
-		protected.DELETE("/shifts/assignments/:id", removeShiftAssignmentHandler)
-		protected.PUT("/shifts/:id", updateShiftHandler)
-		protected.DELETE("/shifts/:id", deleteShiftHandler)
-		protected.GET("/employees/:id/shift", getEmployeeShiftHandler)
-
-
-		// Leave Management
-		protected.GET("/leave/types", getLeaveTypesHandler)
-		protected.GET("/leave/balances", getLeaveBalancesHandler)
-		protected.GET("/leave/requests", getLeaveRequestsHandler)
-		protected.GET("/leave/requests/:id", getLeaveRequestByIDHandler)
-		protected.POST("/leave/requests", createLeaveRequestHandler)
-		protected.PUT("/leave/requests/:id/approve", approveLeaveRequestHandler)
-		protected.PUT("/leave/requests/:id/reject", rejectLeaveRequestHandler)
-		protected.PUT("/leave/requests/:id/cancel", cancelLeaveRequestHandler)
-		protected.GET("/holidays", getHolidaysHandler)
-
-		// Core HR Management
-		// NOTE: static paths (/employees/stats/summary) MUST come before wildcard (/employees/:id)
-		protected.GET("/employees", getEmployeesHandler)
-		protected.GET("/employees/me", getMyEmployeeHandler)
-		protected.GET("/employees/stats/summary", getEmployeeStatsHandler)
-		protected.POST("/employees", createEmployeeHandler)
-		protected.POST("/candidates/convert", convertCandidateHandler)
-		protected.GET("/employees/:id", getEmployeeByIDHandler)
-		protected.PUT("/employees/:id", updateEmployeeHandler)
-		protected.DELETE("/employees/:id", deleteEmployeeHandler)
-		protected.GET("/employees/:id/candidate-history", getEmployeeCandidateHistoryHandler)
-
-		// Contracts
-		protected.GET("/employees/:id/contracts", getEmployeeContractsHandler)
-		protected.POST("/employees/:id/contracts", createContractHandler)
-		protected.GET("/contracts/expiring", getExpiringContractsHandler)
-		protected.POST("/contracts/:id/sign", signContractHandler)
-
-		// Payroll (Phase 3) - Moved to financeOnly group
-		// protected.GET("/payroll/periods", GetPayrollPeriods)
-		// ...
-
-		// Performance Management
-		protected.GET("/performance/reviews", getPerformanceReviewsHandler)
-		protected.POST("/performance/reviews", createPerformanceReviewHandler)
-		protected.PUT("/performance/reviews/:id", updatePerformanceReviewHandler)
-		protected.POST("/performance/reviews/:id/analyze", analyzePerformanceHandler)
-
-		// Advanced AI Features
-		protected.POST("/ai/chatbot", aiChatbotHandler)
-
-		// Training & Development
-		protected.GET("/performance/reviews/:id", getPerformanceReviewByIDHandler)
-		protected.GET("/performance/goals", getGoalsHandler)
-		protected.POST("/performance/goals", createGoalHandler)
-		protected.PUT("/performance/goals/:id", updateGoalHandler)
-		protected.DELETE("/performance/goals/:id", deleteGoalHandler)
-		protected.GET("/performance/analytics", getPerformanceAnalyticsHandler)
-
-		// Training & Development
-		protected.GET("/training/programs", getTrainingProgramsHandler)
-		protected.POST("/training/programs", createTrainingProgramHandler)
-		protected.POST("/training/programs/:id/enroll", enrollInTrainingHandler)
-		protected.GET("/training/my-trainings", getMyTrainingsHandler)
-		protected.GET("/training/employee", getTrainingEmployeeHandler)
-
-		// Benefits
-		protected.GET("/benefits/plans", getBenefitPlansHandler)
-		protected.POST("/benefits/plans", createBenefitPlanHandler)
-		protected.PUT("/benefits/plans/:id", updateBenefitPlanHandler)
-		protected.DELETE("/benefits/plans/:id", deleteBenefitPlanHandler)
-		protected.GET("/benefits/employee", getEmployeeBenefitsHandler)
-		protected.POST("/benefits/enroll", enrollEmployeeBenefitHandler)
-		protected.POST("/benefits/unenroll", unenrollEmployeeBenefitHandler)
-		protected.GET("/benefits/analytics", getBenefitsAnalyticsHandler)
-
-		// Insurance Plans (distinct from the generic benefit_plans model above)
-		protected.GET("/benefits/insurance-plans", getInsurancePlansHandler)
-		protected.POST("/benefits/insurance-plans", createInsurancePlanHandler)
-		protected.PUT("/benefits/insurance-plans/:id", updateInsurancePlanHandler)
-		protected.DELETE("/benefits/insurance-plans/:id", deleteInsurancePlanHandler)
-		protected.POST("/benefits/insurance-plans/:id/enroll", enrollInsurancePlanHandler)
-		protected.GET("/benefits/insurance-enrollments", getEmployeeInsuranceEnrollmentsHandler)
-		protected.PUT("/benefits/insurance-enrollments/:id/terminate", terminateInsuranceEnrollmentHandler)
-		protected.GET("/benefits/dependents/:employeeId", getDependentsHandler)
-		protected.POST("/benefits/dependents/:employeeId", addDependentHandler)
-		protected.PUT("/benefits/dependents/:employeeId/:dependentId", updateDependentHandler)
-		protected.DELETE("/benefits/dependents/:employeeId/:dependentId", removeDependentHandler)
-
-		// Allowances
-		protected.GET("/benefits/allowances", getAllowancesHandler)
-		protected.POST("/benefits/allowances", createAllowanceHandler)
-		protected.PUT("/benefits/allowances/:id", updateAllowanceHandler)
-		protected.DELETE("/benefits/allowances/:id", deleteAllowanceHandler)
-		protected.POST("/benefits/employee/:employeeId/allowances/:allowanceId", assignAllowanceHandler)
-
-		// Flexible Benefits
-		protected.GET("/benefits/flexible", getFlexibleBenefitsHandler)
-		protected.POST("/benefits/flexible", createFlexibleBenefitHandler)
-		protected.PUT("/benefits/flexible/:id", updateFlexibleBenefitHandler)
-		protected.POST("/benefits/flexible/enroll", enrollFlexibleBenefitHandler)
-
-		// Retirement Plans
-		protected.GET("/benefits/retirement", getRetirementPlansHandler)
-		protected.POST("/benefits/retirement", createRetirementPlanHandler)
-		protected.PUT("/benefits/retirement/:id", updateRetirementPlanHandler)
-		protected.POST("/benefits/retirement/enroll", enrollRetirementPlanHandler)
-
-		// Insurance Continuation (Indonesian-context equivalent of "COBRA")
-		protected.POST("/benefits/insurance-continuation/initiate", initiateInsuranceContinuationHandler)
-		protected.GET("/benefits/insurance-continuation", getInsuranceContinuationsHandler)
-		protected.POST("/benefits/insurance-continuation/:id/payment", recordInsuranceContinuationPaymentHandler)
-
-		// Compensation
-		protected.GET("/compensation/bands", getCompensationBandsHandler)
-		protected.POST("/compensation/bands", upsertCompensationBandHandler)
-		protected.GET("/compensation/grades", getSalaryGradesHandler)
-		protected.GET("/compensation/structures", getCompensationStructuresHandler)
-		protected.GET("/compensation/analytics", getCompensationAnalyticsHandler)
-
-		// Succession Planning
-		protected.GET("/succession/plans", getSuccessionPlansHandler)
-		protected.POST("/succession/plans", createSuccessionPlanHandler)
-		protected.PUT("/succession/plans/:id", updateSuccessionPlanHandler)
-		protected.DELETE("/succession/plans/:id", deleteSuccessionPlanHandler)
-		protected.POST("/succession/plans/:id/candidates", addSuccessionCandidateHandler)
-		protected.DELETE("/succession/plans/:planId/candidates/:id", removeSuccessionCandidateHandler)
-		protected.GET("/succession/candidates", getSuccessionCandidatesHandler)
-		protected.GET("/succession/nine-box", getNineBoxGridHandler)
-
-		// Career Paths
-		protected.GET("/succession/career-paths", getCareerPathsHandler)
-		protected.GET("/succession/career-paths/:id", getCareerPathByIDHandler)
-		protected.POST("/succession/career-paths", createCareerPathHandler)
-		protected.PUT("/succession/career-paths/:id", updateCareerPathHandler)
-		protected.PUT("/succession/career-paths/:id/milestones/:milestoneId", updateCareerMilestoneHandler)
-
-		// Leadership Development Programs
-		protected.GET("/succession/leadership-programs", getLeadershipProgramsHandler)
-		protected.POST("/succession/leadership-programs", createLeadershipProgramHandler)
-		protected.PUT("/succession/leadership-programs/:id", updateLeadershipProgramHandler)
-		protected.POST("/succession/leadership-programs/:id/enroll", enrollInLeadershipProgramHandler)
-		protected.POST("/succession/leadership-programs/:id/complete", completeLeadershipProgramHandler)
-		protected.POST("/succession/leadership-programs/:id/modules", addLeadershipModuleHandler)
-		protected.PUT("/succession/leadership-programs/:id/modules/:moduleId", updateLeadershipModuleHandler)
-		protected.DELETE("/succession/leadership-programs/:id/modules/:moduleId", deleteLeadershipModuleHandler)
-
-		// Document Management
-		protected.GET("/documents", getDocumentsHandler)
-		protected.POST("/documents", createDocumentHandler)
-		protected.GET("/documents/policies", getPoliciesHandler)
-		protected.POST("/documents/policies", createPolicyHandler)
-		protected.PUT("/documents/policies/:id", updatePolicyHandler)
-		protected.DELETE("/documents/policies/:id", deletePolicyHandler)
-		protected.GET("/documents/contracts", getDocumentContractsHandler)
-		protected.GET("/documents/compliance", getComplianceRecordsHandler)
-
-		// Onboarding
-		protected.GET("/onboarding/sessions", getOnboardingSessionsHandler)
-		protected.POST("/onboarding/sessions", createOnboardingSessionHandler)
-		protected.GET("/onboarding/sessions/:sessionId/tasks", getOnboardingTasksHandler)
-		protected.POST("/onboarding/sessions/:sessionId/tasks", createOnboardingTaskHandler)
-		protected.PUT("/onboarding/tasks/:taskId", updateOnboardingTaskHandler)
-		protected.GET("/onboarding/templates", getOnboardingTemplatesHandler)
-		protected.POST("/onboarding/templates", createOnboardingTemplateHandler)
-		protected.PUT("/onboarding/templates/:id/active", setOnboardingTemplateActiveHandler)
-		protected.DELETE("/onboarding/templates/:id", deleteOnboardingTemplateHandler)
-
-		// Organization
-		protected.GET("/departments", getDepartmentsHandler)
-		protected.GET("/departments/:id", getDepartmentByIDHandler)
-		protected.POST("/departments", createDepartmentHandler)
-		protected.PUT("/departments/:id", updateDepartmentHandler)
-		protected.DELETE("/departments/:id", deleteDepartmentHandler)
-
-		protected.GET("/positions", getPositionsHandler)
-		protected.GET("/positions/:id", getPositionByIDHandler)
-		protected.POST("/positions", createPositionHandler)
-		protected.PUT("/positions/:id", updatePositionHandler)
-		protected.DELETE("/positions/:id", deletePositionHandler)
-
-		// User Management (Admin only)
-		adminOnly := protected.Group("/")
-		adminOnly.Use(AdminOnly())
-		{
-			adminOnly.GET("/users", getUsersHandler)
-			adminOnly.GET("/users/:id", getUserByIDHandler)
-			adminOnly.POST("/users", createUserHandler)
-			adminOnly.PUT("/users/:id", updateUserHandler)
-			adminOnly.DELETE("/users/:id", deleteUserHandler)
-			adminOnly.PATCH("/users/:id/status", toggleUserStatusHandler)
-
-			// Audit Trail (Admin / HR Manager only)
-			adminOnly.GET("/audit-trail", getAuditTrailHandler)
-		}
-
-		// Finance Management (Admin & Finance only)
-		financeOnly := protected.Group("/")
-		financeOnly.Use(FinanceOrAdmin())
-		{
-			// Payroll
-			financeOnly.GET("/payroll/periods", GetPayrollPeriods)
-			financeOnly.POST("/payroll/periods", CreatePayrollPeriod)
-			financeOnly.PUT("/payroll/periods/:id/status", UpdatePayrollPeriodStatus)
-			financeOnly.GET("/payroll/configurations", GetSalaryConfigurations)
-			financeOnly.POST("/payroll/configurations", UpdateSalaryConfiguration)
-			financeOnly.POST("/payroll/salary-change-requests", RequestSalaryChange)
-			financeOnly.POST("/payroll/generate/:id", GeneratePayroll)
-			financeOnly.GET("/payroll/payslips", GetPayslips)
-			financeOnly.GET("/payroll/grades", GetPayGrades)
-			financeOnly.PUT("/payroll/grades", UpdatePayGrade)
-			financeOnly.GET("/payroll/bpjs-config", GetBPJSRateConfig)
-			financeOnly.PUT("/payroll/bpjs-config", UpdateBPJSRateConfig)
-			financeOnly.GET("/payroll/tax-brackets", GetPPh21TERBrackets)
-			financeOnly.PUT("/payroll/tax-brackets/:category", UpdatePPh21TERBrackets)
-			financeOnly.POST("/payroll/simulate", SimulatePayroll)
-
-			financeOnly.GET("/payroll/deduction-types", GetDeductionTypes)
-			financeOnly.POST("/payroll/deduction-types", CreateDeductionType)
-			financeOnly.PUT("/payroll/deduction-types/:id", UpdateDeductionType)
-			financeOnly.DELETE("/payroll/deduction-types/:id", DeleteDeductionType)
-			financeOnly.GET("/payroll/employees/:employeeId/deductions", GetEmployeeDeductions)
-			financeOnly.POST("/payroll/employee-deductions", CreateEmployeeDeduction)
-			financeOnly.PUT("/payroll/employee-deductions/:id/active", SetEmployeeDeductionActive)
-			financeOnly.DELETE("/payroll/employee-deductions/:id", DeleteEmployeeDeduction)
-		}
-
-		// Payroll self-service — any authenticated employee views their own payslips;
-		// a manager additionally sees their direct reports' payslips.
-		protected.GET("/payroll/my-payslips", GetMyPayslips)
-		protected.GET("/payroll/my-payslips/:id/components", GetMyPayslipDetail)
-		protected.GET("/payroll/team-payslips", GetTeamPayslips)
-	}
+	registerRecruitmentAdminRoutes(protected)
+	registerAttendanceRoutes(protected)
+	registerHRRoutes(protected)
+	registerBenefitsSuccessionRoutes(protected)
+	registerDocumentsOnboardingRoutes(protected)
+	registerAdminFinanceRoutes(protected)
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
