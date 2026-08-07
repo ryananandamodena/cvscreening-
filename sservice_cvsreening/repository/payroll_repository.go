@@ -69,7 +69,9 @@ func GetSalaryConfigurations(ctx context.Context) ([]models.SalaryConfiguration,
 	rows, err := GetDB().Query(ctx, `
 		SELECT s.id, s.employee_id, s.base_salary, s.transport_allowance, s.meal_allowance,
 			s.position_allowance, s.bpjs_kesehatan_type, s.bpjs_ketenagakerjaan_type,
-			s.updated_at, e.full_name, COALESCE(sg.level, 0), COALESCE(sg.name, 'Unassigned')
+			s.updated_at, e.full_name, COALESCE(sg.level, 0), COALESCE(sg.name, 'Unassigned'),
+			COALESCE((SELECT AVG(overall_rating) FROM performance_reviews
+				WHERE employee_id = s.employee_id AND status = 'completed'), 0)
 		FROM salary_configurations s
 		JOIN employees e ON s.employee_id = e.id
 		LEFT JOIN positions p ON e.position_id = p.id
@@ -87,7 +89,7 @@ func GetSalaryConfigurations(ctx context.Context) ([]models.SalaryConfiguration,
 		err := rows.Scan(
 			&sc.ID, &sc.EmployeeID, &sc.BaseSalary, &sc.TransportAllowance, &sc.MealAllowance,
 			&sc.PositionAllowance, &sc.BpjsKesehatanType, &sc.BpjsKetenagakerjaanType,
-			&sc.UpdatedAt, &sc.EmployeeName, &sc.GradeLevel, &sc.GradeName,
+			&sc.UpdatedAt, &sc.EmployeeName, &sc.GradeLevel, &sc.GradeName, &sc.LatestPerformanceRating,
 		)
 		if err != nil {
 			continue

@@ -355,6 +355,7 @@ const PayrollDashboard: React.FC = () => {
                     <tr className="bg-slate-50 dark:bg-neutral-800/50 border-b border-slate-200 dark:border-neutral-800">
                        <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Employee</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Grade</th>
+                       <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Performa Terakhir</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Base Salary</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Total Allowance</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Insurance Type</th>
@@ -380,6 +381,15 @@ const PayrollDashboard: React.FC = () => {
                             <Badge tone={(c.gradeLevel || 0) >= 5 ? 'brand' : 'neutral'}>{c.gradeName}</Badge>
                           ) : (
                             <span className="text-xs text-slate-500 dark:text-slate-400">No Position</span>
+                          )}
+                        </td>
+                        <td className="px-8 py-6">
+                          {c.latestPerformanceRating ? (
+                            <Badge tone={c.latestPerformanceRating >= 4 ? 'success' : c.latestPerformanceRating >= 3 ? 'warning' : 'danger'}>
+                              {c.latestPerformanceRating.toFixed(1)}/5
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-slate-500 dark:text-slate-400">Belum ada review</span>
                           )}
                         </td>
                         <td className="px-8 py-6 font-black text-slate-900 dark:text-white">Rp {c.baseSalary.toLocaleString()}</td>

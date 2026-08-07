@@ -23,6 +23,9 @@ export interface SalaryConfiguration {
   bpjsKetenagakerjaanType: string;
   gradeLevel?: number;
   gradeName?: string;
+  // Most recent completed performance_reviews rating — informational only, doesn't
+  // drive any automatic salary change.
+  latestPerformanceRating?: number;
 }
 
 export interface Payslip {

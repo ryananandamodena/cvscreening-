@@ -496,6 +496,11 @@ type SalaryConfiguration struct {
 	EmployeeName string `json:"employeeName,omitempty"`
 	GradeLevel   int    `json:"gradeLevel,omitempty"`
 	GradeName    string `json:"gradeName,omitempty"`
+	// LatestPerformanceRating surfaces the employee's most recent completed review
+	// rating alongside their salary data — informational only, HR still decides
+	// any raise manually. See cross-module integration research: pay-for-performance
+	// signal was entirely absent from compensation before this.
+	LatestPerformanceRating float64 `json:"latestPerformanceRating,omitempty"`
 }
 
 // Payslip represents an individual salary record for an employee in a period
