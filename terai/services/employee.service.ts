@@ -34,6 +34,7 @@ export const employeeService = {
     candidateId: number | null;
     screenings: Array<{ id: number; jobId?: number; score: number; status: string; createdAt: string }>;
     interviews: Array<{ id: number; interviewType: string; scheduledAt?: string; status: string; rating?: number; interviewerNotes?: string }>;
+    assessments: Array<{ id: number; assessmentId: number; status: string; totalScore?: number; passed?: boolean; submittedAt?: string }>;
   }> => {
     return apiService.get(`/employees/${id}/candidate-history`);
   },

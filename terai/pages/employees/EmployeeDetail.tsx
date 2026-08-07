@@ -301,6 +301,31 @@ const EmployeeDetail: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-wider mb-4">Riwayat Assessment</h3>
+                  {(candidateHistory?.assessments || []).length === 0 ? (
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">Tidak ada data assessment.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {candidateHistory!.assessments.map((a) => (
+                        <div key={a.id} className="flex items-center justify-between p-4 bg-white/50 dark:bg-[#000000]/50 rounded-2xl border border-slate-200/50 dark:border-white/5">
+                          <div>
+                            <p className="text-slate-900 dark:text-white font-bold">
+                              {a.totalScore != null ? `Skor: ${a.totalScore}` : 'Belum dinilai'}
+                            </p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              {a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : 'Belum disubmit'}
+                            </p>
+                          </div>
+                          <Badge tone={a.passed === true ? 'success' : a.passed === false ? 'danger' : 'neutral'}>
+                            {a.passed === true ? 'Lulus' : a.passed === false ? 'Tidak lulus' : a.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>

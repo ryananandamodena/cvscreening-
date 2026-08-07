@@ -76,13 +76,23 @@ func candidatePortalRegisterHandler(c *gin.Context) {
 		return
 	}
 
+	// Link to an existing recruitment-pipeline candidate record with the same
+	// email, if one exists — a one-time match at registration, not a repeated
+	// heuristic lookup. Leaves linked_candidate_id NULL if no match (most
+	// candidate-portal signups won't have a prior CV screening on file).
+	var linkedCandidateID *int
+	var matchedID int
+	if err := repository.GetDB().QueryRow(ctx, `SELECT id FROM candidates WHERE email = $1`, req.Email).Scan(&matchedID); err == nil {
+		linkedCandidateID = &matchedID
+	}
+
 	// Create candidate user
 	var candidateID int
 	err = repository.GetDB().QueryRow(ctx, `
-		INSERT INTO candidate_users (email, password, full_name, phone, status)
-		VALUES ($1, $2, $3, $4, 'active')
+		INSERT INTO candidate_users (email, password, full_name, phone, status, linked_candidate_id)
+		VALUES ($1, $2, $3, $4, 'active', $5)
 		RETURNING id
-	`, req.Email, string(hashedPassword), req.FullName, req.Phone).Scan(&candidateID)
+	`, req.Email, string(hashedPassword), req.FullName, req.Phone, linkedCandidateID).Scan(&candidateID)
 
 	if err != nil {
 		log.Printf("Failed to create candidate user: %v", err)

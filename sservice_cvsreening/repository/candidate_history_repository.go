@@ -28,6 +28,7 @@ func GetEmployeeCandidateHistory(ctx context.Context, employeeID int) (*models.E
 		CandidateID: *candidateID,
 		Screenings:  []models.ScreeningSummary{},
 		Interviews:  []models.InterviewSummary{},
+		Assessments: []models.AssessmentAttemptSummary{},
 	}
 
 	rows, err := GetDB().Query(ctx, `
@@ -54,6 +55,26 @@ func GetEmployeeCandidateHistory(ctx context.Context, employeeID int) (*models.E
 			var iv models.InterviewSummary
 			if err := rows2.Scan(&iv.ID, &iv.InterviewType, &iv.ScheduledAt, &iv.Status, &iv.Rating, &iv.InterviewerNotes); err == nil {
 				history.Interviews = append(history.Interviews, iv)
+			}
+		}
+	}
+
+	// Assessments: candidates.id -> candidates.email -> candidate_users.linked_candidate_id
+	// -> assessment_attempts.candidate_id. See models.EmployeeCandidateHistory for why
+	// this indirection is necessary instead of a direct join.
+	rows3, err := GetDB().Query(ctx, `
+		SELECT aa.id, aa.assessment_id, aa.status, aa.total_score, aa.passed, aa.submitted_at
+		FROM assessment_attempts aa
+		JOIN candidate_users cu ON aa.candidate_id = cu.id
+		WHERE cu.linked_candidate_id = $1
+		ORDER BY aa.created_at DESC
+	`, *candidateID)
+	if err == nil {
+		defer rows3.Close()
+		for rows3.Next() {
+			var a models.AssessmentAttemptSummary
+			if err := rows3.Scan(&a.ID, &a.AssessmentID, &a.Status, &a.TotalScore, &a.Passed, &a.SubmittedAt); err == nil {
+				history.Assessments = append(history.Assessments, a)
 			}
 		}
 	}

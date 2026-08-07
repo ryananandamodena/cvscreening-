@@ -342,7 +342,7 @@ func getEmployeeCandidateHistoryHandler(c *gin.Context) {
 		return
 	}
 	if history == nil {
-		c.JSON(http.StatusOK, gin.H{"candidateId": nil, "screenings": []interface{}{}, "interviews": []interface{}{}})
+		c.JSON(http.StatusOK, gin.H{"candidateId": nil, "screenings": []interface{}{}, "interviews": []interface{}{}, "assessments": []interface{}{}})
 		return
 	}
 	c.JSON(http.StatusOK, history)
