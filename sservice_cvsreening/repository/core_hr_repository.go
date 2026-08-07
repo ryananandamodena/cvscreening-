@@ -344,12 +344,17 @@ func CreateContract(ctx context.Context, c *models.EmployeeContract) (int, error
 		return 0, fmt.Errorf("database not connected")
 	}
 
+	status := c.Status
+	if status == "" {
+		status = "active"
+	}
+
 	var id int
 	err := GetDB().QueryRow(ctx, `
 		INSERT INTO employee_contracts (employee_id, contract_type, contract_number, start_date, end_date, document_path, status, previous_contract_id, notes)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id
-	`, c.EmployeeID, c.ContractType, c.ContractNumber, c.StartDate, c.EndDate, c.DocumentPath, "active", c.PreviousContractID, c.Notes).Scan(&id)
+	`, c.EmployeeID, c.ContractType, c.ContractNumber, c.StartDate, c.EndDate, c.DocumentPath, status, c.PreviousContractID, c.Notes).Scan(&id)
 
 	return id, err
 }

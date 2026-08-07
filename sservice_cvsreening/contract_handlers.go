@@ -119,6 +119,21 @@ func createOnboardingSessionHandler(c *gin.Context) {
 		}
 	}
 
+	// Auto-create a draft employment contract so HR starts from a shell record
+	// instead of nothing — see cross-module integration research: onboarding had
+	// zero connection to Documents/contracts before this. Deliberately does NOT
+	// submit an approval request: a contract approval flow needs a business
+	// definition (who approves, at what contract type/value) beyond this scope.
+	if _, contractErr := repository.CreateContract(c.Request.Context(), &models.EmployeeContract{
+		EmployeeID:   session.EmployeeID,
+		ContractType: "PKWT",
+		StartDate:    session.StartDate,
+		Status:       "draft",
+		Notes:        "Auto-generated when onboarding started — lengkapi dan finalisasi kontrak ini.",
+	}); contractErr != nil {
+		log.Printf("WARN: onboarding session %d created but draft contract could not be created: %v", id, contractErr)
+	}
+
 	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Onboarding session started successfully"})
 }
 
