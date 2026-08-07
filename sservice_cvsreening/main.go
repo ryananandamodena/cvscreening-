@@ -610,6 +610,7 @@ func main() {
 			financeOnly.PUT("/payroll/periods/:id/status", UpdatePayrollPeriodStatus)
 			financeOnly.GET("/payroll/configurations", GetSalaryConfigurations)
 			financeOnly.POST("/payroll/configurations", UpdateSalaryConfiguration)
+			financeOnly.POST("/payroll/salary-change-requests", RequestSalaryChange)
 			financeOnly.POST("/payroll/generate/:id", GeneratePayroll)
 			financeOnly.GET("/payroll/payslips", GetPayslips)
 			financeOnly.GET("/payroll/grades", GetPayGrades)

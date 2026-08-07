@@ -31,6 +31,12 @@ const PayrollDashboard: React.FC = () => {
   const [grades, setGrades] = useState<PayGrade[]>([]);
   const [editingGrade, setEditingGrade] = useState<PayGrade | null>(null);
 
+  // Salary raise request modal (surfaced for employees with a strong performance rating)
+  const [raiseTarget, setRaiseTarget] = useState<SalaryConfiguration | null>(null);
+  const [raiseAmount, setRaiseAmount] = useState(0);
+  const [raiseReason, setRaiseReason] = useState('');
+  const [submittingRaise, setSubmittingRaise] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -52,6 +58,34 @@ const PayrollDashboard: React.FC = () => {
       setError('Gagal memuat data payroll. Silakan refresh halaman atau coba lagi nanti.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openRaiseModal = (config: SalaryConfiguration) => {
+    setRaiseTarget(config);
+    setRaiseAmount(Math.round(config.baseSalary * 1.1)); // default suggestion: +10%
+    setRaiseReason('');
+  };
+
+  const submitRaiseRequest = async () => {
+    if (!raiseTarget) return;
+    try {
+      setSubmittingRaise(true);
+      await payrollService.requestSalaryChange({
+        employeeId: raiseTarget.employeeId,
+        baseSalary: raiseAmount,
+        transportAllowance: raiseTarget.transportAllowance,
+        mealAllowance: raiseTarget.mealAllowance,
+        positionAllowance: raiseTarget.positionAllowance,
+        reason: raiseReason,
+      });
+      showToast('success', 'Pengajuan kenaikan gaji telah dikirim untuk approval');
+      setRaiseTarget(null);
+    } catch (err: any) {
+      console.error('Failed to submit raise request', err);
+      showToast('error', err?.message || 'Gagal mengajukan kenaikan gaji');
+    } finally {
+      setSubmittingRaise(false);
     }
   };
 
@@ -398,12 +432,22 @@ const PayrollDashboard: React.FC = () => {
                            <Badge tone="neutral">Standard BPJS</Badge>
                         </td>
                         <td className="px-8 py-6">
-                           <button
-                             onClick={() => { setEditingConfig(c); setIsConfigModalOpen(true); }}
-                             className="text-brand-600 dark:text-brand-400 font-black text-xs uppercase tracking-widest hover:text-brand-700 dark:hover:text-brand-300"
-                           >
-                             Modify Data
-                           </button>
+                           <div className="flex items-center gap-3">
+                             <button
+                               onClick={() => { setEditingConfig(c); setIsConfigModalOpen(true); }}
+                               className="text-brand-600 dark:text-brand-400 font-black text-xs uppercase tracking-widest hover:text-brand-700 dark:hover:text-brand-300"
+                             >
+                               Modify Data
+                             </button>
+                             {c.latestPerformanceRating != null && c.latestPerformanceRating >= 4 && (
+                               <button
+                                 onClick={() => openRaiseModal(c)}
+                                 className="text-success-600 dark:text-success-400 font-black text-xs uppercase tracking-widest hover:text-success-700 dark:hover:text-success-300"
+                               >
+                                 Ajukan Kenaikan
+                               </button>
+                             )}
+                           </div>
                         </td>
                       </tr>
                     ))}
@@ -645,6 +689,56 @@ const PayrollDashboard: React.FC = () => {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Salary Raise Request Modal */}
+      {raiseTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-50/80 dark:bg-neutral-900/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+            <div className="px-6 py-5 border-b border-slate-200/80 dark:border-neutral-800/80 flex justify-between items-center bg-white/50 dark:bg-neutral-800/50">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                Ajukan Kenaikan Gaji
+              </h2>
+              <button onClick={() => setRaiseTarget(null)} className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white transition-colors">✕</button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="bg-slate-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-slate-200/60 dark:border-neutral-800">
+                <p className="text-xs text-slate-700 dark:text-slate-300 uppercase tracking-widest font-black mb-1">Employee</p>
+                <p className="text-lg text-slate-900 dark:text-white font-bold">{raiseTarget.employeeName}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  Gaji saat ini: Rp {raiseTarget.baseSalary.toLocaleString()} · Performa: {raiseTarget.latestPerformanceRating?.toFixed(1)}/5
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Gaji Pokok Baru (Rp)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={raiseAmount}
+                  onChange={(e) => setRaiseAmount(Number(e.target.value))}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-900 dark:text-white outline-none focus:border-brand-500 transition-all font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Alasan (opsional)</label>
+                <textarea
+                  value={raiseReason}
+                  onChange={(e) => setRaiseReason(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-900 dark:text-white outline-none focus:border-brand-500 transition-all"
+                  placeholder="Contoh: performa konsisten baik, hasil review tahunan..."
+                />
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Pengajuan ini akan dikirim ke alur approval kenaikan gaji — belum langsung berlaku sampai disetujui.
+              </p>
+              <Button variant="primary" className="w-full" onClick={submitRaiseRequest} disabled={submittingRaise}>
+                {submittingRaise ? 'Mengirim...' : 'Kirim untuk Approval'}
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -124,6 +124,20 @@ export const payrollService = {
     return apiService.post<any>('/payroll/configurations', data);
   },
 
+  // Always routes through the salary_change approval flow, regardless of the
+  // employee's grade — unlike updateSalaryConfig, which only requires approval
+  // for grades flagged requiresApprovalForChange. HR still enters the figures.
+  requestSalaryChange: async (data: {
+    employeeId: number;
+    baseSalary: number;
+    transportAllowance?: number;
+    mealAllowance?: number;
+    positionAllowance?: number;
+    reason?: string;
+  }): Promise<{ message: string }> => {
+    return apiService.post('/payroll/salary-change-requests', data);
+  },
+
   generatePayroll: async (periodId: number): Promise<any> => {
     return apiService.post<any>(`/payroll/generate/${periodId}`, {});
   },

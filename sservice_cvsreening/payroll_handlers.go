@@ -114,6 +114,57 @@ func UpdateSalaryConfiguration(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Salary configuration updated successfully"})
 }
 
+// RequestSalaryChange godoc — explicitly stages a salary change and routes it
+// through the salary_change approval flow, regardless of the employee's grade
+// approval-required flag. Used by the 'Ajukan Kenaikan Gaji' action surfaced
+// next to an employee's performance rating (PayrollDashboard.tsx) — HR still
+// enters the new figures manually; this only avoids applying them immediately.
+func RequestSalaryChange(c *gin.Context) {
+	var payload struct {
+		EmployeeID         int     `json:"employeeId" binding:"required"`
+		BaseSalary         float64 `json:"baseSalary" binding:"required"`
+		TransportAllowance float64 `json:"transportAllowance"`
+		MealAllowance      float64 `json:"mealAllowance"`
+		PositionAllowance  float64 `json:"positionAllowance"`
+		Reason             string  `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	actorEmployeeID, err := repository.GetEmployeeIDByUserID(c.Request.Context(), GetUserIDFromContext(c))
+	if err != nil || actorEmployeeID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Akun Anda belum terhubung dengan data karyawan"})
+		return
+	}
+
+	reqID, err := repository.CreateSalaryChangeRequest(c.Request.Context(), &models.SalaryChangeRequest{
+		EmployeeID:         payload.EmployeeID,
+		BaseSalary:         payload.BaseSalary,
+		TransportAllowance: payload.TransportAllowance,
+		MealAllowance:      payload.MealAllowance,
+		PositionAllowance:  payload.PositionAllowance,
+		RequestedBy:        actorEmployeeID,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	employee, _ := repository.GetEmployeeByID(c.Request.Context(), payload.EmployeeID)
+	summary := fmt.Sprintf("Kenaikan gaji untuk %s", employee.FullName)
+	if payload.Reason != "" {
+		summary += " — " + payload.Reason
+	}
+	if _, err := repository.SubmitApprovalRequest(c.Request.Context(), "salary_change", reqID, actorEmployeeID, summary); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Belum ada alur approval aktif untuk kenaikan gaji: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{"message": "Pengajuan kenaikan gaji telah dikirim untuk approval"})
+}
+
 // GetPayGrades godoc
 func GetPayGrades(c *gin.Context) {
 	grades, err := repository.GetPayGrades(c.Request.Context())
