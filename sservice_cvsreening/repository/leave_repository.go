@@ -145,12 +145,13 @@ func UpdateLeaveRequestStatus(ctx context.Context, reqID int, status string, app
 	// 1. Get the leave request details
 	var empID, leaveTypeID, totalDays int
 	var currentStatus string
+	var startDate, endDate time.Time
 	err = tx.QueryRow(ctx, `
-		SELECT employee_id, leave_type_id, total_days, status
-		FROM leave_requests 
+		SELECT employee_id, leave_type_id, total_days, status, start_date, end_date
+		FROM leave_requests
 		WHERE id = $1 FOR UPDATE
-	`, reqID).Scan(&empID, &leaveTypeID, &totalDays, &currentStatus)
-	
+	`, reqID).Scan(&empID, &leaveTypeID, &totalDays, &currentStatus, &startDate, &endDate)
+
 	if err != nil {
 		return err
 	}
@@ -177,11 +178,37 @@ func UpdateLeaveRequestStatus(ctx context.Context, reqID int, status string, app
 	} else if (status == "rejected" || status == "cancelled") && currentStatus == "approved" {
 		// Reverting an approval
 		_, err = tx.Exec(ctx, `
-			UPDATE leave_balances 
+			UPDATE leave_balances
 			SET used_days = GREATEST(0, used_days - $1), updated_at = CURRENT_TIMESTAMP
 			WHERE employee_id = $2 AND leave_type_id = $3 AND year = $4
 		`, totalDays, empID, leaveTypeID, year)
-		
+
+		if err != nil {
+			return err
+		}
+	}
+
+	// 3b. Keep attendance status in sync with leave approval, so payroll's
+	// attendance-based deduction (see repository.GeneratePayroll) doesn't
+	// treat an approved leave day as an unexcused absence.
+	if status == "approved" && currentStatus == "pending" {
+		_, err = tx.Exec(ctx, `
+			INSERT INTO attendances (employee_id, date, status)
+			SELECT $1, gs::date, 'leave'
+			FROM generate_series($2::date, $3::date, '1 day') AS gs
+			ON CONFLICT (employee_id, date) DO UPDATE SET status = 'leave'
+			WHERE attendances.status IS DISTINCT FROM 'present' AND attendances.status IS DISTINCT FROM 'late'
+		`, empID, startDate, endDate)
+		if err != nil {
+			return err
+		}
+	} else if (status == "rejected" || status == "cancelled") && currentStatus == "approved" {
+		// Only clear days we ourselves marked as 'leave' — never touch a day that
+		// was independently recorded as present/late/absent by other means.
+		_, err = tx.Exec(ctx, `
+			UPDATE attendances SET status = NULL
+			WHERE employee_id = $1 AND date BETWEEN $2 AND $3 AND status = 'leave'
+		`, empID, startDate, endDate)
 		if err != nil {
 			return err
 		}
