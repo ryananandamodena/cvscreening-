@@ -857,7 +857,14 @@ const SuccessionDashboard: React.FC = () => {
                     ) : (
                       careerPaths.map((cp) => (
                         <div key={cp.id} className="p-4 border border-slate-200 dark:border-neutral-800 rounded-xl">
-                          <p className="font-semibold text-slate-900 dark:text-white text-sm">{cp.employeeName || `Employee #${cp.employeeId}`}</p>
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold text-slate-900 dark:text-white text-sm">{cp.employeeName || `Employee #${cp.employeeId}`}</p>
+                            {!!cp.performanceScore && (
+                              <Badge tone={cp.performanceScore >= 4 ? 'success' : cp.performanceScore >= 3 ? 'warning' : 'danger'}>
+                                Performa: {cp.performanceScore.toFixed(1)}
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                             {cp.currentPosition || '—'} → {(cp.targetPositions || []).join(', ') || '—'}
                           </p>

@@ -73,6 +73,9 @@ export interface CareerPath {
   }[];
   mentorId?: number;
   mentorName?: string;
+  // Average completed performance_reviews.overall_rating for this employee — same
+  // subquery Succession candidates use, so the two modules agree on the number.
+  performanceScore?: number;
   createdAt: string;
   updatedAt: string;
 }

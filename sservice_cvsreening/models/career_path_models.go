@@ -33,6 +33,7 @@ type CareerPath struct {
 	CreatedAt       time.Time                `json:"createdAt"`
 	UpdatedAt       time.Time                `json:"updatedAt"`
 	// Joined
-	EmployeeName string `json:"employeeName,omitempty"`
-	MentorName   string `json:"mentorName,omitempty"`
+	EmployeeName     string  `json:"employeeName,omitempty"`
+	MentorName       string  `json:"mentorName,omitempty"`
+	PerformanceScore float64 `json:"performanceScore,omitempty"`
 }

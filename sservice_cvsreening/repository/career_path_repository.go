@@ -13,10 +13,15 @@ func GetCareerPaths(ctx context.Context, employeeID int) ([]models.CareerPath, e
 	if !IsDBConnected() {
 		return []models.CareerPath{}, nil
 	}
+	// performance_score mirrors the same AVG(overall_rating) subquery used by
+	// GetSuccessionCandidates, so career paths and succession planning agree on
+	// how an employee's performance is represented instead of drifting apart.
 	query := `
 		SELECT cp.id, cp.employee_id, cp.current_position, cp.mentor_id,
 			cp.target_positions, cp.timeline, cp.created_at, cp.updated_at,
-			e.full_name, COALESCE(m.full_name, '')
+			e.full_name, COALESCE(m.full_name, ''),
+			COALESCE((SELECT AVG(overall_rating) FROM performance_reviews
+				WHERE employee_id = cp.employee_id AND status = 'completed'), 0)
 		FROM career_paths cp
 		JOIN employees e ON cp.employee_id = e.id
 		LEFT JOIN employees m ON cp.mentor_id = m.id
@@ -40,7 +45,7 @@ func GetCareerPaths(ctx context.Context, employeeID int) ([]models.CareerPath, e
 		var targetsRaw, timelineRaw []byte
 		if err := rows.Scan(&p.ID, &p.EmployeeID, &p.CurrentPosition, &p.MentorID,
 			&targetsRaw, &timelineRaw, &p.CreatedAt, &p.UpdatedAt,
-			&p.EmployeeName, &p.MentorName); err != nil {
+			&p.EmployeeName, &p.MentorName, &p.PerformanceScore); err != nil {
 			continue
 		}
 		_ = json.Unmarshal(targetsRaw, &p.TargetPositions)
@@ -61,13 +66,15 @@ func GetCareerPathByID(ctx context.Context, id int) (*models.CareerPath, error) 
 	err := GetDB().QueryRow(ctx, `
 		SELECT cp.id, cp.employee_id, cp.current_position, cp.mentor_id,
 			cp.target_positions, cp.timeline, cp.created_at, cp.updated_at,
-			e.full_name, COALESCE(m.full_name, '')
+			e.full_name, COALESCE(m.full_name, ''),
+			COALESCE((SELECT AVG(overall_rating) FROM performance_reviews
+				WHERE employee_id = cp.employee_id AND status = 'completed'), 0)
 		FROM career_paths cp
 		JOIN employees e ON cp.employee_id = e.id
 		LEFT JOIN employees m ON cp.mentor_id = m.id
 		WHERE cp.id = $1
 	`, id).Scan(&p.ID, &p.EmployeeID, &p.CurrentPosition, &p.MentorID,
-		&targetsRaw, &timelineRaw, &p.CreatedAt, &p.UpdatedAt, &p.EmployeeName, &p.MentorName)
+		&targetsRaw, &timelineRaw, &p.CreatedAt, &p.UpdatedAt, &p.EmployeeName, &p.MentorName, &p.PerformanceScore)
 	if err != nil {
 		return nil, err
 	}
