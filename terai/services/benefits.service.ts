@@ -114,7 +114,50 @@ export interface BenefitsAnalytics {
   }>;
 }
 
+// BenefitPlan / real backend model — matches models.BenefitPlan in sservice_cvsreening.
+// This is the plan type actually persisted in the database today (benefit_plans table);
+// InsurancePlan/Allowance/FlexibleBenefit/RetirementPlan below describe a richer benefit
+// taxonomy the UI was designed for, but no backend tables/endpoints exist for them yet.
+export interface BenefitPlan {
+  id: number;
+  name: string;
+  category: 'health' | 'life' | 'dental' | 'vision' | 'pension' | 'other';
+  provider: string;
+  description: string;
+  coverageAmount: number;
+  employeeContribution: number;
+  employerContribution: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const benefitsService = {
+  // Benefit Plans (real, database-backed — see BenefitPlan above)
+  getBenefitPlans: async (): Promise<BenefitPlan[]> => {
+    return apiService.get('/benefits/plans');
+  },
+
+  createBenefitPlan: async (data: Partial<BenefitPlan>): Promise<{ id: number }> => {
+    return apiService.post('/benefits/plans', data);
+  },
+
+  updateBenefitPlan: async (id: number, data: Partial<BenefitPlan>): Promise<void> => {
+    return apiService.put(`/benefits/plans/${id}`, data);
+  },
+
+  deleteBenefitPlan: async (id: number): Promise<void> => {
+    return apiService.delete(`/benefits/plans/${id}`);
+  },
+
+  enrollInBenefitPlan: async (employeeId: number, planId: number, startDate?: string): Promise<{ id: number }> => {
+    return apiService.post('/benefits/enroll', { employeeId, planId, startDate });
+  },
+
+  unenrollFromBenefitPlan: async (employeeId: number, planId: number): Promise<void> => {
+    return apiService.post('/benefits/unenroll', { employeeId, planId });
+  },
+
   // Insurance Plans
   getInsurancePlans: async (type?: string): Promise<InsurancePlan[]> => {
     const params = type ? `?type=${type}` : '';

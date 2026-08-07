@@ -58,19 +58,25 @@ const SuccessionDashboard: React.FC = () => {
     return 'danger';
   };
 
-  const getPotentialLabel = (rating: string) => {
-    switch (rating.toLowerCase()) {
+  const getPotentialLabel = (rating: string | undefined) => {
+    switch ((rating || '').toLowerCase()) {
       case 'a': return 'High Potential';
       case 'b': return 'Medium Potential';
       case 'c': return 'Low Potential';
       case 'd': return 'Development Needed';
-      default: return rating;
+      default: return rating || 'Unrated';
     }
   };
 
+  // NOTE: the real backend (models.SuccessionPlan) only returns id/positionId/
+  // incumbentId/priority/notes/positionName/incumbentName/candidates — fields like
+  // department, riskLevel, criticalPosition, timeToFill, currentIncumbent don't exist
+  // server-side yet. Every access below falls back to a safe default instead of
+  // crashing on undefined, until those fields are either added to the backend or
+  // removed from this richer aspirational frontend model.
   const filteredPlans = plans.filter(plan => {
-    const matchesSearch = plan.positionName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         plan.department.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (plan.positionName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (plan.department || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRisk = riskFilter === 'all' || plan.riskLevel === riskFilter;
     return matchesSearch && matchesRisk;
   });
@@ -81,7 +87,7 @@ const SuccessionDashboard: React.FC = () => {
     totalCandidates: candidates.length,
     highPotential: candidates.filter(c => c.potentialRating === 'A').length,
     avgReadiness: candidates.length > 0 ?
-      Math.round(candidates.reduce((sum, c) => sum + c.readinessLevel, 0) / candidates.length * 10) / 10 : 0
+      Math.round(candidates.reduce((sum, c) => sum + (c.readinessLevel || 0), 0) / candidates.length * 10) / 10 : 0
   };
 
   const riskDistribution = {
@@ -469,30 +475,30 @@ const SuccessionDashboard: React.FC = () => {
                                 </div>
                                 <div>
                                   <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{plan.positionName}</h3>
-                                  <p className="text-slate-600 dark:text-slate-400">{plan.department}</p>
+                                  <p className="text-slate-600 dark:text-slate-400">{plan.department || '—'}</p>
                                 </div>
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                                 <div className="bg-slate-50 dark:bg-neutral-800/40 p-3 rounded-lg">
                                   <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Risk Level</p>
-                                  <Badge tone={getRiskTone(plan.riskLevel)}>{plan.riskLevel}</Badge>
+                                  <Badge tone={getRiskTone(plan.riskLevel)}>{plan.riskLevel || '—'}</Badge>
                                 </div>
 
                                 <div className="bg-slate-50 dark:bg-neutral-800/40 p-3 rounded-lg">
                                   <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Candidates</p>
-                                  <p className="text-lg font-bold text-slate-900 dark:text-white">{plan.candidates.length}</p>
+                                  <p className="text-lg font-bold text-slate-900 dark:text-white">{plan.candidates?.length ?? 0}</p>
                                 </div>
 
                                 <div className="bg-slate-50 dark:bg-neutral-800/40 p-3 rounded-lg">
                                   <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Time to Fill</p>
-                                  <p className="text-lg font-bold text-slate-900 dark:text-white">{plan.timeToFill} months</p>
+                                  <p className="text-lg font-bold text-slate-900 dark:text-white">{plan.timeToFill != null ? `${plan.timeToFill} months` : '—'}</p>
                                 </div>
 
                                 <div className="bg-slate-50 dark:bg-neutral-800/40 p-3 rounded-lg">
                                   <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</p>
                                   <Badge tone={plan.status === 'active' ? 'success' : plan.status === 'in_progress' ? 'info' : 'neutral'}>
-                                    {plan.status.replace('_', ' ')}
+                                    {(plan.status || 'unknown').replace('_', ' ')}
                                   </Badge>
                                 </div>
                               </div>

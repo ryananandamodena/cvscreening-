@@ -4,7 +4,7 @@ import {
   Plus, Settings, Download, Upload, Eye, Edit, Trash2,
   CheckCircle2, AlertCircle, Clock, UserPlus, FileText
 } from 'lucide-react';
-import { benefitsService, EmployeeBenefit, BenefitsAnalytics } from '../../services/benefits.service';
+import { benefitsService, EmployeeBenefit, BenefitsAnalytics, BenefitPlan } from '../../services/benefits.service';
 import { useToast } from '../../contexts/ToastContext';
 import { CardSkeleton } from '../../components/SkeletonLoader';
 import Badge from '../../components/ui/Badge';
@@ -19,9 +19,19 @@ const BenefitsDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  // Manage Plans tab state — the one tab in this page backed by real, working CRUD.
+  const [plans, setPlans] = useState<BenefitPlan[]>([]);
+  const [plansLoading, setPlansLoading] = useState(false);
+  const [newPlan, setNewPlan] = useState({ name: '', category: 'health', provider: '', coverageAmount: 0, employeeContribution: 0, employerContribution: 0 });
+  const [savingPlan, setSavingPlan] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'plans') fetchPlans();
+  }, [activeTab]);
 
   const fetchData = async () => {
     try {
@@ -37,6 +47,49 @@ const BenefitsDashboard: React.FC = () => {
       showToast('error', 'Failed to load benefits data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPlans = async () => {
+    try {
+      setPlansLoading(true);
+      setPlans(await benefitsService.getBenefitPlans());
+    } catch (err) {
+      console.error('Failed to fetch benefit plans:', err);
+      showToast('error', 'Failed to load benefit plans');
+    } finally {
+      setPlansLoading(false);
+    }
+  };
+
+  const handleCreatePlan = async () => {
+    if (!newPlan.name.trim()) {
+      showToast('error', 'Nama plan wajib diisi');
+      return;
+    }
+    try {
+      setSavingPlan(true);
+      await benefitsService.createBenefitPlan({ ...newPlan, isActive: true } as Partial<BenefitPlan>);
+      showToast('success', 'Benefit plan berhasil dibuat');
+      setNewPlan({ name: '', category: 'health', provider: '', coverageAmount: 0, employeeContribution: 0, employerContribution: 0 });
+      fetchPlans();
+    } catch (err) {
+      console.error('Failed to create benefit plan:', err);
+      showToast('error', 'Gagal membuat benefit plan');
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
+  const handleDeletePlan = async (plan: BenefitPlan) => {
+    if (!window.confirm(`Nonaktifkan plan "${plan.name}"?`)) return;
+    try {
+      await benefitsService.deleteBenefitPlan(plan.id);
+      showToast('success', 'Benefit plan dinonaktifkan');
+      fetchPlans();
+    } catch (err) {
+      console.error('Failed to delete benefit plan:', err);
+      showToast('error', 'Gagal menonaktifkan benefit plan');
     }
   };
 
@@ -320,6 +373,16 @@ const BenefitsDashboard: React.FC = () => {
                 >
                   Analytics
                 </button>
+                <button
+                  onClick={() => setActiveTab('plans')}
+                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'plans'
+                      ? 'border-brand-600 text-brand-600 dark:text-brand-400'
+                      : 'border-transparent text-slate-700 dark:text-slate-300 hover:text-slate-700'
+                  }`}
+                >
+                  Manage Plans
+                </button>
               </nav>
             </div>
 
@@ -507,6 +570,83 @@ const BenefitsDashboard: React.FC = () => {
                         <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">Integration with charting library needed</p>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'plans' && (
+                <div className="space-y-6">
+                  <div className="p-4 border border-slate-200 dark:border-neutral-800 rounded-xl space-y-3">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Tambah Benefit Plan Baru</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <input
+                        type="text" placeholder="Nama plan" value={newPlan.name}
+                        onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      />
+                      <select
+                        value={newPlan.category}
+                        onChange={(e) => setNewPlan({ ...newPlan, category: e.target.value })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      >
+                        <option value="health">Health</option>
+                        <option value="life">Life</option>
+                        <option value="dental">Dental</option>
+                        <option value="vision">Vision</option>
+                        <option value="pension">Pension</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <input
+                        type="text" placeholder="Provider" value={newPlan.provider}
+                        onChange={(e) => setNewPlan({ ...newPlan, provider: e.target.value })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      />
+                      <input
+                        type="number" placeholder="Coverage amount" value={newPlan.coverageAmount || ''}
+                        onChange={(e) => setNewPlan({ ...newPlan, coverageAmount: Number(e.target.value) })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      />
+                      <input
+                        type="number" placeholder="Kontribusi karyawan" value={newPlan.employeeContribution || ''}
+                        onChange={(e) => setNewPlan({ ...newPlan, employeeContribution: Number(e.target.value) })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      />
+                      <input
+                        type="number" placeholder="Kontribusi perusahaan" value={newPlan.employerContribution || ''}
+                        onChange={(e) => setNewPlan({ ...newPlan, employerContribution: Number(e.target.value) })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      />
+                    </div>
+                    <Button variant="primary" size="sm" onClick={handleCreatePlan} disabled={savingPlan}>
+                      <Plus size={14} className="mr-2" /> {savingPlan ? 'Menyimpan...' : 'Simpan Plan'}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {plansLoading ? (
+                      <div className="text-sm text-slate-600 dark:text-slate-400">Loading...</div>
+                    ) : plans.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-slate-600 dark:text-slate-400">Belum ada benefit plan.</div>
+                    ) : (
+                      plans.map((plan) => (
+                        <div key={plan.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-neutral-800 rounded-xl">
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-white text-sm">{plan.name}</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 capitalize">{plan.category} · {plan.provider || '—'}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">Rp {plan.coverageAmount.toLocaleString()}</span>
+                            <button
+                              onClick={() => handleDeletePlan(plan)}
+                              className="p-2 text-slate-600 dark:text-slate-400 hover:text-danger-600 hover:bg-danger-50 dark:hover:bg-danger-950/40 rounded-lg transition-colors"
+                              title="Nonaktifkan plan"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
