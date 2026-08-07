@@ -4,7 +4,7 @@ import {
   Plus, Settings, Download, Upload, Eye, Edit, Trash2,
   CheckCircle2, AlertCircle, Clock, UserPlus, FileText
 } from 'lucide-react';
-import { benefitsService, EmployeeBenefit, BenefitsAnalytics, BenefitPlan, InsurancePlan, Allowance, FlexibleBenefit, RetirementPlan } from '../../services/benefits.service';
+import { benefitsService, EmployeeBenefit, BenefitsAnalytics, BenefitPlan, InsurancePlan, Allowance, FlexibleBenefit, RetirementPlan, InsuranceContinuation } from '../../services/benefits.service';
 import { useToast } from '../../contexts/ToastContext';
 import { CardSkeleton } from '../../components/SkeletonLoader';
 import SimpleCrudManager from '../../components/SimpleCrudManager';
@@ -27,7 +27,11 @@ const BenefitsDashboard: React.FC = () => {
   const [savingPlan, setSavingPlan] = useState(false);
 
   // Insurance Plans sub-tab state (within "Manage Plans")
-  const [plansSubTab, setPlansSubTab] = useState<'generic' | 'insurance' | 'allowances' | 'flexible' | 'retirement'>('generic');
+  const [plansSubTab, setPlansSubTab] = useState<'generic' | 'insurance' | 'allowances' | 'flexible' | 'retirement' | 'continuation'>('generic');
+  const [continuations, setContinuations] = useState<InsuranceContinuation[]>([]);
+  const [continuationsLoading, setContinuationsLoading] = useState(false);
+  const [newContinuation, setNewContinuation] = useState({ employeeId: 0, terminationDate: '', monthlyPremium: 0 });
+  const [savingContinuation, setSavingContinuation] = useState(false);
   const [insurancePlans, setInsurancePlans] = useState<InsurancePlan[]>([]);
   const [insurancePlansLoading, setInsurancePlansLoading] = useState(false);
   const [newInsurancePlan, setNewInsurancePlan] = useState({ name: '', provider: '', type: 'health', coverageAmount: 0, premiumAmount: 0, premiumFrequency: 'monthly' });
@@ -43,6 +47,61 @@ const BenefitsDashboard: React.FC = () => {
       fetchInsurancePlans();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'plans' && plansSubTab === 'continuation') fetchContinuations();
+  }, [activeTab, plansSubTab]);
+
+  const fetchContinuations = async () => {
+    try {
+      setContinuationsLoading(true);
+      setContinuations(await benefitsService.getInsuranceContinuations());
+    } catch (err) {
+      console.error('Failed to fetch insurance continuations:', err);
+      showToast('error', 'Failed to load insurance continuations');
+    } finally {
+      setContinuationsLoading(false);
+    }
+  };
+
+  const handleInitiateContinuation = async () => {
+    if (!newContinuation.employeeId || !newContinuation.terminationDate) {
+      showToast('error', 'Employee ID dan tanggal terminasi wajib diisi');
+      return;
+    }
+    try {
+      setSavingContinuation(true);
+      await benefitsService.initiateInsuranceContinuation(
+        newContinuation.employeeId, newContinuation.terminationDate, undefined, newContinuation.monthlyPremium
+      );
+      showToast('success', 'Perpanjangan asuransi berhasil diinisiasi');
+      setNewContinuation({ employeeId: 0, terminationDate: '', monthlyPremium: 0 });
+      fetchContinuations();
+    } catch (err) {
+      console.error('Failed to initiate insurance continuation:', err);
+      showToast('error', 'Gagal menginisiasi perpanjangan asuransi');
+    } finally {
+      setSavingContinuation(false);
+    }
+  };
+
+  const handleRecordPayment = async (continuation: InsuranceContinuation) => {
+    const amountStr = window.prompt(`Jumlah pembayaran premi untuk ${continuation.employeeName || 'karyawan ini'} (Rp):`, String(continuation.monthlyPremium));
+    if (!amountStr) return;
+    const amount = Number(amountStr);
+    if (!amount || amount <= 0) {
+      showToast('error', 'Jumlah tidak valid');
+      return;
+    }
+    try {
+      await benefitsService.recordInsuranceContinuationPayment(continuation.id, amount);
+      showToast('success', 'Pembayaran berhasil dicatat');
+      fetchContinuations();
+    } catch (err) {
+      console.error('Failed to record payment:', err);
+      showToast('error', 'Gagal mencatat pembayaran');
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -674,9 +733,73 @@ const BenefitsDashboard: React.FC = () => {
                     >
                       Retirement Plans
                     </button>
+                    <button
+                      onClick={() => setPlansSubTab('continuation')}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        plansSubTab === 'continuation' ? 'bg-brand-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-neutral-800'
+                      }`}
+                    >
+                      Perpanjangan Asuransi
+                    </button>
                   </div>
 
-                  {plansSubTab === 'allowances' ? (
+                  {plansSubTab === 'continuation' ? (
+                    <>
+                      <div className="p-4 border border-slate-200 dark:border-neutral-800 rounded-xl space-y-3">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Inisiasi Perpanjangan Asuransi Mandiri</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Untuk karyawan yang baru resign/terminated dan ingin melanjutkan asuransi secara mandiri (bayar sendiri) selama masa transisi.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <input
+                            type="number" placeholder="Employee ID" value={newContinuation.employeeId || ''}
+                            onChange={(e) => setNewContinuation({ ...newContinuation, employeeId: Number(e.target.value) })}
+                            className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                          />
+                          <input
+                            type="date" placeholder="Tanggal terminasi" value={newContinuation.terminationDate}
+                            onChange={(e) => setNewContinuation({ ...newContinuation, terminationDate: e.target.value })}
+                            className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                          />
+                          <input
+                            type="number" placeholder="Premi bulanan" value={newContinuation.monthlyPremium || ''}
+                            onChange={(e) => setNewContinuation({ ...newContinuation, monthlyPremium: Number(e.target.value) })}
+                            className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                          />
+                        </div>
+                        <Button variant="primary" size="sm" onClick={handleInitiateContinuation} disabled={savingContinuation}>
+                          <Plus size={14} className="mr-2" /> {savingContinuation ? 'Menyimpan...' : 'Inisiasi'}
+                        </Button>
+                      </div>
+
+                      <div className="space-y-3 mt-4">
+                        {continuationsLoading ? (
+                          <div className="text-sm text-slate-600 dark:text-slate-400">Loading...</div>
+                        ) : continuations.length === 0 ? (
+                          <div className="text-center py-8 text-sm text-slate-600 dark:text-slate-400">Belum ada perpanjangan asuransi.</div>
+                        ) : (
+                          continuations.map((c) => (
+                            <div key={c.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-neutral-800 rounded-xl">
+                              <div>
+                                <p className="font-semibold text-slate-900 dark:text-white text-sm">{c.employeeName || `Employee #${c.employeeId}`}</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">
+                                  Berakhir {new Date(c.continuationEndDate).toLocaleDateString()} · Terakhir bayar {c.lastPaymentDate ? new Date(c.lastPaymentDate).toLocaleDateString() : '—'}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <Badge tone={c.status === 'active' ? 'success' : c.status === 'expired' ? 'neutral' : 'danger'}>{c.status}</Badge>
+                                <span className="text-sm font-bold text-slate-900 dark:text-white">Rp {c.monthlyPremium.toLocaleString()}/bln</span>
+                                <button
+                                  onClick={() => handleRecordPayment(c)}
+                                  className="px-3 py-1.5 text-xs font-semibold text-brand-700 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/40 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/60 transition-colors"
+                                >
+                                  Catat Pembayaran
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  ) : plansSubTab === 'allowances' ? (
                     <SimpleCrudManager<Allowance>
                       title="Allowance"
                       active={activeTab === 'plans' && plansSubTab === 'allowances'}

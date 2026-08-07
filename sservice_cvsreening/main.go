@@ -116,6 +116,9 @@ func main() {
 		if err := repository.RunSeed("schema_flexible_retirement.sql"); err != nil {
 			log.Printf("Failed to run flexible/retirement schema migration: %v", err)
 		}
+		if err := repository.RunSeed("schema_insurance_continuation.sql"); err != nil {
+			log.Printf("Failed to run insurance continuation schema migration: %v", err)
+		}
 
 		// Create test users for development/testing only — never in production,
 		// where this would seed known-password admin/test accounts on a public server.
@@ -494,6 +497,11 @@ func main() {
 		protected.POST("/benefits/retirement", createRetirementPlanHandler)
 		protected.PUT("/benefits/retirement/:id", updateRetirementPlanHandler)
 		protected.POST("/benefits/retirement/enroll", enrollRetirementPlanHandler)
+
+		// Insurance Continuation (Indonesian-context equivalent of "COBRA")
+		protected.POST("/benefits/insurance-continuation/initiate", initiateInsuranceContinuationHandler)
+		protected.GET("/benefits/insurance-continuation", getInsuranceContinuationsHandler)
+		protected.POST("/benefits/insurance-continuation/:id/payment", recordInsuranceContinuationPaymentHandler)
 
 		// Compensation
 		protected.GET("/compensation/bands", getCompensationBandsHandler)

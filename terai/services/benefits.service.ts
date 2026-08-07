@@ -150,6 +150,20 @@ export interface BenefitPlan {
   updatedAt: string;
 }
 
+export interface InsuranceContinuation {
+  id: number;
+  employeeId: number;
+  originalEnrollmentId?: number;
+  terminationDate: string;
+  continuationEndDate: string;
+  monthlyPremium: number;
+  status: 'active' | 'expired' | 'cancelled';
+  lastPaymentDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  employeeName?: string;
+}
+
 export const benefitsService = {
   // Benefit Plans (real, database-backed — see BenefitPlan above)
   getBenefitPlans: async (): Promise<BenefitPlan[]> => {
@@ -337,16 +351,25 @@ export const benefitsService = {
     return apiService.get('/benefits/open-enrollment/status');
   },
 
-  // COBRA Administration
-  initiateCOBRA: async (employeeId: number, terminationDate: string): Promise<any> => {
-    return apiService.post('/benefits/cobra/initiate', {
+  // Insurance Continuation — Indonesian-context equivalent of "COBRA" (a US law
+  // concept that doesn't apply here; employees typically rely on BPJS/private
+  // insurance self-continuation after leaving employer-sponsored coverage).
+  initiateInsuranceContinuation: async (employeeId: number, terminationDate: string, originalEnrollmentId?: number, monthlyPremium?: number): Promise<{ id: number }> => {
+    return apiService.post('/benefits/insurance-continuation/initiate', {
       employeeId,
-      terminationDate
+      terminationDate,
+      originalEnrollmentId,
+      monthlyPremium
     });
   },
 
-  processCOBRAPayment: async (cobraId: number, paymentData: any): Promise<void> => {
-    return apiService.post(`/benefits/cobra/${cobraId}/payment`, paymentData);
+  getInsuranceContinuations: async (employeeId?: number): Promise<InsuranceContinuation[]> => {
+    const params = employeeId ? `?employeeId=${employeeId}` : '';
+    return apiService.get(`/benefits/insurance-continuation${params}`);
+  },
+
+  recordInsuranceContinuationPayment: async (continuationId: number, amount: number, paymentDate?: string): Promise<{ id: number }> => {
+    return apiService.post(`/benefits/insurance-continuation/${continuationId}/payment`, { amount, paymentDate });
   },
 
   // Analytics & Reporting
