@@ -73,6 +73,55 @@ func GetPolicies(ctx context.Context, category, status string, limit int) ([]Com
 	return policies, total, nil
 }
 
+// CreatePolicy inserts a new company policy and returns its id.
+func CreatePolicy(ctx context.Context, p *CompanyPolicy, content string, createdBy *int) (int, error) {
+	if !IsDBConnected() {
+		return 0, fmt.Errorf("database not connected")
+	}
+	var id int
+	err := GetDB().QueryRow(ctx, `
+		INSERT INTO company_policies (title, description, category, version, effective_date,
+			expiry_date, status, content, requires_acknowledgment, created_by)
+		VALUES ($1, $2, COALESCE($3, 'general'), COALESCE($4, '1.0'), COALESCE($5, CURRENT_DATE),
+			$6, COALESCE($7, 'draft'), $8, $9, $10)
+		RETURNING id
+	`, p.Title, p.Description, p.Category, p.Version, p.EffectiveDate,
+		p.ExpiryDate, p.Status, content, p.RequiresAcknowledgment, createdBy).Scan(&id)
+	return id, err
+}
+
+// UpdatePolicy updates an existing company policy by id.
+func UpdatePolicy(ctx context.Context, p *CompanyPolicy, content string) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	_, err := GetDB().Exec(ctx, `
+		UPDATE company_policies SET
+			title = $1, description = $2, category = $3, version = $4, effective_date = $5,
+			expiry_date = $6, status = $7, content = COALESCE($8, content),
+			requires_acknowledgment = $9, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $10
+	`, p.Title, p.Description, p.Category, p.Version, p.EffectiveDate,
+		p.ExpiryDate, p.Status, nullIfEmptyStr(content), p.RequiresAcknowledgment, p.ID)
+	return err
+}
+
+// DeletePolicy removes a company policy by id.
+func DeletePolicy(ctx context.Context, id int) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	_, err := GetDB().Exec(ctx, `DELETE FROM company_policies WHERE id = $1`, id)
+	return err
+}
+
+func nullIfEmptyStr(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
 // EmploymentContractSummary is a lightweight contract listing for the Documents dashboard
 type EmploymentContractSummary struct {
 	ID           int     `json:"id"`

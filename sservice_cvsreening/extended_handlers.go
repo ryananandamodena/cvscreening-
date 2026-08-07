@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -370,6 +371,96 @@ func getEmployeeBenefitsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, benefits)
 }
 
+// createBenefitPlanHandler creates a new benefit plan
+func createBenefitPlanHandler(c *gin.Context) {
+	var plan models.BenefitPlan
+	if err := c.ShouldBindJSON(&plan); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+	id, err := repository.CreateBenefitPlan(c.Request.Context(), &plan)
+	if err != nil {
+		log.Printf("Failed to create benefit plan: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to create benefit plan", err.Error())
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Benefit plan created successfully"})
+}
+
+// updateBenefitPlanHandler updates an existing benefit plan
+func updateBenefitPlanHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid benefit plan ID", nil)
+		return
+	}
+	var plan models.BenefitPlan
+	if err := c.ShouldBindJSON(&plan); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+	plan.ID = id
+	if err := repository.UpdateBenefitPlan(c.Request.Context(), &plan); err != nil {
+		log.Printf("Failed to update benefit plan: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to update benefit plan", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Benefit plan updated successfully"})
+}
+
+// deleteBenefitPlanHandler soft-deletes (deactivates) a benefit plan
+func deleteBenefitPlanHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid benefit plan ID", nil)
+		return
+	}
+	if err := repository.DeleteBenefitPlan(c.Request.Context(), id); err != nil {
+		log.Printf("Failed to delete benefit plan: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to delete benefit plan", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Benefit plan deactivated successfully"})
+}
+
+// enrollEmployeeBenefitHandler enrolls an employee into a benefit plan
+func enrollEmployeeBenefitHandler(c *gin.Context) {
+	var payload struct {
+		EmployeeID int    `json:"employeeId" binding:"required"`
+		PlanID     int    `json:"planId" binding:"required"`
+		StartDate  string `json:"startDate"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+	id, err := repository.EnrollEmployeeBenefit(c.Request.Context(), payload.EmployeeID, payload.PlanID, payload.StartDate)
+	if err != nil {
+		log.Printf("Failed to enroll employee benefit: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to enroll employee in benefit plan", err.Error())
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Employee enrolled successfully"})
+}
+
+// unenrollEmployeeBenefitHandler marks an employee's benefit enrollment inactive
+func unenrollEmployeeBenefitHandler(c *gin.Context) {
+	var payload struct {
+		EmployeeID int `json:"employeeId" binding:"required"`
+		PlanID     int `json:"planId" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+	if err := repository.UnenrollEmployeeBenefit(c.Request.Context(), payload.EmployeeID, payload.PlanID); err != nil {
+		log.Printf("Failed to unenroll employee benefit: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to unenroll employee from benefit plan", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Employee unenrolled successfully"})
+}
+
 // ==================== SUCCESSION HANDLERS ====================
 
 // getSuccessionPlansHandler retrieves succession plans
@@ -380,6 +471,89 @@ func getSuccessionPlansHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, plans)
+}
+
+// createSuccessionPlanHandler creates a new succession plan
+func createSuccessionPlanHandler(c *gin.Context) {
+	var plan models.SuccessionPlan
+	if err := c.ShouldBindJSON(&plan); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+	id, err := repository.CreateSuccessionPlan(c.Request.Context(), &plan)
+	if err != nil {
+		log.Printf("Failed to create succession plan: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to create succession plan", err.Error())
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Succession plan created successfully"})
+}
+
+// updateSuccessionPlanHandler updates an existing succession plan
+func updateSuccessionPlanHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid succession plan ID", nil)
+		return
+	}
+	var plan models.SuccessionPlan
+	if err := c.ShouldBindJSON(&plan); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+	plan.ID = id
+	if err := repository.UpdateSuccessionPlan(c.Request.Context(), &plan); err != nil {
+		log.Printf("Failed to update succession plan: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to update succession plan", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Succession plan updated successfully"})
+}
+
+// deleteSuccessionPlanHandler deletes a succession plan
+func deleteSuccessionPlanHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid succession plan ID", nil)
+		return
+	}
+	if err := repository.DeleteSuccessionPlan(c.Request.Context(), id); err != nil {
+		log.Printf("Failed to delete succession plan: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to delete succession plan", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Succession plan deleted successfully"})
+}
+
+// addSuccessionCandidateHandler adds a candidate to a succession plan
+func addSuccessionCandidateHandler(c *gin.Context) {
+	var candidate models.SuccessionCandidate
+	if err := c.ShouldBindJSON(&candidate); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+	id, err := repository.AddSuccessionCandidate(c.Request.Context(), &candidate)
+	if err != nil {
+		log.Printf("Failed to add succession candidate: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to add succession candidate", err.Error())
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Succession candidate added successfully"})
+}
+
+// removeSuccessionCandidateHandler removes a candidate from a succession plan
+func removeSuccessionCandidateHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid succession candidate ID", nil)
+		return
+	}
+	if err := repository.RemoveSuccessionCandidate(c.Request.Context(), id); err != nil {
+		log.Printf("Failed to remove succession candidate: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to remove succession candidate", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Succession candidate removed successfully"})
 }
 
 // ==================== COMPENSATION HANDLERS ====================

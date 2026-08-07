@@ -479,6 +479,86 @@ func GetEmployeeBenefits(ctx context.Context, employeeID int) ([]models.Employee
 	return benefits, nil
 }
 
+// CreateBenefitPlan inserts a new benefit plan and returns its id.
+func CreateBenefitPlan(ctx context.Context, p *models.BenefitPlan) (int, error) {
+	if !IsDBConnected() {
+		return 0, fmt.Errorf("database not connected")
+	}
+	var id int
+	err := GetDB().QueryRow(ctx, `
+		INSERT INTO benefit_plans (name, category, provider, description, coverage_amount,
+			employee_contribution, employer_contribution, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, true))
+		RETURNING id
+	`, p.Name, p.Category, p.Provider, p.Description, p.CoverageAmount,
+		p.EmployeeContribution, p.EmployerContribution, p.IsActive).Scan(&id)
+	return id, err
+}
+
+// UpdateBenefitPlan updates an existing benefit plan by id.
+func UpdateBenefitPlan(ctx context.Context, p *models.BenefitPlan) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	_, err := GetDB().Exec(ctx, `
+		UPDATE benefit_plans SET
+			name = $1, category = $2, provider = $3, description = $4,
+			coverage_amount = $5, employee_contribution = $6, employer_contribution = $7,
+			is_active = $8, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $9
+	`, p.Name, p.Category, p.Provider, p.Description, p.CoverageAmount,
+		p.EmployeeContribution, p.EmployerContribution, p.IsActive, p.ID)
+	return err
+}
+
+// DeleteBenefitPlan soft-deletes a benefit plan by marking it inactive — existing
+// enrollments (employee_benefits rows) are preserved for history, not cascaded away.
+func DeleteBenefitPlan(ctx context.Context, id int) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	_, err := GetDB().Exec(ctx, `
+		UPDATE benefit_plans SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1
+	`, id)
+	return err
+}
+
+// EnrollEmployeeBenefit enrolls an employee into a benefit plan (or reactivates an
+// existing inactive enrollment for the same plan).
+func EnrollEmployeeBenefit(ctx context.Context, employeeID, planID int, startDate string) (int, error) {
+	if !IsDBConnected() {
+		return 0, fmt.Errorf("database not connected")
+	}
+	var id int
+	err := GetDB().QueryRow(ctx, `
+		INSERT INTO employee_benefits (employee_id, plan_id, start_date, status)
+		VALUES ($1, $2, COALESCE($3, CURRENT_DATE), 'active')
+		ON CONFLICT (employee_id, plan_id) DO UPDATE SET
+			status = 'active', start_date = EXCLUDED.start_date, end_date = NULL
+		RETURNING id
+	`, employeeID, planID, nullIfEmpty(startDate)).Scan(&id)
+	return id, err
+}
+
+// UnenrollEmployeeBenefit marks an employee's enrollment in a plan as inactive.
+func UnenrollEmployeeBenefit(ctx context.Context, employeeID, planID int) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	_, err := GetDB().Exec(ctx, `
+		UPDATE employee_benefits SET status = 'inactive', end_date = CURRENT_DATE
+		WHERE employee_id = $1 AND plan_id = $2
+	`, employeeID, planID)
+	return err
+}
+
+func nullIfEmpty(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
 // ==================== SUCCESSION REPOSITORY ====================
 
 // GetSuccessionPlans retrieves all succession plans
@@ -545,6 +625,66 @@ func GetSuccessionCandidates(ctx context.Context, planID int) ([]models.Successi
 		}
 	}
 	return candidates, nil
+}
+
+// CreateSuccessionPlan creates a new succession plan for a position and returns its id.
+func CreateSuccessionPlan(ctx context.Context, sp *models.SuccessionPlan) (int, error) {
+	if !IsDBConnected() {
+		return 0, fmt.Errorf("database not connected")
+	}
+	var id int
+	err := GetDB().QueryRow(ctx, `
+		INSERT INTO succession_plans (position_id, incumbent_id, priority, notes)
+		VALUES ($1, $2, COALESCE($3, 'medium'), $4)
+		RETURNING id
+	`, sp.PositionID, sp.IncumbentID, sp.Priority, sp.Notes).Scan(&id)
+	return id, err
+}
+
+// UpdateSuccessionPlan updates an existing succession plan by id.
+func UpdateSuccessionPlan(ctx context.Context, sp *models.SuccessionPlan) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	_, err := GetDB().Exec(ctx, `
+		UPDATE succession_plans SET
+			position_id = $1, incumbent_id = $2, priority = $3, notes = $4, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $5
+	`, sp.PositionID, sp.IncumbentID, sp.Priority, sp.Notes, sp.ID)
+	return err
+}
+
+// DeleteSuccessionPlan removes a succession plan (and its candidates, via ON DELETE CASCADE).
+func DeleteSuccessionPlan(ctx context.Context, id int) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	_, err := GetDB().Exec(ctx, `DELETE FROM succession_plans WHERE id = $1`, id)
+	return err
+}
+
+// AddSuccessionCandidate adds a candidate to a succession plan and returns the new row's id.
+func AddSuccessionCandidate(ctx context.Context, sc *models.SuccessionCandidate) (int, error) {
+	if !IsDBConnected() {
+		return 0, fmt.Errorf("database not connected")
+	}
+	var id int
+	err := GetDB().QueryRow(ctx, `
+		INSERT INTO succession_candidates (plan_id, employee_id, readiness, notes)
+		VALUES ($1, $2, COALESCE($3, '2_5_years'), $4)
+		ON CONFLICT (plan_id, employee_id) DO UPDATE SET readiness = EXCLUDED.readiness, notes = EXCLUDED.notes
+		RETURNING id
+	`, sc.PlanID, sc.EmployeeID, sc.Readiness, sc.Notes).Scan(&id)
+	return id, err
+}
+
+// RemoveSuccessionCandidate removes a candidate from a succession plan.
+func RemoveSuccessionCandidate(ctx context.Context, id int) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	_, err := GetDB().Exec(ctx, `DELETE FROM succession_candidates WHERE id = $1`, id)
+	return err
 }
 
 // ==================== DOCUMENT REPOSITORY ====================

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -33,6 +34,69 @@ func getPoliciesHandler(c *gin.Context) {
 		totalPages = 1
 	}
 	c.JSON(http.StatusOK, gin.H{"data": policies, "total": total, "page": page, "totalPages": totalPages})
+}
+
+// policyRequest is the write-request shape for policy create/update — separates the
+// optional `content` field (policy body text) from the CompanyPolicy read model.
+type policyRequest struct {
+	repository.CompanyPolicy
+	Content string `json:"content"`
+}
+
+// createPolicyHandler creates a new company policy
+func createPolicyHandler(c *gin.Context) {
+	var req policyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+	var createdBy *int
+	if uid := GetUserIDFromContext(c); uid > 0 {
+		createdBy = &uid
+	}
+	id, err := repository.CreatePolicy(c.Request.Context(), &req.CompanyPolicy, req.Content, createdBy)
+	if err != nil {
+		log.Printf("Failed to create policy: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to create policy", err.Error())
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Policy created successfully"})
+}
+
+// updatePolicyHandler updates an existing company policy
+func updatePolicyHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid policy ID", nil)
+		return
+	}
+	var req policyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+	req.CompanyPolicy.ID = id
+	if err := repository.UpdatePolicy(c.Request.Context(), &req.CompanyPolicy, req.Content); err != nil {
+		log.Printf("Failed to update policy: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to update policy", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Policy updated successfully"})
+}
+
+// deletePolicyHandler deletes a company policy
+func deletePolicyHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid policy ID", nil)
+		return
+	}
+	if err := repository.DeletePolicy(c.Request.Context(), id); err != nil {
+		log.Printf("Failed to delete policy: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to delete policy", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Policy deleted successfully"})
 }
 
 // getDocumentContractsHandler lists employment contracts for the Documents dashboard

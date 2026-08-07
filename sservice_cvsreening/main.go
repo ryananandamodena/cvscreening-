@@ -446,7 +446,12 @@ func main() {
 
 		// Benefits
 		protected.GET("/benefits/plans", getBenefitPlansHandler)
+		protected.POST("/benefits/plans", createBenefitPlanHandler)
+		protected.PUT("/benefits/plans/:id", updateBenefitPlanHandler)
+		protected.DELETE("/benefits/plans/:id", deleteBenefitPlanHandler)
 		protected.GET("/benefits/employee", getEmployeeBenefitsHandler)
+		protected.POST("/benefits/enroll", enrollEmployeeBenefitHandler)
+		protected.POST("/benefits/unenroll", unenrollEmployeeBenefitHandler)
 		protected.GET("/benefits/analytics", getBenefitsAnalyticsHandler)
 
 		// Compensation
@@ -458,6 +463,11 @@ func main() {
 
 		// Succession Planning
 		protected.GET("/succession/plans", getSuccessionPlansHandler)
+		protected.POST("/succession/plans", createSuccessionPlanHandler)
+		protected.PUT("/succession/plans/:id", updateSuccessionPlanHandler)
+		protected.DELETE("/succession/plans/:id", deleteSuccessionPlanHandler)
+		protected.POST("/succession/candidates", addSuccessionCandidateHandler)
+		protected.DELETE("/succession/candidates/:id", removeSuccessionCandidateHandler)
 		protected.GET("/succession/candidates", getSuccessionCandidatesHandler)
 		protected.GET("/succession/nine-box", getNineBoxGridHandler)
 
@@ -465,6 +475,9 @@ func main() {
 		protected.GET("/documents", getDocumentsHandler)
 		protected.POST("/documents", createDocumentHandler)
 		protected.GET("/documents/policies", getPoliciesHandler)
+		protected.POST("/documents/policies", createPolicyHandler)
+		protected.PUT("/documents/policies/:id", updatePolicyHandler)
+		protected.DELETE("/documents/policies/:id", deletePolicyHandler)
 		protected.GET("/documents/contracts", getDocumentContractsHandler)
 		protected.GET("/documents/compliance", getComplianceRecordsHandler)
 
