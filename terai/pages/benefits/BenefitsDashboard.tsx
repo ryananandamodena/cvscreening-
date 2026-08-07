@@ -4,7 +4,7 @@ import {
   Plus, Settings, Download, Upload, Eye, Edit, Trash2,
   CheckCircle2, AlertCircle, Clock, UserPlus, FileText
 } from 'lucide-react';
-import { benefitsService, EmployeeBenefit, BenefitsAnalytics, BenefitPlan } from '../../services/benefits.service';
+import { benefitsService, EmployeeBenefit, BenefitsAnalytics, BenefitPlan, InsurancePlan } from '../../services/benefits.service';
 import { useToast } from '../../contexts/ToastContext';
 import { CardSkeleton } from '../../components/SkeletonLoader';
 import Badge from '../../components/ui/Badge';
@@ -25,12 +25,22 @@ const BenefitsDashboard: React.FC = () => {
   const [newPlan, setNewPlan] = useState({ name: '', category: 'health', provider: '', coverageAmount: 0, employeeContribution: 0, employerContribution: 0 });
   const [savingPlan, setSavingPlan] = useState(false);
 
+  // Insurance Plans sub-tab state (within "Manage Plans")
+  const [plansSubTab, setPlansSubTab] = useState<'generic' | 'insurance'>('generic');
+  const [insurancePlans, setInsurancePlans] = useState<InsurancePlan[]>([]);
+  const [insurancePlansLoading, setInsurancePlansLoading] = useState(false);
+  const [newInsurancePlan, setNewInsurancePlan] = useState({ name: '', provider: '', type: 'health', coverageAmount: 0, premiumAmount: 0, premiumFrequency: 'monthly' });
+  const [savingInsurancePlan, setSavingInsurancePlan] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'plans') fetchPlans();
+    if (activeTab === 'plans') {
+      fetchPlans();
+      fetchInsurancePlans();
+    }
   }, [activeTab]);
 
   const fetchData = async () => {
@@ -90,6 +100,49 @@ const BenefitsDashboard: React.FC = () => {
     } catch (err) {
       console.error('Failed to delete benefit plan:', err);
       showToast('error', 'Gagal menonaktifkan benefit plan');
+    }
+  };
+
+  const fetchInsurancePlans = async () => {
+    try {
+      setInsurancePlansLoading(true);
+      setInsurancePlans(await benefitsService.getInsurancePlans());
+    } catch (err) {
+      console.error('Failed to fetch insurance plans:', err);
+      showToast('error', 'Failed to load insurance plans');
+    } finally {
+      setInsurancePlansLoading(false);
+    }
+  };
+
+  const handleCreateInsurancePlan = async () => {
+    if (!newInsurancePlan.name.trim()) {
+      showToast('error', 'Nama plan wajib diisi');
+      return;
+    }
+    try {
+      setSavingInsurancePlan(true);
+      await benefitsService.createInsurancePlan({ ...newInsurancePlan, active: true } as Partial<InsurancePlan>);
+      showToast('success', 'Insurance plan berhasil dibuat');
+      setNewInsurancePlan({ name: '', provider: '', type: 'health', coverageAmount: 0, premiumAmount: 0, premiumFrequency: 'monthly' });
+      fetchInsurancePlans();
+    } catch (err) {
+      console.error('Failed to create insurance plan:', err);
+      showToast('error', 'Gagal membuat insurance plan');
+    } finally {
+      setSavingInsurancePlan(false);
+    }
+  };
+
+  const handleDeleteInsurancePlan = async (plan: InsurancePlan) => {
+    if (!window.confirm(`Nonaktifkan insurance plan "${plan.name}"?`)) return;
+    try {
+      await benefitsService.deleteInsurancePlan(plan.id);
+      showToast('success', 'Insurance plan dinonaktifkan');
+      fetchInsurancePlans();
+    } catch (err) {
+      console.error('Failed to delete insurance plan:', err);
+      showToast('error', 'Gagal menonaktifkan insurance plan');
     }
   };
 
@@ -256,7 +309,10 @@ const BenefitsDashboard: React.FC = () => {
           <div className="bg-white dark:bg-[#000000] rounded-2xl border border-slate-200/60 dark:border-neutral-800 shadow-sm p-6">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quick Actions</h2>
             <div className="space-y-3">
-              <button className="w-full p-4 border border-slate-200 dark:border-neutral-800 rounded-xl hover:bg-slate-50 dark:hover:bg-neutral-800/60 transition-colors text-left group">
+              <button
+                onClick={() => { setActiveTab('plans'); setPlansSubTab('insurance'); }}
+                className="w-full p-4 border border-slate-200 dark:border-neutral-800 rounded-xl hover:bg-slate-50 dark:hover:bg-neutral-800/60 transition-colors text-left group"
+              >
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 bg-info-100 dark:bg-info-900/40 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                     <Shield className="w-5 h-5 text-info-600" />
@@ -576,6 +632,104 @@ const BenefitsDashboard: React.FC = () => {
 
               {activeTab === 'plans' && (
                 <div className="space-y-6">
+                  <div className="flex gap-2 border-b border-slate-200 dark:border-neutral-800 pb-3">
+                    <button
+                      onClick={() => setPlansSubTab('generic')}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        plansSubTab === 'generic' ? 'bg-brand-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-neutral-800'
+                      }`}
+                    >
+                      Benefit Plans (BPJS, dll.)
+                    </button>
+                    <button
+                      onClick={() => setPlansSubTab('insurance')}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        plansSubTab === 'insurance' ? 'bg-brand-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-neutral-800'
+                      }`}
+                    >
+                      Insurance Plans
+                    </button>
+                  </div>
+
+                  {plansSubTab === 'insurance' ? (
+                    <>
+                      <div className="p-4 border border-slate-200 dark:border-neutral-800 rounded-xl space-y-3">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Tambah Insurance Plan Baru</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <input
+                            type="text" placeholder="Nama plan" value={newInsurancePlan.name}
+                            onChange={(e) => setNewInsurancePlan({ ...newInsurancePlan, name: e.target.value })}
+                            className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                          />
+                          <select
+                            value={newInsurancePlan.type}
+                            onChange={(e) => setNewInsurancePlan({ ...newInsurancePlan, type: e.target.value })}
+                            className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                          >
+                            <option value="health">Health</option>
+                            <option value="dental">Dental</option>
+                            <option value="life">Life</option>
+                            <option value="disability">Disability</option>
+                          </select>
+                          <input
+                            type="text" placeholder="Provider" value={newInsurancePlan.provider}
+                            onChange={(e) => setNewInsurancePlan({ ...newInsurancePlan, provider: e.target.value })}
+                            className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                          />
+                          <input
+                            type="number" placeholder="Coverage amount" value={newInsurancePlan.coverageAmount || ''}
+                            onChange={(e) => setNewInsurancePlan({ ...newInsurancePlan, coverageAmount: Number(e.target.value) })}
+                            className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                          />
+                          <input
+                            type="number" placeholder="Premi" value={newInsurancePlan.premiumAmount || ''}
+                            onChange={(e) => setNewInsurancePlan({ ...newInsurancePlan, premiumAmount: Number(e.target.value) })}
+                            className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                          />
+                          <select
+                            value={newInsurancePlan.premiumFrequency}
+                            onChange={(e) => setNewInsurancePlan({ ...newInsurancePlan, premiumFrequency: e.target.value })}
+                            className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                          >
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="annually">Annually</option>
+                          </select>
+                        </div>
+                        <Button variant="primary" size="sm" onClick={handleCreateInsurancePlan} disabled={savingInsurancePlan}>
+                          <Plus size={14} className="mr-2" /> {savingInsurancePlan ? 'Menyimpan...' : 'Simpan Plan'}
+                        </Button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {insurancePlansLoading ? (
+                          <div className="text-sm text-slate-600 dark:text-slate-400">Loading...</div>
+                        ) : insurancePlans.length === 0 ? (
+                          <div className="text-center py-8 text-sm text-slate-600 dark:text-slate-400">Belum ada insurance plan.</div>
+                        ) : (
+                          insurancePlans.map((plan) => (
+                            <div key={plan.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-neutral-800 rounded-xl">
+                              <div>
+                                <p className="font-semibold text-slate-900 dark:text-white text-sm">{plan.name}</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400 capitalize">{plan.type} · {plan.provider || '—'} · Premi {plan.premiumFrequency}</p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm font-bold text-slate-900 dark:text-white">Rp {plan.coverageAmount.toLocaleString()}</span>
+                                <button
+                                  onClick={() => handleDeleteInsurancePlan(plan)}
+                                  className="p-2 text-slate-600 dark:text-slate-400 hover:text-danger-600 hover:bg-danger-50 dark:hover:bg-danger-950/40 rounded-lg transition-colors"
+                                  title="Nonaktifkan plan"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                  <>
                   <div className="p-4 border border-slate-200 dark:border-neutral-800 rounded-xl space-y-3">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Tambah Benefit Plan Baru</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -648,6 +802,8 @@ const BenefitsDashboard: React.FC = () => {
                       ))
                     )}
                   </div>
+                  </>
+                  )}
                 </div>
               )}
             </div>

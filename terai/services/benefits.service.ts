@@ -15,6 +15,24 @@ export interface InsurancePlan {
   updatedAt: string;
 }
 
+// InsuranceEnrollment mirrors models.EmployeeInsuranceEnrollment (Go) — the real
+// shape returned by /benefits/insurance-enrollments. Distinct from EmployeeBenefit
+// below, which describes the generic benefit_plans enrollment model.
+export interface InsuranceEnrollment {
+  id: number;
+  employeeId: number;
+  planId: number;
+  effectiveDate: string;
+  endDate?: string;
+  status: 'active' | 'pending' | 'inactive' | 'terminated';
+  terminationReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  employeeName?: string;
+  planName?: string;
+  planType?: string;
+}
+
 export interface EmployeeBenefit {
   id: number;
   employeeId: number;
@@ -175,6 +193,25 @@ export const benefitsService = {
   deleteInsurancePlan: async (id: number): Promise<void> => {
     return apiService.delete(`/benefits/insurance-plans/${id}`);
   },
+
+  // Insurance enrollment — distinct from enrollEmployeeBenefit/enrollInBenefitPlan
+  // below, which both post to the shared /benefits/enroll route for the generic
+  // benefit_plans model. Insurance plans have their own enroll endpoint per plan.
+  enrollInInsurancePlan: async (planId: number, employeeId: number, effectiveDate?: string): Promise<{ id: number }> => {
+    return apiService.post(`/benefits/insurance-plans/${planId}/enroll`, { employeeId, effectiveDate });
+  },
+
+  getEmployeeInsuranceEnrollments: async (employeeId?: number): Promise<InsuranceEnrollment[]> => {
+    const params = employeeId ? `?employeeId=${employeeId}` : '';
+    return apiService.get(`/benefits/insurance-enrollments${params}`);
+  },
+
+  terminateInsuranceEnrollment: async (enrollmentId: number, endDate?: string, reason?: string): Promise<void> => {
+    return apiService.put(`/benefits/insurance-enrollments/${enrollmentId}/terminate`, { endDate, reason });
+  },
+
+  // Dependents (see also getDependents/addDependent/etc. below, already matching
+  // the real /benefits/dependents/:employeeId[...] endpoints)
 
   // Employee Benefits
   getEmployeeBenefits: async (employeeId?: number): Promise<EmployeeBenefit[]> => {

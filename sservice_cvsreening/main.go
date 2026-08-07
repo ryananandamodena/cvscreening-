@@ -107,6 +107,9 @@ func main() {
 		if err := repository.RunSeed("schema_payroll_deductions.sql"); err != nil {
 			log.Printf("Failed to run payroll deductions schema migration: %v", err)
 		}
+		if err := repository.RunSeed("schema_insurance.sql"); err != nil {
+			log.Printf("Failed to run insurance schema migration: %v", err)
+		}
 
 		// Create test users for development/testing only — never in production,
 		// where this would seed known-password admin/test accounts on a public server.
@@ -453,6 +456,19 @@ func main() {
 		protected.POST("/benefits/enroll", enrollEmployeeBenefitHandler)
 		protected.POST("/benefits/unenroll", unenrollEmployeeBenefitHandler)
 		protected.GET("/benefits/analytics", getBenefitsAnalyticsHandler)
+
+		// Insurance Plans (distinct from the generic benefit_plans model above)
+		protected.GET("/benefits/insurance-plans", getInsurancePlansHandler)
+		protected.POST("/benefits/insurance-plans", createInsurancePlanHandler)
+		protected.PUT("/benefits/insurance-plans/:id", updateInsurancePlanHandler)
+		protected.DELETE("/benefits/insurance-plans/:id", deleteInsurancePlanHandler)
+		protected.POST("/benefits/insurance-plans/:id/enroll", enrollInsurancePlanHandler)
+		protected.GET("/benefits/insurance-enrollments", getEmployeeInsuranceEnrollmentsHandler)
+		protected.PUT("/benefits/insurance-enrollments/:id/terminate", terminateInsuranceEnrollmentHandler)
+		protected.GET("/benefits/dependents/:employeeId", getDependentsHandler)
+		protected.POST("/benefits/dependents/:employeeId", addDependentHandler)
+		protected.PUT("/benefits/dependents/:employeeId/:dependentId", updateDependentHandler)
+		protected.DELETE("/benefits/dependents/:employeeId/:dependentId", removeDependentHandler)
 
 		// Compensation
 		protected.GET("/compensation/bands", getCompensationBandsHandler)
