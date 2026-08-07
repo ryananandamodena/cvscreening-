@@ -553,6 +553,9 @@ func main() {
 		protected.PUT("/succession/leadership-programs/:id", updateLeadershipProgramHandler)
 		protected.POST("/succession/leadership-programs/:id/enroll", enrollInLeadershipProgramHandler)
 		protected.POST("/succession/leadership-programs/:id/complete", completeLeadershipProgramHandler)
+		protected.POST("/succession/leadership-programs/:id/modules", addLeadershipModuleHandler)
+		protected.PUT("/succession/leadership-programs/:id/modules/:moduleId", updateLeadershipModuleHandler)
+		protected.DELETE("/succession/leadership-programs/:id/modules/:moduleId", deleteLeadershipModuleHandler)
 
 		// Document Management
 		protected.GET("/documents", getDocumentsHandler)

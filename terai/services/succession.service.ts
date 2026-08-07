@@ -87,6 +87,7 @@ export interface LeadershipDevelopment {
   targetAudience: string[];
   duration: number; // weeks
   modules: {
+    id?: number;
     title: string;
     description: string;
     duration: number; // hours
@@ -227,6 +228,21 @@ export const successionService = {
       employeeId,
       outcomes
     });
+  },
+
+  addLeadershipModule: async (programId: number, data: {
+    title: string;
+    description?: string;
+    duration: number;
+    instructor?: string;
+    materials?: string[];
+    orderIndex?: number;
+  }): Promise<{ id: number }> => {
+    return apiService.post(`/succession/leadership-programs/${programId}/modules`, data);
+  },
+
+  deleteLeadershipModule: async (programId: number, moduleId: number): Promise<void> => {
+    return apiService.delete(`/succession/leadership-programs/${programId}/modules/${moduleId}`);
   },
 
   // Talent Pool Management

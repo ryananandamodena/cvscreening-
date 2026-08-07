@@ -76,6 +76,72 @@ func enrollInLeadershipProgramHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Enrolled successfully"})
 }
 
+func addLeadershipModuleHandler(c *gin.Context) {
+	programID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid leadership program ID", nil)
+		return
+	}
+	var payload struct {
+		models.LeadershipModule
+		OrderIndex int `json:"orderIndex"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+	id, err := repository.AddLeadershipModule(c.Request.Context(), programID, &payload.LeadershipModule, payload.OrderIndex)
+	if err != nil {
+		log.Printf("Failed to add leadership module: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to add module", err.Error())
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Module added successfully"})
+}
+
+func updateLeadershipModuleHandler(c *gin.Context) {
+	programID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid leadership program ID", nil)
+		return
+	}
+	moduleID, err := strconv.Atoi(c.Param("moduleId"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid module ID", nil)
+		return
+	}
+	var m models.LeadershipModule
+	if err := c.ShouldBindJSON(&m); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+	if err := repository.UpdateLeadershipModule(c.Request.Context(), programID, moduleID, &m); err != nil {
+		log.Printf("Failed to update leadership module: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to update module", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Module updated successfully"})
+}
+
+func deleteLeadershipModuleHandler(c *gin.Context) {
+	programID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid leadership program ID", nil)
+		return
+	}
+	moduleID, err := strconv.Atoi(c.Param("moduleId"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid module ID", nil)
+		return
+	}
+	if err := repository.DeleteLeadershipModule(c.Request.Context(), programID, moduleID); err != nil {
+		log.Printf("Failed to delete leadership module: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to delete module", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Module deleted successfully"})
+}
+
 func completeLeadershipProgramHandler(c *gin.Context) {
 	programID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

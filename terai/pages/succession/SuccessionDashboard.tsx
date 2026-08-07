@@ -31,6 +31,9 @@ const SuccessionDashboard: React.FC = () => {
   const [leadershipProgramsLoading, setLeadershipProgramsLoading] = useState(false);
   const [newLeadershipProgram, setNewLeadershipProgram] = useState({ programName: '', duration: 4, budget: 0 });
   const [savingLeadershipProgram, setSavingLeadershipProgram] = useState(false);
+  const [expandedProgramId, setExpandedProgramId] = useState<number | null>(null);
+  const [newModule, setNewModule] = useState({ title: '', duration: 1, instructor: '' });
+  const [savingModule, setSavingModule] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -110,6 +113,36 @@ const SuccessionDashboard: React.FC = () => {
       showToast('error', 'Gagal membuat program leadership');
     } finally {
       setSavingLeadershipProgram(false);
+    }
+  };
+
+  const handleAddModule = async (programId: number) => {
+    if (!newModule.title.trim()) {
+      showToast('error', 'Judul modul wajib diisi');
+      return;
+    }
+    try {
+      setSavingModule(true);
+      await successionService.addLeadershipModule(programId, newModule);
+      showToast('success', 'Modul berhasil ditambahkan');
+      setNewModule({ title: '', duration: 1, instructor: '' });
+      fetchLeadershipPrograms();
+    } catch (err) {
+      console.error('Failed to add leadership module:', err);
+      showToast('error', 'Gagal menambahkan modul');
+    } finally {
+      setSavingModule(false);
+    }
+  };
+
+  const handleDeleteModule = async (programId: number, moduleId: number) => {
+    try {
+      await successionService.deleteLeadershipModule(programId, moduleId);
+      showToast('success', 'Modul dihapus');
+      fetchLeadershipPrograms();
+    } catch (err) {
+      console.error('Failed to delete leadership module:', err);
+      showToast('error', 'Gagal menghapus modul');
     }
   };
 
@@ -915,12 +948,65 @@ const SuccessionDashboard: React.FC = () => {
                       <div className="text-center py-8 text-sm text-slate-600 dark:text-slate-400">Belum ada program leadership.</div>
                     ) : (
                       leadershipPrograms.map((lp) => (
-                        <div key={lp.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-neutral-800 rounded-xl">
-                          <div>
-                            <p className="font-semibold text-slate-900 dark:text-white text-sm">{lp.programName}</p>
-                            <p className="text-xs text-slate-600 dark:text-slate-400">{lp.duration} minggu · {lp.participants?.length || 0} peserta</p>
+                        <div key={lp.id} className="border border-slate-200 dark:border-neutral-800 rounded-xl overflow-hidden">
+                          <div className="flex items-center justify-between p-4">
+                            <div>
+                              <p className="font-semibold text-slate-900 dark:text-white text-sm">{lp.programName}</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-400">
+                                {lp.duration} minggu · {lp.participants?.length || 0} peserta · {lp.modules?.length || 0} modul
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Badge tone={lp.status === 'active' ? 'success' : lp.status === 'completed' ? 'neutral' : 'warning'}>{lp.status}</Badge>
+                              <button
+                                onClick={() => setExpandedProgramId(expandedProgramId === lp.id ? null : lp.id)}
+                                className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+                              >
+                                {expandedProgramId === lp.id ? 'Tutup' : 'Kelola Modul'}
+                              </button>
+                            </div>
                           </div>
-                          <Badge tone={lp.status === 'active' ? 'success' : lp.status === 'completed' ? 'neutral' : 'warning'}>{lp.status}</Badge>
+
+                          {expandedProgramId === lp.id && (
+                            <div className="border-t border-slate-200 dark:border-neutral-800 p-4 bg-slate-50 dark:bg-neutral-900/40 space-y-3">
+                              <div className="space-y-2">
+                                {(lp.modules || []).length === 0 ? (
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">Belum ada modul.</p>
+                                ) : (
+                                  lp.modules.map((m, idx) => (
+                                    <div key={m.id ?? idx} className="flex items-center justify-between text-sm p-2 bg-white dark:bg-neutral-800 rounded-lg">
+                                      <span className="text-slate-900 dark:text-white">{m.title} <span className="text-xs text-slate-500 dark:text-slate-400">({m.duration} jam{m.instructor ? ` · ${m.instructor}` : ''})</span></span>
+                                      {m.id != null && (
+                                        <button onClick={() => handleDeleteModule(lp.id, m.id!)} className="text-danger-600 dark:text-danger-400 text-xs font-semibold hover:underline">
+                                          Hapus
+                                        </button>
+                                      )}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <input
+                                  type="text" placeholder="Judul modul" value={newModule.title}
+                                  onChange={(e) => setNewModule({ ...newModule, title: e.target.value })}
+                                  className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                                />
+                                <input
+                                  type="number" placeholder="Durasi (jam)" value={newModule.duration || ''}
+                                  onChange={(e) => setNewModule({ ...newModule, duration: Number(e.target.value) })}
+                                  className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                                />
+                                <input
+                                  type="text" placeholder="Instruktur (opsional)" value={newModule.instructor}
+                                  onChange={(e) => setNewModule({ ...newModule, instructor: e.target.value })}
+                                  className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                                />
+                              </div>
+                              <Button variant="secondary" size="sm" onClick={() => handleAddModule(lp.id)} disabled={savingModule}>
+                                <Plus size={14} className="mr-2" /> {savingModule ? 'Menyimpan...' : 'Tambah Modul'}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ))
                     )}

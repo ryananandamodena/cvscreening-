@@ -35,6 +35,7 @@ func GetLeadershipPrograms(ctx context.Context) ([]models.LeadershipDevelopment,
 		_ = json.Unmarshal(audienceRaw, &p.TargetAudience)
 		_ = json.Unmarshal(outcomesRaw, &p.Outcomes)
 		p.Participants, _ = getLeadershipProgramParticipantIDs(ctx, p.ID)
+		p.Modules, _ = GetLeadershipModules(ctx, p.ID)
 		programs = append(programs, p)
 	}
 	return programs, nil
@@ -104,6 +105,70 @@ func EnrollInLeadershipProgram(ctx context.Context, programID, employeeID int) e
 		VALUES ($1, $2, 'enrolled')
 		ON CONFLICT (program_id, employee_id) DO NOTHING
 	`, programID, employeeID)
+	return err
+}
+
+// GetLeadershipModules retrieves the training modules of a leadership program, in order.
+func GetLeadershipModules(ctx context.Context, programID int) ([]models.LeadershipModule, error) {
+	if !IsDBConnected() {
+		return []models.LeadershipModule{}, nil
+	}
+	rows, err := GetDB().Query(ctx, `
+		SELECT id, title, description, duration_hours, instructor, materials
+		FROM leadership_program_modules WHERE program_id = $1 ORDER BY order_index, id
+	`, programID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	modules := []models.LeadershipModule{}
+	for rows.Next() {
+		var m models.LeadershipModule
+		var materialsRaw []byte
+		if err := rows.Scan(&m.ID, &m.Title, &m.Description, &m.DurationHours, &m.Instructor, &materialsRaw); err == nil {
+			_ = json.Unmarshal(materialsRaw, &m.Materials)
+			modules = append(modules, m)
+		}
+	}
+	return modules, nil
+}
+
+// AddLeadershipModule appends a new module to a program and returns its id.
+func AddLeadershipModule(ctx context.Context, programID int, m *models.LeadershipModule, orderIndex int) (int, error) {
+	if !IsDBConnected() {
+		return 0, fmt.Errorf("database not connected")
+	}
+	materials, _ := json.Marshal(m.Materials)
+	var id int
+	err := GetDB().QueryRow(ctx, `
+		INSERT INTO leadership_program_modules (program_id, title, description, duration_hours, instructor, materials, order_index)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id
+	`, programID, m.Title, m.Description, m.DurationHours, m.Instructor, materials, orderIndex).Scan(&id)
+	return id, err
+}
+
+// UpdateLeadershipModule updates an existing module by id (scoped to programID for safety).
+func UpdateLeadershipModule(ctx context.Context, programID, moduleID int, m *models.LeadershipModule) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	materials, _ := json.Marshal(m.Materials)
+	_, err := GetDB().Exec(ctx, `
+		UPDATE leadership_program_modules SET
+			title = $1, description = $2, duration_hours = $3, instructor = $4, materials = $5
+		WHERE id = $6 AND program_id = $7
+	`, m.Title, m.Description, m.DurationHours, m.Instructor, materials, moduleID, programID)
+	return err
+}
+
+// DeleteLeadershipModule removes a module (scoped to programID for safety).
+func DeleteLeadershipModule(ctx context.Context, programID, moduleID int) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	_, err := GetDB().Exec(ctx, `DELETE FROM leadership_program_modules WHERE id = $1 AND program_id = $2`, moduleID, programID)
 	return err
 }
 
