@@ -110,6 +110,12 @@ func main() {
 		if err := repository.RunSeed("schema_insurance.sql"); err != nil {
 			log.Printf("Failed to run insurance schema migration: %v", err)
 		}
+		if err := repository.RunSeed("schema_allowances.sql"); err != nil {
+			log.Printf("Failed to run allowances schema migration: %v", err)
+		}
+		if err := repository.RunSeed("schema_flexible_retirement.sql"); err != nil {
+			log.Printf("Failed to run flexible/retirement schema migration: %v", err)
+		}
 
 		// Create test users for development/testing only — never in production,
 		// where this would seed known-password admin/test accounts on a public server.
@@ -469,6 +475,25 @@ func main() {
 		protected.POST("/benefits/dependents/:employeeId", addDependentHandler)
 		protected.PUT("/benefits/dependents/:employeeId/:dependentId", updateDependentHandler)
 		protected.DELETE("/benefits/dependents/:employeeId/:dependentId", removeDependentHandler)
+
+		// Allowances
+		protected.GET("/benefits/allowances", getAllowancesHandler)
+		protected.POST("/benefits/allowances", createAllowanceHandler)
+		protected.PUT("/benefits/allowances/:id", updateAllowanceHandler)
+		protected.DELETE("/benefits/allowances/:id", deleteAllowanceHandler)
+		protected.POST("/benefits/employee/:employeeId/allowances/:allowanceId", assignAllowanceHandler)
+
+		// Flexible Benefits
+		protected.GET("/benefits/flexible", getFlexibleBenefitsHandler)
+		protected.POST("/benefits/flexible", createFlexibleBenefitHandler)
+		protected.PUT("/benefits/flexible/:id", updateFlexibleBenefitHandler)
+		protected.POST("/benefits/flexible/enroll", enrollFlexibleBenefitHandler)
+
+		// Retirement Plans
+		protected.GET("/benefits/retirement", getRetirementPlansHandler)
+		protected.POST("/benefits/retirement", createRetirementPlanHandler)
+		protected.PUT("/benefits/retirement/:id", updateRetirementPlanHandler)
+		protected.POST("/benefits/retirement/enroll", enrollRetirementPlanHandler)
 
 		// Compensation
 		protected.GET("/compensation/bands", getCompensationBandsHandler)

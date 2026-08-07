@@ -4,9 +4,10 @@ import {
   Plus, Settings, Download, Upload, Eye, Edit, Trash2,
   CheckCircle2, AlertCircle, Clock, UserPlus, FileText
 } from 'lucide-react';
-import { benefitsService, EmployeeBenefit, BenefitsAnalytics, BenefitPlan, InsurancePlan } from '../../services/benefits.service';
+import { benefitsService, EmployeeBenefit, BenefitsAnalytics, BenefitPlan, InsurancePlan, Allowance, FlexibleBenefit, RetirementPlan } from '../../services/benefits.service';
 import { useToast } from '../../contexts/ToastContext';
 import { CardSkeleton } from '../../components/SkeletonLoader';
+import SimpleCrudManager from '../../components/SimpleCrudManager';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 
@@ -26,7 +27,7 @@ const BenefitsDashboard: React.FC = () => {
   const [savingPlan, setSavingPlan] = useState(false);
 
   // Insurance Plans sub-tab state (within "Manage Plans")
-  const [plansSubTab, setPlansSubTab] = useState<'generic' | 'insurance'>('generic');
+  const [plansSubTab, setPlansSubTab] = useState<'generic' | 'insurance' | 'allowances' | 'flexible' | 'retirement'>('generic');
   const [insurancePlans, setInsurancePlans] = useState<InsurancePlan[]>([]);
   const [insurancePlansLoading, setInsurancePlansLoading] = useState(false);
   const [newInsurancePlan, setNewInsurancePlan] = useState({ name: '', provider: '', type: 'health', coverageAmount: 0, premiumAmount: 0, premiumFrequency: 'monthly' });
@@ -649,9 +650,99 @@ const BenefitsDashboard: React.FC = () => {
                     >
                       Insurance Plans
                     </button>
+                    <button
+                      onClick={() => setPlansSubTab('allowances')}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        plansSubTab === 'allowances' ? 'bg-brand-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-neutral-800'
+                      }`}
+                    >
+                      Allowances
+                    </button>
+                    <button
+                      onClick={() => setPlansSubTab('flexible')}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        plansSubTab === 'flexible' ? 'bg-brand-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-neutral-800'
+                      }`}
+                    >
+                      Flexible Benefits
+                    </button>
+                    <button
+                      onClick={() => setPlansSubTab('retirement')}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        plansSubTab === 'retirement' ? 'bg-brand-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-neutral-800'
+                      }`}
+                    >
+                      Retirement Plans
+                    </button>
                   </div>
 
-                  {plansSubTab === 'insurance' ? (
+                  {plansSubTab === 'allowances' ? (
+                    <SimpleCrudManager<Allowance>
+                      title="Allowance"
+                      active={activeTab === 'plans' && plansSubTab === 'allowances'}
+                      fields={[
+                        { key: 'name', label: 'Nama allowance', type: 'text' },
+                        { key: 'category', label: 'Kategori', type: 'select', defaultValue: 'transport', options: [
+                          { value: 'transport', label: 'Transport' }, { value: 'meal', label: 'Meal' },
+                          { value: 'housing', label: 'Housing' }, { value: 'education', label: 'Education' },
+                          { value: 'health', label: 'Health' }, { value: 'other', label: 'Other' },
+                        ]},
+                        { key: 'amount', label: 'Jumlah', type: 'number' },
+                        { key: 'frequency', label: 'Frekuensi', type: 'select', defaultValue: 'monthly', options: [
+                          { value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'annually', label: 'Annually' },
+                        ]},
+                      ]}
+                      fetchItems={() => benefitsService.getAllowances()}
+                      createItem={(data) => benefitsService.createAllowance({ ...data, active: true, taxable: true })}
+                      deleteItem={(id) => benefitsService.deleteAllowance(id)}
+                      renderTitle={(a) => a.name}
+                      renderSubtitle={(a) => `${a.category} · ${a.frequency}`}
+                      renderValue={(a) => `Rp ${a.amount.toLocaleString()}`}
+                    />
+                  ) : plansSubTab === 'flexible' ? (
+                    <SimpleCrudManager<FlexibleBenefit>
+                      title="Flexible Benefit"
+                      active={activeTab === 'plans' && plansSubTab === 'flexible'}
+                      fields={[
+                        { key: 'name', label: 'Nama benefit', type: 'text' },
+                        { key: 'category', label: 'Kategori', type: 'select', defaultValue: 'health', options: [
+                          { value: 'health', label: 'Health' }, { value: 'wellness', label: 'Wellness' },
+                          { value: 'learning', label: 'Learning' }, { value: 'commuter', label: 'Commuter' }, { value: 'other', label: 'Other' },
+                        ]},
+                        { key: 'maxAmount', label: 'Maksimal jumlah', type: 'number' },
+                        { key: 'provider', label: 'Provider', type: 'text' },
+                      ]}
+                      fetchItems={() => benefitsService.getFlexibleBenefits()}
+                      createItem={(data) => benefitsService.createFlexibleBenefit({ ...data, active: true, taxAdvantaged: false })}
+                      deleteItem={(id) => benefitsService.updateFlexibleBenefit(id, { active: false })}
+                      renderTitle={(f) => f.name}
+                      renderSubtitle={(f) => `${f.category} · ${f.provider || '—'}`}
+                      renderValue={(f) => `Maks Rp ${f.maxAmount.toLocaleString()}`}
+                    />
+                  ) : plansSubTab === 'retirement' ? (
+                    <SimpleCrudManager<RetirementPlan>
+                      title="Retirement Plan"
+                      active={activeTab === 'plans' && plansSubTab === 'retirement'}
+                      fields={[
+                        { key: 'name', label: 'Nama plan', type: 'text' },
+                        { key: 'provider', label: 'Provider', type: 'text' },
+                        { key: 'planType', label: 'Tipe', type: 'select', defaultValue: 'defined_contribution', options: [
+                          { value: 'defined_benefit', label: 'Defined Benefit' },
+                          { value: 'defined_contribution', label: 'Defined Contribution' },
+                          { value: 'hybrid', label: 'Hybrid' },
+                        ]},
+                        { key: 'employeeContribution', label: 'Kontribusi karyawan (%)', type: 'number' },
+                        { key: 'employerContribution', label: 'Kontribusi perusahaan (%)', type: 'number' },
+                        { key: 'retirementAge', label: 'Usia pensiun', type: 'number', defaultValue: 55 },
+                      ]}
+                      fetchItems={() => benefitsService.getRetirementPlans()}
+                      createItem={(data) => benefitsService.createRetirementPlan({ ...data, active: true })}
+                      deleteItem={(id) => benefitsService.updateRetirementPlan(id, { active: false })}
+                      renderTitle={(r) => r.name}
+                      renderSubtitle={(r) => `${r.provider || '—'} · usia pensiun ${r.retirementAge}`}
+                      renderValue={(r) => `${r.employeeContribution}% / ${r.employerContribution}%`}
+                    />
+                  ) : plansSubTab === 'insurance' ? (
                     <>
                       <div className="p-4 border border-slate-200 dark:border-neutral-800 rounded-xl space-y-3">
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Tambah Insurance Plan Baru</h3>
