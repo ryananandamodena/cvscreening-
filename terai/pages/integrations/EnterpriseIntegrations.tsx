@@ -10,6 +10,13 @@ import { CardSkeleton } from '../../components/SkeletonLoader';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 
+// NOTE: ~97% of integrations.service.ts's endpoints (providers, connections,
+// sync jobs, webhooks, SAP/Oracle/Workday connectors, health, bulk ops) have no
+// corresponding backend route anywhere in sservice_cvsreening/main.go — only the
+// generic /integrations/:type/{connect,disconnect,test,sync,...} group exists.
+// This page will always fail to load real data; the banner below makes that
+// explicit instead of leaving users to interpret a silent empty state.
+
 const EnterpriseIntegrations: React.FC = () => {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
@@ -124,6 +131,14 @@ const EnterpriseIntegrations: React.FC = () => {
 
   return (
     <div className="w-full space-y-8 animate-in fade-in duration-700">
+      <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300">
+        <AlertTriangle size={20} className="shrink-0 mt-0.5" />
+        <div className="text-sm font-medium">
+          Halaman ini belum terhubung ke backend — provider, koneksi, dan sync job di bawah tidak akan mencerminkan data nyata.
+          Hanya endpoint koneksi generik (connect/disconnect/test/sync per tipe) yang tersedia di server saat ini.
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>

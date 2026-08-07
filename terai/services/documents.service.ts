@@ -176,6 +176,13 @@ export const documentsService = {
     return apiService.post(`/documents/policies/${id}/publish`, {});
   },
 
+  // ASPIRATIONAL from here down — confirmed during round-3 cross-module research:
+  // no handler exists anywhere in sservice_cvsreening for document templates,
+  // digital signatures, or workflows (grep for Template/Signature/Workflow finds
+  // nothing matching). DocumentsDashboard.tsx does NOT call any of these methods
+  // today, so this is dead code rather than an active production risk — but do
+  // not wire new UI to it without building the backend first.
+
   // Document Templates
   getTemplates: async (category?: string): Promise<DocumentTemplate[]> => {
     const url = category ? `/documents/templates?category=${category}` : '/documents/templates';

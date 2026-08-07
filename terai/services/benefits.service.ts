@@ -333,6 +333,10 @@ export const benefitsService = {
     });
   },
 
+  // ASPIRATIONAL — confirmed during round-3 research: no backend route exists for
+  // open enrollment. The 'Open Enrollment' button in BenefitsDashboard.tsx's Quick
+  // Actions has no onClick handler, so this is dead code, not a live risk — don't
+  // wire it up without building the backend first.
   // Open Enrollment
   startOpenEnrollment: async (data: {
     startDate: string;

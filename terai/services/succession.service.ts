@@ -155,6 +155,13 @@ export const successionService = {
     return apiService.post(`/succession/plans/${planId}/candidates`, candidateData);
   },
 
+  // ASPIRATIONAL from here down (with a few real exceptions further below —
+  // career-paths/leadership-programs are real, see those sections) — confirmed
+  // during round-3 research: updateSuccessionCandidate, nine-box update,
+  // talent-pool, development-plan/assessment, risks, export/reports all call
+  // endpoints with no backend route. SuccessionDashboard.tsx does not call any of
+  // these today, so they're dead code, not a live risk — don't wire new UI to
+  // them without building the backend first.
   updateSuccessionCandidate: async (candidateId: number, data: Partial<SuccessionCandidate>): Promise<SuccessionCandidate> => {
     return apiService.put(`/succession/candidates/${candidateId}`, data);
   },

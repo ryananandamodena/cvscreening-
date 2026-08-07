@@ -1,5 +1,13 @@
 import { apiService } from './api.service';
 
+// ASPIRATIONAL FILE — confirmed during round-3 cross-module research: ~97% of the
+// methods below (providers, connections, sync jobs, webhooks, SAP/Oracle/Workday
+// connectors, health, bulk ops) call endpoint paths that do not exist anywhere in
+// sservice_cvsreening/main.go. Only the generic /integrations/:type/{connect,
+// disconnect,test,auth,sync,config,send,templates} group is real. Do not wire any
+// new UI to these methods without building the corresponding backend first —
+// EnterpriseIntegrations.tsx already hit this and now shows a warning banner.
+
 export interface IntegrationProvider {
   id: string;
   name: string;

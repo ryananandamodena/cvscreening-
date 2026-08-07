@@ -143,6 +143,13 @@ export const performanceService = {
     return apiService.put(`/performance/reviews/${id}`, data);
   },
 
+  // ASPIRATIONAL from here down (submit/approve review, goal progress PATCH,
+  // competencies, templates, calibration, employee summary/dashboard) — confirmed
+  // during round-3 research: none of these have a backend route. Neither
+  // PerformanceDashboard.tsx nor GoalManagement.tsx call them today (they use
+  // getReviews/getGoals/getPerformanceAnalytics/analyzeReview/CRUD-goal, all
+  // real), so this is dead code — don't wire new UI to it without building the
+  // backend first.
   submitReview: async (id: number, data: { comments?: string }): Promise<PerformanceReview> => {
     return apiService.post(`/performance/reviews/${id}/submit`, data);
   },

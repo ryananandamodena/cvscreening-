@@ -136,14 +136,24 @@ export const trainingService = {
     return apiService.get(url);
   },
 
+  // Fixed during round-3 research: this previously posted to a nonexistent
+  // /training/enroll with {employeeId, programId, sessionId} — the real backend
+  // route is POST /training/programs/:id/enroll with just {employeeId} in the
+  // body (extended_handlers.go:296). TrainingDashboard.tsx actually calls this
+  // (handleEnroll), so the wrong path was a live bug, not dead code.
   enrollEmployee: async (data: {
     employeeId: number;
     programId: number;
     sessionId?: number;
   }): Promise<EmployeeTraining> => {
-    return apiService.post('/training/enroll', data);
+    return apiService.post(`/training/programs/${data.programId}/enroll`, { employeeId: data.employeeId });
   },
 
+  // ASPIRATIONAL from here down — confirmed during round-3 cross-module research:
+  // no backend route exists for progress updates, sessions, skill assessments,
+  // categories/skills lists, learning paths, recommendations, or certificates.
+  // TrainingDashboard.tsx does not call any of these, so they're dead code today —
+  // do not wire new UI to them without building the backend first.
   updateTrainingProgress: async (trainingId: number, data: {
     progress: number;
     score?: number;
