@@ -466,8 +466,8 @@ func main() {
 		protected.POST("/succession/plans", createSuccessionPlanHandler)
 		protected.PUT("/succession/plans/:id", updateSuccessionPlanHandler)
 		protected.DELETE("/succession/plans/:id", deleteSuccessionPlanHandler)
-		protected.POST("/succession/candidates", addSuccessionCandidateHandler)
-		protected.DELETE("/succession/candidates/:id", removeSuccessionCandidateHandler)
+		protected.POST("/succession/plans/:id/candidates", addSuccessionCandidateHandler)
+		protected.DELETE("/succession/plans/:planId/candidates/:id", removeSuccessionCandidateHandler)
 		protected.GET("/succession/candidates", getSuccessionCandidatesHandler)
 		protected.GET("/succession/nine-box", getNineBoxGridHandler)
 

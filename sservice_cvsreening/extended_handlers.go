@@ -525,13 +525,19 @@ func deleteSuccessionPlanHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Succession plan deleted successfully"})
 }
 
-// addSuccessionCandidateHandler adds a candidate to a succession plan
+// addSuccessionCandidateHandler adds a candidate to a succession plan (plan id from URL path)
 func addSuccessionCandidateHandler(c *gin.Context) {
+	planID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid succession plan ID", nil)
+		return
+	}
 	var candidate models.SuccessionCandidate
 	if err := c.ShouldBindJSON(&candidate); err != nil {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
 		return
 	}
+	candidate.PlanID = planID
 	id, err := repository.AddSuccessionCandidate(c.Request.Context(), &candidate)
 	if err != nil {
 		log.Printf("Failed to add succession candidate: %v", err)
