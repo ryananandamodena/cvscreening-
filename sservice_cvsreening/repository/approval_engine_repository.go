@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
+	"time"
 
 	"github.com/ryantriananda/sservice_cvsreening/models"
 )
@@ -331,10 +333,10 @@ func ActOnApprovalRequest(ctx context.Context, requestID, actorEmployeeID int, a
 		return nil, fmt.Errorf("database not connected")
 	}
 
-	var currentLevel, flowID int
-	var status string
-	err := GetDB().QueryRow(ctx, `SELECT current_level, flow_id, status FROM approval_requests WHERE id = $1`, requestID).
-		Scan(&currentLevel, &flowID, &status)
+	var currentLevel, flowID, referenceID int
+	var status, moduleName string
+	err := GetDB().QueryRow(ctx, `SELECT current_level, flow_id, status, module_name, reference_id FROM approval_requests WHERE id = $1`, requestID).
+		Scan(&currentLevel, &flowID, &status, &moduleName, &referenceID)
 	if err != nil {
 		return nil, fmt.Errorf("request not found")
 	}
@@ -383,7 +385,41 @@ func ActOnApprovalRequest(ctx context.Context, requestID, actorEmployeeID int, a
 		return nil, err
 	}
 
+	// Module-specific side effects on final approval. Currently: overtime requests
+	// write their approved hours back into attendances.overtime_hours, which is the
+	// figure GeneratePayroll actually reads — without this, approved overtime never
+	// reached payroll and had to be re-entered manually.
+	if result.FinalStatus == "approved" && moduleName == "overtime_request" {
+		if syncErr := syncApprovedOvertimeToAttendance(ctx, referenceID); syncErr != nil {
+			log.Printf("Warning: approved overtime request %d (approval request %d) could not be synced to attendance: %v", referenceID, requestID, syncErr)
+		}
+	}
+
 	return result, nil
+}
+
+// syncApprovedOvertimeToAttendance adds an approved overtime request's hours onto
+// the matching attendances row (creating it if it doesn't exist yet), and marks it
+// approved_overtime = true.
+func syncApprovedOvertimeToAttendance(ctx context.Context, overtimeRequestID int) error {
+	var employeeID int
+	var overtimeDate time.Time
+	var hours float64
+	err := GetDB().QueryRow(ctx, `
+		SELECT employee_id, overtime_date, hours FROM overtime_requests WHERE id = $1
+	`, overtimeRequestID).Scan(&employeeID, &overtimeDate, &hours)
+	if err != nil {
+		return err
+	}
+
+	_, err = GetDB().Exec(ctx, `
+		INSERT INTO attendances (employee_id, date, overtime_hours, approved_overtime, status)
+		VALUES ($1, $2, $3, true, 'present')
+		ON CONFLICT (employee_id, date) DO UPDATE SET
+			overtime_hours = attendances.overtime_hours + EXCLUDED.overtime_hours,
+			approved_overtime = true
+	`, employeeID, overtimeDate, hours)
+	return err
 }
 
 // CancelApprovalRequest lets the original requester withdraw their own pending request
