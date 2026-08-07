@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -149,8 +150,28 @@ func createLeaveRequestHandler(c *gin.Context) {
 		return
 	}
 
-	// TODO: Send notification to manager/approver
-	// This would be handled by notification_engine.go
+	// Notify the requester's manager, if resolvable — best-effort, doesn't fail the request.
+	go func() {
+		employee, err := repository.GetEmployeeByID(context.Background(), req.EmployeeID)
+		if err != nil || employee.ManagerID == nil {
+			return
+		}
+		manager, err := repository.GetEmployeeByID(context.Background(), *employee.ManagerID)
+		if err != nil || manager.UserID == nil {
+			return
+		}
+		if sendErr := notificationEngine.Send(context.Background(), NotificationRequest{
+			TemplateCode: "LEAVE_NEW_REQUEST",
+			RecipientID:  manager.UserID,
+			Variables: map[string]string{
+				"employee_name": employee.FullName,
+				"days":          strconv.Itoa(req.TotalDays),
+				"start_date":    startDate.Format("2006-01-02"),
+			},
+		}); sendErr != nil {
+			log.Printf("Warning: failed to notify manager of new leave request: %v", sendErr)
+		}
+	}()
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Leave request submitted successfully",
@@ -234,12 +255,39 @@ func approveLeaveRequestHandler(c *gin.Context) {
 		return
 	}
 
-	// TODO: Send notification to employee
-	// This would be handled by notification_engine.go
+	notifyLeaveDecision(id, "LEAVE_APPROVED", "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Leave request approved successfully",
 	})
+}
+
+// notifyLeaveDecision sends the employee an approved/rejected leave notification.
+// Best-effort and async — a notification failure must never block the approval
+// action itself, which has already been committed by the time this runs.
+func notifyLeaveDecision(requestID int, templateCode, rejectionReason string) {
+	go func() {
+		reqDetails, err := repository.GetLeaveRequestByID(context.Background(), requestID)
+		if err != nil {
+			log.Printf("Warning: could not load leave request %d for notification: %v", requestID, err)
+			return
+		}
+		employee, err := repository.GetEmployeeByID(context.Background(), reqDetails.EmployeeID)
+		if err != nil || employee.UserID == nil {
+			return
+		}
+		if sendErr := notificationEngine.Send(context.Background(), NotificationRequest{
+			TemplateCode: templateCode,
+			RecipientID:  employee.UserID,
+			Variables: map[string]string{
+				"days":       strconv.Itoa(reqDetails.TotalDays),
+				"start_date": reqDetails.StartDate.Format("2006-01-02"),
+				"reason":     rejectionReason,
+			},
+		}); sendErr != nil {
+			log.Printf("Warning: failed to notify employee of leave decision: %v", sendErr)
+		}
+	}()
 }
 
 func rejectLeaveRequestHandler(c *gin.Context) {
@@ -267,8 +315,7 @@ func rejectLeaveRequestHandler(c *gin.Context) {
 		return
 	}
 
-	// TODO: Send notification to employee
-	// This would be handled by notification_engine.go
+	notifyLeaveDecision(id, "LEAVE_REJECTED", req.RejectionReason)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Leave request rejected",

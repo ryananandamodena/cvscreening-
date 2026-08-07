@@ -35,6 +35,7 @@ import (
 
 var aiService *AIService
 var emailService *EmailService
+var notificationEngine *NotificationEngine
 
 func main() {
 	// Load environment variables
@@ -160,6 +161,9 @@ func main() {
 
 	// Initialize Email Service
 	emailService = NewEmailService()
+
+	// Initialize Notification Engine
+	notificationEngine = NewNotificationEngine()
 
 	r := gin.Default()
 
