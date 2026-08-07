@@ -359,6 +359,19 @@ func CreateContract(ctx context.Context, c *models.EmployeeContract) (int, error
 	return id, err
 }
 
+// ActivateContract flips a draft contract to active once its approval request
+// (module_name='employee_contract') has been fully approved.
+func ActivateContract(ctx context.Context, contractID int) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	_, err := GetDB().Exec(ctx, `
+		UPDATE employee_contracts SET status = 'active', updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND status = 'draft'
+	`, contractID)
+	return err
+}
+
 // SignContract updates a contract with the digital signature
 func SignContract(ctx context.Context, id int, signatureURL string) error {
 	if !IsDBConnected() {

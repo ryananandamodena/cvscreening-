@@ -291,6 +291,8 @@ func finalizeApprovedRequest(c *gin.Context, requestID int) error {
 		return applyApprovedOvertimeRequest(c, request.ReferenceID)
 	case "salary_change":
 		return repository.ApplySalaryChangeRequest(c.Request.Context(), request.ReferenceID)
+	case "employee_contract":
+		return repository.ActivateContract(c.Request.Context(), request.ReferenceID)
 	default:
 		// Modules without a finalization hook simply rely on their own status being "approved"; nothing else to do.
 		return nil

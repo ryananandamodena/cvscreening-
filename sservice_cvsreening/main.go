@@ -129,6 +129,9 @@ func main() {
 		if err := repository.RunSeed("schema_candidate_link.sql"); err != nil {
 			log.Printf("Failed to run candidate link schema migration: %v", err)
 		}
+		if err := repository.RunSeed("schema_contract_approval.sql"); err != nil {
+			log.Printf("Failed to run contract approval schema migration: %v", err)
+		}
 
 		// Create test users for development/testing only — never in production,
 		// where this would seed known-password admin/test accounts on a public server.

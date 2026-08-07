@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -120,18 +121,29 @@ func createOnboardingSessionHandler(c *gin.Context) {
 	}
 
 	// Auto-create a draft employment contract so HR starts from a shell record
-	// instead of nothing — see cross-module integration research: onboarding had
-	// zero connection to Documents/contracts before this. Deliberately does NOT
-	// submit an approval request: a contract approval flow needs a business
-	// definition (who approves, at what contract type/value) beyond this scope.
-	if _, contractErr := repository.CreateContract(c.Request.Context(), &models.EmployeeContract{
+	// instead of nothing, then route it through the employee_contract approval
+	// flow (Direct Manager -> HR Admin, see schema_contract_approval.sql) — the
+	// same pattern salary_change/overtime_request already use.
+	contractID, contractErr := repository.CreateContract(c.Request.Context(), &models.EmployeeContract{
 		EmployeeID:   session.EmployeeID,
 		ContractType: "PKWT",
 		StartDate:    session.StartDate,
 		Status:       "draft",
 		Notes:        "Auto-generated when onboarding started — lengkapi dan finalisasi kontrak ini.",
-	}); contractErr != nil {
+	})
+	if contractErr != nil {
 		log.Printf("WARN: onboarding session %d created but draft contract could not be created: %v", id, contractErr)
+	} else {
+		actorEmployeeID, _ := repository.GetEmployeeIDByUserID(c.Request.Context(), GetUserIDFromContext(c))
+		if actorEmployeeID == 0 {
+			log.Printf("WARN: draft contract %d created but could not submit for approval: creating user has no linked employee record", contractID)
+		} else {
+			employee, _ := repository.GetEmployeeByID(c.Request.Context(), session.EmployeeID)
+			summary := fmt.Sprintf("Kontrak kerja baru untuk %s", employee.FullName)
+			if _, subErr := repository.SubmitApprovalRequest(c.Request.Context(), "employee_contract", contractID, actorEmployeeID, summary); subErr != nil {
+				log.Printf("WARN: draft contract %d created but could not submit for approval: %v", contractID, subErr)
+			}
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Onboarding session started successfully"})
