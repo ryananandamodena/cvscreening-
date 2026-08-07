@@ -119,6 +119,12 @@ func main() {
 		if err := repository.RunSeed("schema_insurance_continuation.sql"); err != nil {
 			log.Printf("Failed to run insurance continuation schema migration: %v", err)
 		}
+		if err := repository.RunSeed("schema_career_paths.sql"); err != nil {
+			log.Printf("Failed to run career paths schema migration: %v", err)
+		}
+		if err := repository.RunSeed("schema_leadership_programs.sql"); err != nil {
+			log.Printf("Failed to run leadership programs schema migration: %v", err)
+		}
 
 		// Create test users for development/testing only — never in production,
 		// where this would seed known-password admin/test accounts on a public server.
@@ -519,6 +525,20 @@ func main() {
 		protected.DELETE("/succession/plans/:planId/candidates/:id", removeSuccessionCandidateHandler)
 		protected.GET("/succession/candidates", getSuccessionCandidatesHandler)
 		protected.GET("/succession/nine-box", getNineBoxGridHandler)
+
+		// Career Paths
+		protected.GET("/succession/career-paths", getCareerPathsHandler)
+		protected.GET("/succession/career-paths/:id", getCareerPathByIDHandler)
+		protected.POST("/succession/career-paths", createCareerPathHandler)
+		protected.PUT("/succession/career-paths/:id", updateCareerPathHandler)
+		protected.PUT("/succession/career-paths/:id/milestones/:milestoneId", updateCareerMilestoneHandler)
+
+		// Leadership Development Programs
+		protected.GET("/succession/leadership-programs", getLeadershipProgramsHandler)
+		protected.POST("/succession/leadership-programs", createLeadershipProgramHandler)
+		protected.PUT("/succession/leadership-programs/:id", updateLeadershipProgramHandler)
+		protected.POST("/succession/leadership-programs/:id/enroll", enrollInLeadershipProgramHandler)
+		protected.POST("/succession/leadership-programs/:id/complete", completeLeadershipProgramHandler)
 
 		// Document Management
 		protected.GET("/documents", getDocumentsHandler)

@@ -4,7 +4,7 @@ import {
   UserCheck, BarChart3, Plus, Settings, Download,
   Eye, Edit, ChevronRight, Star, Calendar
 } from 'lucide-react';
-import { successionService, SuccessionPlan, SuccessionCandidate, NineBoxGrid } from '../../services/succession.service';
+import { successionService, SuccessionPlan, SuccessionCandidate, NineBoxGrid, CareerPath, LeadershipDevelopment } from '../../services/succession.service';
 import { useToast } from '../../contexts/ToastContext';
 import { CardSkeleton } from '../../components/SkeletonLoader';
 import { Button } from '../../components/ui/Button';
@@ -20,9 +20,98 @@ const SuccessionDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState('all');
 
+  // Career Paths tab state
+  const [careerPaths, setCareerPaths] = useState<CareerPath[]>([]);
+  const [careerPathsLoading, setCareerPathsLoading] = useState(false);
+  const [newCareerPath, setNewCareerPath] = useState({ employeeId: 0, currentPosition: '', targetPositionsInput: '' });
+  const [savingCareerPath, setSavingCareerPath] = useState(false);
+
+  // Leadership Programs tab state
+  const [leadershipPrograms, setLeadershipPrograms] = useState<LeadershipDevelopment[]>([]);
+  const [leadershipProgramsLoading, setLeadershipProgramsLoading] = useState(false);
+  const [newLeadershipProgram, setNewLeadershipProgram] = useState({ programName: '', duration: 4, budget: 0 });
+  const [savingLeadershipProgram, setSavingLeadershipProgram] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'careerpaths') fetchCareerPaths();
+    if (activeTab === 'leadership') fetchLeadershipPrograms();
+  }, [activeTab]);
+
+  const fetchCareerPaths = async () => {
+    try {
+      setCareerPathsLoading(true);
+      setCareerPaths(await successionService.getCareerPaths());
+    } catch (err) {
+      console.error('Failed to fetch career paths:', err);
+      showToast('error', 'Failed to load career paths');
+    } finally {
+      setCareerPathsLoading(false);
+    }
+  };
+
+  const handleCreateCareerPath = async () => {
+    if (!newCareerPath.employeeId) {
+      showToast('error', 'Employee ID wajib diisi');
+      return;
+    }
+    try {
+      setSavingCareerPath(true);
+      const targetPositions = newCareerPath.targetPositionsInput.split(',').map(s => s.trim()).filter(Boolean);
+      await successionService.createCareerPath({
+        employeeId: newCareerPath.employeeId,
+        currentPosition: newCareerPath.currentPosition,
+        targetPositions,
+        timeline: [],
+      } as Partial<CareerPath>);
+      showToast('success', 'Career path berhasil dibuat');
+      setNewCareerPath({ employeeId: 0, currentPosition: '', targetPositionsInput: '' });
+      fetchCareerPaths();
+    } catch (err) {
+      console.error('Failed to create career path:', err);
+      showToast('error', 'Gagal membuat career path');
+    } finally {
+      setSavingCareerPath(false);
+    }
+  };
+
+  const fetchLeadershipPrograms = async () => {
+    try {
+      setLeadershipProgramsLoading(true);
+      setLeadershipPrograms(await successionService.getLeadershipPrograms());
+    } catch (err) {
+      console.error('Failed to fetch leadership programs:', err);
+      showToast('error', 'Failed to load leadership programs');
+    } finally {
+      setLeadershipProgramsLoading(false);
+    }
+  };
+
+  const handleCreateLeadershipProgram = async () => {
+    if (!newLeadershipProgram.programName.trim()) {
+      showToast('error', 'Nama program wajib diisi');
+      return;
+    }
+    try {
+      setSavingLeadershipProgram(true);
+      await successionService.createLeadershipProgram({
+        ...newLeadershipProgram,
+        status: 'planning',
+        startDate: new Date().toISOString().slice(0, 10),
+      } as Partial<LeadershipDevelopment>);
+      showToast('success', 'Program leadership berhasil dibuat');
+      setNewLeadershipProgram({ programName: '', duration: 4, budget: 0 });
+      fetchLeadershipPrograms();
+    } catch (err) {
+      console.error('Failed to create leadership program:', err);
+      showToast('error', 'Gagal membuat program leadership');
+    } finally {
+      setSavingLeadershipProgram(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -341,6 +430,26 @@ const SuccessionDashboard: React.FC = () => {
                   }`}
                 >
                   9-Box Grid
+                </button>
+                <button
+                  onClick={() => setActiveTab('careerpaths')}
+                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'careerpaths'
+                      ? 'border-brand-600 text-brand-600 dark:text-brand-400'
+                      : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Career Paths
+                </button>
+                <button
+                  onClick={() => setActiveTab('leadership')}
+                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'leadership'
+                      ? 'border-brand-600 text-brand-600 dark:text-brand-400'
+                      : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Leadership Programs
                 </button>
               </nav>
             </div>
@@ -710,6 +819,104 @@ const SuccessionDashboard: React.FC = () => {
                       <div><h4 className="font-semibold text-slate-900 dark:text-white">Medium Potential</h4></div>
                       <div><h4 className="font-semibold text-slate-900 dark:text-white">Low Potential</h4></div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'careerpaths' && (
+                <div className="space-y-6">
+                  <div className="p-4 border border-slate-200 dark:border-neutral-800 rounded-xl space-y-3">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Buat Career Path Baru</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <input
+                        type="number" placeholder="Employee ID" value={newCareerPath.employeeId || ''}
+                        onChange={(e) => setNewCareerPath({ ...newCareerPath, employeeId: Number(e.target.value) })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      />
+                      <input
+                        type="text" placeholder="Posisi saat ini" value={newCareerPath.currentPosition}
+                        onChange={(e) => setNewCareerPath({ ...newCareerPath, currentPosition: e.target.value })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      />
+                      <input
+                        type="text" placeholder="Target posisi (pisah koma)" value={newCareerPath.targetPositionsInput}
+                        onChange={(e) => setNewCareerPath({ ...newCareerPath, targetPositionsInput: e.target.value })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      />
+                    </div>
+                    <Button variant="primary" size="sm" onClick={handleCreateCareerPath} disabled={savingCareerPath}>
+                      <Plus size={14} className="mr-2" /> {savingCareerPath ? 'Menyimpan...' : 'Simpan Career Path'}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {careerPathsLoading ? (
+                      <div className="text-sm text-slate-600 dark:text-slate-400">Loading...</div>
+                    ) : careerPaths.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-slate-600 dark:text-slate-400">Belum ada career path.</div>
+                    ) : (
+                      careerPaths.map((cp) => (
+                        <div key={cp.id} className="p-4 border border-slate-200 dark:border-neutral-800 rounded-xl">
+                          <p className="font-semibold text-slate-900 dark:text-white text-sm">{cp.employeeName || `Employee #${cp.employeeId}`}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                            {cp.currentPosition || '—'} → {(cp.targetPositions || []).join(', ') || '—'}
+                          </p>
+                          {cp.milestones && cp.milestones.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {cp.milestones.map((m, idx) => (
+                                <Badge key={idx} tone={m.status === 'completed' ? 'success' : m.status === 'overdue' ? 'danger' : 'neutral'}>{m.title}</Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'leadership' && (
+                <div className="space-y-6">
+                  <div className="p-4 border border-slate-200 dark:border-neutral-800 rounded-xl space-y-3">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Buat Program Leadership Baru</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <input
+                        type="text" placeholder="Nama program" value={newLeadershipProgram.programName}
+                        onChange={(e) => setNewLeadershipProgram({ ...newLeadershipProgram, programName: e.target.value })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      />
+                      <input
+                        type="number" placeholder="Durasi (minggu)" value={newLeadershipProgram.duration || ''}
+                        onChange={(e) => setNewLeadershipProgram({ ...newLeadershipProgram, duration: Number(e.target.value) })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      />
+                      <input
+                        type="number" placeholder="Budget" value={newLeadershipProgram.budget || ''}
+                        onChange={(e) => setNewLeadershipProgram({ ...newLeadershipProgram, budget: Number(e.target.value) })}
+                        className="px-3 py-2 border border-slate-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white rounded-lg text-sm"
+                      />
+                    </div>
+                    <Button variant="primary" size="sm" onClick={handleCreateLeadershipProgram} disabled={savingLeadershipProgram}>
+                      <Plus size={14} className="mr-2" /> {savingLeadershipProgram ? 'Menyimpan...' : 'Simpan Program'}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {leadershipProgramsLoading ? (
+                      <div className="text-sm text-slate-600 dark:text-slate-400">Loading...</div>
+                    ) : leadershipPrograms.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-slate-600 dark:text-slate-400">Belum ada program leadership.</div>
+                    ) : (
+                      leadershipPrograms.map((lp) => (
+                        <div key={lp.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-neutral-800 rounded-xl">
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-white text-sm">{lp.programName}</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">{lp.duration} minggu · {lp.participants?.length || 0} peserta</p>
+                          </div>
+                          <Badge tone={lp.status === 'active' ? 'success' : lp.status === 'completed' ? 'neutral' : 'warning'}>{lp.status}</Badge>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
