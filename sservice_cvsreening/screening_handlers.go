@@ -381,16 +381,20 @@ func updateScreeningStatusHandler(c *gin.Context) {
 		return
 	}
 
-	// In a real app, get reviewer from JWT context
-	reviewer := "Admin" // Default for now until middleware is enforced
+	// Reviewer identity comes from the authenticated JWT (email — the JWT carries no display
+	// name), never a hardcoded literal and never anything the client could pass in the body.
+	reviewer := GetUserEmailFromContext(c)
+	if reviewer == "" {
+		reviewer = "unknown"
+	}
 
 	if err := repository.UpdateScreeningStatus(c.Request.Context(), id, payload.Status, reviewer); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update status"})
 		return
 	}
 
-	// Log Activity
-	repository.LogActivity(c.Request.Context(), 1, "update_screening_status", "screening", id, "Updated status to "+payload.Status, c.ClientIP())
+	// Log Activity — actor is the authenticated user, not a hardcoded ID.
+	repository.LogActivity(c.Request.Context(), GetUserIDFromContext(c), "update_screening_status", "screening", id, "Updated status to "+payload.Status, c.ClientIP())
 
 	// === AUTO-CREATE INTERVIEW when screening is approved/passed ===
 	status := strings.ToLower(payload.Status)
@@ -687,11 +691,27 @@ func bulkScreeningHandler(c *gin.Context) {
 	})
 }
 
+// allowedRecordingExtensions whitelists the file extensions recording uploads may be saved
+// with — anything else (including a crafted filename with embedded path separators, used to
+// attempt directory traversal) falls back to the safe default.
+var allowedRecordingExtensions = map[string]bool{
+	".webm": true, ".mp4": true, ".mov": true, ".ogg": true, ".wav": true, ".m4a": true,
+}
+
+// getExtension returns a safe, whitelisted file extension for the given client-supplied
+// filename. It previously returned everything from the last "." to the end of the filename
+// verbatim, which let an attacker embed path separators (e.g. "a.png/../../../tmp/evil") into
+// the extension and, via the caller's fmt.Sprintf+os.Create, write outside the upload directory
+// — this is reachable from unauthenticated candidate-facing endpoints (Module 13 fix).
 func getExtension(filename string) string {
+	ext := ".webm"
 	if idx := strings.LastIndex(filename, "."); idx != -1 {
-		return filename[idx:]
+		candidate := strings.ToLower(filename[idx:])
+		if allowedRecordingExtensions[candidate] {
+			ext = candidate
+		}
 	}
-	return ".webm" // Default
+	return ext
 }
 
 // getLeaderboardHandler retrieves the top candidates for a specific job

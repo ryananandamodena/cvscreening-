@@ -16,20 +16,23 @@ export default function UploadScreen() {
   const [file, setFile] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [fetchingJobs, setFetchingJobs] = useState(true);
+  const [jobsError, setJobsError] = useState(false);
 
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const jobsData = await apiService.getJobs();
-        setJobs(Array.isArray(jobsData) ? jobsData : []);
-      } catch (err) {
-        console.log(err);
-      } finally {
-        setFetchingJobs(false);
-      }
-    };
-    fetchJobs();
-  }, []);
+  const fetchJobs = async () => {
+    setFetchingJobs(true);
+    try {
+      const jobsData = await apiService.getJobs();
+      setJobs(Array.isArray(jobsData) ? jobsData : []);
+      setJobsError(false);
+    } catch (err) {
+      console.log('Fetch jobs error:', err);
+      setJobsError(true);
+    } finally {
+      setFetchingJobs(false);
+    }
+  };
+
+  useEffect(() => { fetchJobs(); }, []);
 
   const pickDocument = async () => {
     try {
@@ -37,12 +40,13 @@ export default function UploadScreen() {
         type: 'application/pdf',
         copyToCacheDirectory: true,
       });
-      
+
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setFile(result.assets[0]);
       }
     } catch (err) {
       console.log('Document picker error:', err);
+      Alert.alert('Error', 'Failed to open the file picker. Please try again.');
     }
   };
 
@@ -90,6 +94,10 @@ export default function UploadScreen() {
       <View style={styles.pickerContainer}>
         {fetchingJobs ? (
           <ActivityIndicator color={Colors.primary} />
+        ) : jobsError ? (
+          <TouchableOpacity onPress={fetchJobs} style={{ padding: Spacing.md }}>
+            <Text style={{ color: Colors.danger }}>Failed to load jobs — tap to retry</Text>
+          </TouchableOpacity>
         ) : (
           <Picker
             selectedValue={selectedJob}

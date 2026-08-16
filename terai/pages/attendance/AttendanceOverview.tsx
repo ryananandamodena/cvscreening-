@@ -15,8 +15,12 @@ import ClockInModal from './ClockInModal';
 import QRScanModal from './QRScanModal';
 import MyCorrections from './MyCorrections';
 import MonthlyReport from './MonthlyReport';
+import FaceEnrollmentModal from './FaceEnrollmentModal';
+import { faceRecognitionService } from '../../services/faceRecognition.service';
 
-const HR_ROLES = ['admin', 'hr', 'hr_admin', 'hr_manager', 'hiring_manager', 'manager'];
+// Backend gate for GET /attendance/team and /attendance/reports/monthly is HiringManagerOrAdmin()
+// (routes_attendance.go) — 'hr'/'hr_admin'/'hr_manager'/'manager' are not real backend roles.
+const HR_ROLES = ['admin', 'hiring_manager'];
 
 const AttendanceOverview: React.FC = () => {
   const { showToast } = useToast();
@@ -34,6 +38,12 @@ const AttendanceOverview: React.FC = () => {
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const [breaks, setBreaks] = useState<Array<{ id: number; breakStart: string; breakEnd?: string }>>([]);
   const [breakBusy, setBreakBusy] = useState(false);
+  const [faceEnrolled, setFaceEnrolled] = useState<boolean | null>(null);
+  const [enrollModalOpen, setEnrollModalOpen] = useState(false);
+
+  useEffect(() => {
+    faceRecognitionService.getEnrollmentStatus().then((res) => setFaceEnrolled(res.enrolled)).catch(() => setFaceEnrolled(null));
+  }, []);
 
   const onBreak = breaks.some((b) => !b.breakEnd);
 
@@ -244,6 +254,27 @@ const AttendanceOverview: React.FC = () => {
               </div>
             ) : null}
 
+            {/* Face enrollment status — separate from clock-in itself (Module 15 §U). Shown
+                regardless of whether today's shift is done, so an employee can always see their
+                status and (re-)enroll on demand, not only as a side effect of clocking in. */}
+            {faceEnrolled !== null && (
+              <div className={`w-full flex items-center justify-between gap-3 p-3 rounded-xl text-sm ${
+                faceEnrolled ? 'bg-success-50 dark:bg-success-500/10 text-success-700 dark:text-success-500'
+                : 'bg-warning-50 dark:bg-warning-500/10 text-warning-700 dark:text-warning-500'
+              }`}>
+                <span className="flex items-center gap-2 font-semibold">
+                  {faceEnrolled ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                  {faceEnrolled ? 'Wajah Terdaftar' : 'Wajah Belum Terdaftar'}
+                </span>
+                <button
+                  onClick={() => setEnrollModalOpen(true)}
+                  className="font-bold underline underline-offset-2 shrink-0"
+                >
+                  {faceEnrolled ? 'Daftar Ulang' : 'Daftarkan Wajah'}
+                </button>
+              </div>
+            )}
+
             {todayRecord && (todayRecord.status === 'late' || !!todayRecord.earlyLeaveMinutes || !!todayRecord.overtimeHours) && (
               <div className="flex flex-wrap gap-2 justify-center">
                 {todayRecord.status === 'late' && (
@@ -343,6 +374,16 @@ const AttendanceOverview: React.FC = () => {
           mode={clockModal}
           onClose={() => setClockModal(null)}
           onSuccess={handleClockSuccess}
+        />
+      )}
+
+      {enrollModalOpen && (
+        <FaceEnrollmentModal
+          onClose={() => setEnrollModalOpen(false)}
+          onEnrolled={() => {
+            setFaceEnrolled(true);
+            setEnrollModalOpen(false);
+          }}
         />
       )}
 

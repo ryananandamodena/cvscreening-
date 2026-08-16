@@ -266,6 +266,28 @@ func GetGoalsByReviewID(ctx context.Context, reviewID int) ([]models.Performance
 	return goals, nil
 }
 
+// GetGoalByID retrieves a single goal — used to verify ownership (self/manager/admin) before
+// an update/delete is allowed to proceed (Module 13 IDOR fix).
+func GetGoalByID(ctx context.Context, id int) (*models.PerformanceGoal, error) {
+	if !IsDBConnected() {
+		return nil, fmt.Errorf("database not connected")
+	}
+
+	var g models.PerformanceGoal
+	err := GetDB().QueryRow(ctx, `
+		SELECT id, employee_id, review_id, title, description, category, weight,
+			target, current_value, status, start_date, due_date, completed_at, created_at, updated_at
+		FROM performance_goals
+		WHERE id = $1
+	`, id).Scan(&g.ID, &g.EmployeeID, &g.ReviewID, &g.Title, &g.Description,
+		&g.Category, &g.Weight, &g.Target, &g.Current, &g.Status,
+		&g.StartDate, &g.DueDate, &g.CompletedAt, &g.CreatedAt, &g.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &g, nil
+}
+
 // CreateGoal creates a new performance goal
 func CreateGoal(ctx context.Context, g *models.PerformanceGoal) (int, error) {
 	if !IsDBConnected() {
@@ -568,7 +590,9 @@ func GetSuccessionPlans(ctx context.Context) ([]models.SuccessionPlan, error) {
 	}
 
 	rows, err := GetDB().Query(ctx, `
-		SELECT sp.id, sp.position_id, sp.incumbent_id, sp.priority, sp.notes, sp.created_at, sp.updated_at,
+		SELECT sp.id, sp.position_id, sp.incumbent_id, sp.priority, sp.notes,
+			COALESCE(sp.risk_level, ''), COALESCE(sp.critical_position, false), sp.time_to_fill_months,
+			sp.created_at, sp.updated_at,
 			p.name as position_name, COALESCE(e.full_name, '') as incumbent_name
 		FROM succession_plans sp
 		JOIN positions p ON sp.position_id = p.id
@@ -584,7 +608,7 @@ func GetSuccessionPlans(ctx context.Context) ([]models.SuccessionPlan, error) {
 	for rows.Next() {
 		var sp models.SuccessionPlan
 		if err := rows.Scan(&sp.ID, &sp.PositionID, &sp.IncumbentID, &sp.Priority,
-			&sp.Notes, &sp.CreatedAt, &sp.UpdatedAt,
+			&sp.Notes, &sp.RiskLevel, &sp.CriticalPosition, &sp.TimeToFillMonths, &sp.CreatedAt, &sp.UpdatedAt,
 			&sp.PositionName, &sp.IncumbentName); err == nil {
 			// Load candidates
 			sp.Candidates, _ = GetSuccessionCandidates(ctx, sp.ID)
@@ -634,10 +658,10 @@ func CreateSuccessionPlan(ctx context.Context, sp *models.SuccessionPlan) (int, 
 	}
 	var id int
 	err := GetDB().QueryRow(ctx, `
-		INSERT INTO succession_plans (position_id, incumbent_id, priority, notes)
-		VALUES ($1, $2, COALESCE($3, 'medium'), $4)
+		INSERT INTO succession_plans (position_id, incumbent_id, priority, notes, risk_level, critical_position, time_to_fill_months)
+		VALUES ($1, $2, COALESCE($3, 'medium'), $4, NULLIF($5, ''), $6, $7)
 		RETURNING id
-	`, sp.PositionID, sp.IncumbentID, sp.Priority, sp.Notes).Scan(&id)
+	`, sp.PositionID, sp.IncumbentID, sp.Priority, sp.Notes, sp.RiskLevel, sp.CriticalPosition, sp.TimeToFillMonths).Scan(&id)
 	return id, err
 }
 
@@ -648,9 +672,11 @@ func UpdateSuccessionPlan(ctx context.Context, sp *models.SuccessionPlan) error 
 	}
 	_, err := GetDB().Exec(ctx, `
 		UPDATE succession_plans SET
-			position_id = $1, incumbent_id = $2, priority = $3, notes = $4, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $5
-	`, sp.PositionID, sp.IncumbentID, sp.Priority, sp.Notes, sp.ID)
+			position_id = $1, incumbent_id = $2, priority = $3, notes = $4,
+			risk_level = NULLIF($5, ''), critical_position = $6, time_to_fill_months = $7,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = $8
+	`, sp.PositionID, sp.IncumbentID, sp.Priority, sp.Notes, sp.RiskLevel, sp.CriticalPosition, sp.TimeToFillMonths, sp.ID)
 	return err
 }
 

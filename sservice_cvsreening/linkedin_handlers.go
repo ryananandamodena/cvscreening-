@@ -12,7 +12,18 @@ import (
 )
 
 // =====================================================
-// LINKEDIN IMPORT HANDLERS
+// MANUAL PROFILE IMPORT HANDLERS
+//
+// Despite the historical "LinkedIn" naming (route paths, function names), nothing in
+// this file talks to LinkedIn's API. There is no OAuth flow, no LINKEDIN_* credential,
+// and no HTTP call to linkedin.com anywhere in this service. importCandidateHandler
+// accepts a profile JSON blob (e.g. scraped by a browser extension or hand-entered) and
+// stores it as a candidate; searchLinkedInHandler has never done a live search — it
+// always returned an empty result set. Both are kept, but relabeled here to reflect
+// what they actually are: a manual/semi-automated profile import, not a LinkedIn
+// integration. If a real LinkedIn Talent/Recruiter API partnership is signed later,
+// build that as a separate LinkedInProvider behind this same route rather than
+// re-purposing these handlers silently.
 // =====================================================
 
 func importCandidateHandler(c *gin.Context) {
@@ -130,19 +141,45 @@ func importCandidateHandler(c *gin.Context) {
 		return
 	}
 
+	// Persist location too, if the profile carried one — previously this was written
+	// into cvText only and never reached a queryable column, which is why geographic
+	// analytics had to fall back to mock data. Best-effort "City, Province" split; a
+	// bare city or an unparsed string is still stored as city.
+	if location != "" {
+		city, province := splitLocation(location)
+		if locErr := repository.UpdateCandidateLocation(c.Request.Context(), id, city, province); locErr != nil {
+			log.Printf("WARN: failed to save location for candidate %d: %v", id, locErr)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"success": true, "id": id, "message": "Candidate imported successfully"})
 }
 
-// searchLinkedInHandler simulates LinkedIn search (mock proxy)
+// splitLocation does a best-effort "City, Province" split of a freeform location string
+// (e.g. "Jakarta, Indonesia" or "Bandung, Jawa Barat"). If there's no comma, the whole
+// string is treated as the city.
+func splitLocation(location string) (city, province string) {
+	parts := strings.SplitN(location, ",", 2)
+	city = strings.TrimSpace(parts[0])
+	if len(parts) == 2 {
+		province = strings.TrimSpace(parts[1])
+	}
+	return city, province
+}
+
+// searchLinkedInHandler has never performed a live LinkedIn search — see the package
+// comment above. It responds with an explicit status so callers/frontend can
+// distinguish "we searched and found nothing" from "this isn't wired up to a real
+// provider", instead of a bare empty array that looks like a genuine zero-result search.
 func searchLinkedInHandler(c *gin.Context) {
-	// For now, return empty or mock. The frontend handles mock if enabled.
-	// If frontend calls this, it expects real data or a backend-side mock.
-	// Let's return the simplified mock data structure to ensure it works even if frontend mock is disabled.
-
 	var payload map[string]interface{}
-	c.ShouldBindJSON(&payload) // Read body but ignore for basic mock
+	c.ShouldBindJSON(&payload)
 
-	c.JSON(http.StatusOK, gin.H{"candidates": []interface{}{}})
+	c.JSON(http.StatusOK, gin.H{
+		"status":     "not_supported",
+		"candidates": []interface{}{},
+		"message":    "LinkedIn search is not integrated with a live provider. Use Manual Profile Import (POST /candidates/import) instead.",
+	})
 }
 
 func calculateLinkedInExperience(positions []interface{}) int {

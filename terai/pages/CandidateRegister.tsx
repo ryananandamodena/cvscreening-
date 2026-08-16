@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User, Phone, Eye, EyeOff, Briefcase, ArrowRight, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
+import HumaniqMark from '../components/HumaniqMark';
 import { candidatePortalService } from '../services/candidate-portal.service';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
@@ -62,8 +63,8 @@ const CandidateRegister: React.FC = () => {
                 {/* Logo */}
                 <div className="text-center mb-8">
                     <Link to="/careers" className="inline-flex items-center gap-3 mb-8">
-                        <div className="bg-brand-600 p-3 rounded-xl shadow-lg shadow-brand-600/20">
-                            <Briefcase className="w-8 h-8 text-white" />
+                        <div className="bg-white dark:bg-neutral-900 p-2 rounded-xl shadow-lg shadow-brand-600/20 border border-slate-100 dark:border-neutral-800">
+                            <HumaniqMark size={32} />
                         </div>
                         <span className="font-black text-3xl tracking-tight text-brand-600 dark:text-brand-400">
                             HumanIQ

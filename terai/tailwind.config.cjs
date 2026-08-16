@@ -15,18 +15,36 @@ module.exports = {
     theme: {
         extend: {
             colors: {
+                // Humaniq brand blue (matches the mark's left pillar / icon.png) — was a red
+                // scale (#dc2626 "Red Main") left over from an earlier RecruitAI-era palette,
+                // mismatched with the actual Humaniq brand mark used across the app.
                 brand: {
-                    50: '#fef2f2',
-                    100: '#fee2e2',
-                    200: '#fecaca',
-                    300: '#fca5a5',
-                    400: '#f87171',
-                    500: '#ef4444', 
-                    600: '#dc2626', // Red Main
-                    700: '#b91c1c', // Red Hover
-                    800: '#991b1b',
-                    900: '#7f1d1d',
-                    950: '#450a0a',
+                    50: '#EAF1FE',
+                    100: '#D6E4FD',
+                    200: '#B0C9FB',
+                    300: '#82A9F8',
+                    400: '#5B8FF5',
+                    500: '#3B82F6',
+                    600: '#0B4DDB', // Humaniq Blue — Main
+                    700: '#093FB0', // Hover
+                    800: '#0A2E82',
+                    900: '#0B2460',
+                    950: '#061434',
+                },
+                // Humaniq brand teal (the mark's right pillar) — secondary accent for highlights
+                // that need to read as "brand" without competing with the primary blue.
+                accent: {
+                    50: '#ECFEFF',
+                    100: '#CFFAFE',
+                    200: '#A5F3FC',
+                    300: '#67E8F9',
+                    400: '#2DD4BF',
+                    500: '#06B6D4',
+                    600: '#0891B2',
+                    700: '#0E7490',
+                    800: '#155E75',
+                    900: '#164E63',
+                    950: '#083344',
                 },
                 dark: {
                     50: '#f8fafc',
@@ -47,8 +65,8 @@ module.exports = {
                 info:    { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
             },
             boxShadow: {
-                'glow': '0 0 20px rgba(220, 38, 38, 0.35)',
-                'glow-lg': '0 0 30px rgba(220, 38, 38, 0.45)',
+                'glow': '0 0 20px rgba(11, 77, 219, 0.35)',
+                'glow-lg': '0 0 30px rgba(11, 77, 219, 0.45)',
                 'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.05)',
                 'glass-dark': '0 8px 32px 0 rgba(0, 0, 0, 0.4)',
             }

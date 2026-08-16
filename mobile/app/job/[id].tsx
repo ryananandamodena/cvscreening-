@@ -12,17 +12,20 @@ export default function JobDetailScreen() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
 
   const fetchJobData = async () => {
     try {
       if (!id) return;
       const jobData = await apiService.getJobByID(Number(id));
       setJob(jobData.data || jobData);
-      
+
       const boardData = await apiService.getLeaderboard(Number(id), 10);
       setLeaderboard(Array.isArray(boardData) ? boardData : boardData?.data || []);
+      setError(false);
     } catch (err) {
       console.log('Fetch job error:', err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -39,6 +42,17 @@ export default function JobDetailScreen() {
   };
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={Colors.primary} /></View>;
+  if (!job && error) {
+    return (
+      <View style={styles.center}>
+        <Ionicons name="cloud-offline-outline" size={48} color={Colors.textTertiary} />
+        <Text style={styles.emptyText}>Failed to load this job. Please try again.</Text>
+        <TouchableOpacity style={styles.uploadBtn} onPress={fetchJobData}>
+          <Text style={styles.uploadBtnText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
   if (!job) return <View style={styles.center}><Text>Job not found</Text></View>;
 
   const getScoreColor = (score: number) => {

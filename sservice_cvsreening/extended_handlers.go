@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -29,19 +30,43 @@ func analyzePerformanceHandler(c *gin.Context) {
 	}
 
 	aiService := utils.NewGeminiAIService()
-	score, summary, err := aiService.AnalyzeSentiment(c.Request.Context(), review.Achievements, review.Challenges, review.ManagerComments)
+	result, err := aiService.AnalyzeSentiment(c.Request.Context(), review.Achievements, review.Challenges, review.ManagerComments)
 	if err != nil {
 		RespondWithError(c, http.StatusInternalServerError, "ai_error", "Failed to analyze sentiment", err.Error())
 		return
 	}
 
-	err = repository.AnalyzePerformanceReview(c.Request.Context(), id, score, summary)
-	if err != nil {
+	switch result.Status {
+	case utils.SentimentStatusUnavailable:
+		c.JSON(http.StatusOK, gin.H{
+			"message":   "AI analysis unavailable",
+			"sentiment": nil, "confidence": nil, "source": nil,
+			"status": result.Status,
+		})
+		return
+	case utils.SentimentStatusFailed:
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"message":   "AI analysis failed. Please try again later.",
+			"sentiment": nil, "confidence": nil, "source": nil,
+			"status": result.Status,
+		})
+		return
+	}
+
+	// Only a genuine, successfully-parsed Gemini result is ever persisted — never a fallback.
+	if err := repository.AnalyzePerformanceReview(c.Request.Context(), id, result.Sentiment, result.Summary); err != nil {
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to save AI sentiment", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Performance analyzed successfully", "aiSentimentScore": score, "aiSummary": summary})
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Performance analyzed successfully",
+		"sentiment":  result.Sentiment,
+		"confidence": result.Confidence,
+		"summary":    result.Summary,
+		"source":     result.Source,
+		"status":     result.Status,
+	})
 }
 
 // getPerformanceReviewsHandler godoc
@@ -57,8 +82,28 @@ func analyzePerformanceHandler(c *gin.Context) {
 // @Router /api/performance/reviews [get]
 func getPerformanceReviewsHandler(c *gin.Context) {
 	filter := models.PerformanceReviewFilter{}
-	if id, err := strconv.Atoi(c.Query("employeeId")); err == nil {
-		filter.EmployeeID = id
+	if requestedIDStr := c.Query("employeeId"); requestedIDStr != "" {
+		// A specific employeeId is a "view this person's reviews" request — only their own
+		// manager, HR, or admin may do that.
+		requestedID, err := strconv.Atoi(requestedIDStr)
+		if err != nil {
+			RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid employeeId", nil)
+			return
+		}
+		employeeID, ok := authorizeEmployeeTarget(c, requestedID)
+		if !ok {
+			return
+		}
+		filter.EmployeeID = employeeID
+	} else if GetUserRoleFromContext(c) != "admin" && GetUserRoleFromContext(c) != "recruiter" {
+		// No employeeId + not HR/admin: default to "my own reviews" rather than an unscoped
+		// org-wide list — a plain employee must never see everyone else's reviews just by
+		// omitting the parameter.
+		ownEmployeeID, ok := resolveOwnEmployeeID(c)
+		if !ok {
+			return
+		}
+		filter.EmployeeID = ownEmployeeID
 	}
 	filter.Status = c.Query("status")
 	filter.Period = c.Query("period")
@@ -93,6 +138,9 @@ func getPerformanceReviewsHandler(c *gin.Context) {
 }
 
 // getPerformanceReviewByIDHandler retrieves a single review
+// getPerformanceReviewByIDHandler returns a single review. Only the reviewed employee
+// themselves, their direct manager, or HR/admin may view it — resolved via
+// authorizeEmployeeTarget against the review's actual EmployeeID, never a client-supplied one.
 func getPerformanceReviewByIDHandler(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -103,6 +151,10 @@ func getPerformanceReviewByIDHandler(c *gin.Context) {
 	review, err := repository.GetPerformanceReviewByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "review not found"})
+		return
+	}
+
+	if _, ok := authorizeEmployeeTarget(c, review.EmployeeID); !ok {
 		return
 	}
 
@@ -165,9 +217,32 @@ func updatePerformanceReviewHandler(c *gin.Context) {
 
 // ==================== GOAL HANDLERS ====================
 
-// getGoalsHandler retrieves performance goals
+// getGoalsHandler retrieves performance goals. Mirrors getPerformanceReviewsHandler's
+// authorization: an explicit employeeId is only honored for the caller themself, their
+// manager, HR, or admin (authorizeEmployeeTarget) — previously this trusted the query
+// param outright, so any authenticated employee could read any other employee's goals
+// by guessing/incrementing employeeId (IDOR).
 func getGoalsHandler(c *gin.Context) {
-	employeeID, _ := strconv.Atoi(c.Query("employeeId"))
+	var employeeID int
+	if requestedIDStr := c.Query("employeeId"); requestedIDStr != "" {
+		requestedID, err := strconv.Atoi(requestedIDStr)
+		if err != nil {
+			RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid employeeId", nil)
+			return
+		}
+		authorizedID, ok := authorizeEmployeeTarget(c, requestedID)
+		if !ok {
+			return
+		}
+		employeeID = authorizedID
+	} else if GetUserRoleFromContext(c) != "admin" && GetUserRoleFromContext(c) != "recruiter" {
+		// No employeeId + not HR/admin: default to "my own goals", not an unscoped list.
+		ownEmployeeID, ok := resolveOwnEmployeeID(c)
+		if !ok {
+			return
+		}
+		employeeID = ownEmployeeID
+	}
 	status := c.Query("status")
 
 	goals, err := repository.GetGoalsByEmployeeID(c.Request.Context(), employeeID, status)
@@ -191,6 +266,17 @@ func createGoalHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "employeeId and title are required"})
 		return
 	}
+
+	// req.EmployeeID is client-supplied and this route carries no role middleware — without
+	// this check, any authenticated employee could create a goal for an arbitrary employeeId.
+	// authorizeEmployeeTarget resolves it to the caller's own record unless the caller is
+	// admin/that employee's manager (Module 13 IDOR fix).
+	targetEmployeeID, ok := authorizeEmployeeTarget(c, req.EmployeeID)
+	if !ok {
+		return
+	}
+	req.EmployeeID = targetEmployeeID
+
 	if req.StartDate.IsZero() {
 		req.StartDate = time.Now()
 	}
@@ -200,11 +286,17 @@ func createGoalHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	logAudit(c, "GOAL_CREATED", "performance", "performance_goal", id)
 
 	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "goal created"})
 }
 
-// updateGoalHandler updates a goal
+// updateGoalHandler updates a goal. Accepts a PARTIAL body (e.g. mobile's
+// updateGoalProgress only sends {current, status}) — req starts as a copy of the existing
+// row, so fields absent from the request JSON keep their current value instead of being
+// zeroed out by UpdateGoal's full-column UPDATE. Previously this bound straight into a
+// zero-value struct, so any partial update (like mobile's progress update) silently wiped
+// title/description/category/weight/target/dueDate on every save.
 func updateGoalHandler(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -212,17 +304,40 @@ func updateGoalHandler(c *gin.Context) {
 		return
 	}
 
-	var req models.PerformanceGoal
+	// The goal id is client-supplied and this route carries no role middleware — without this
+	// check, any authenticated employee could edit any other employee's goal by ID. Look up the
+	// existing goal's real owner and authorize against that, not whatever employeeId happens to
+	// be in the request body (Module 13 IDOR fix).
+	existing, err := repository.GetGoalByID(c.Request.Context(), id)
+	if err != nil || existing == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "goal not found"})
+		return
+	}
+	if _, ok := authorizeEmployeeTarget(c, existing.EmployeeID); !ok {
+		return
+	}
+
+	req := *existing
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	req.ID = id
+	req.EmployeeID = existing.EmployeeID // never trust employeeId from the body
 
 	if err := repository.UpdateGoal(c.Request.Context(), &req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Progress-only updates (current/status changed, everything else identical) are logged
+	// distinctly from a full edit, matching the audit event naming the rest of this module uses.
+	action := "GOAL_UPDATED"
+	if req.Title == existing.Title && req.Description == existing.Description && req.Target == existing.Target &&
+		(req.Current != existing.Current || req.Status != existing.Status) {
+		action = "GOAL_PROGRESS_UPDATED"
+	}
+	logAudit(c, action, "performance", "performance_goal", id)
 
 	c.JSON(http.StatusOK, gin.H{"message": "goal updated"})
 }
@@ -235,6 +350,17 @@ func deleteGoalHandler(c *gin.Context) {
 		return
 	}
 
+	// Same IDOR fix as updateGoalHandler — verify the caller owns (or manages/admins) this goal's
+	// actual employee before deleting it, rather than trusting the id alone.
+	existing, err := repository.GetGoalByID(c.Request.Context(), id)
+	if err != nil || existing == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "goal not found"})
+		return
+	}
+	if _, ok := authorizeEmployeeTarget(c, existing.EmployeeID); !ok {
+		return
+	}
+
 	if err := repository.DeleteGoal(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -243,15 +369,45 @@ func deleteGoalHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "goal deleted"})
 }
 
-// getPerformanceAnalyticsHandler returns summary analytics
+// getPerformanceAnalyticsHandler returns summary analytics computed from real
+// performance_reviews/performance_goals rows — avgRating used to be hardcoded to 4.1
+// regardless of what was actually in the database.
 func getPerformanceAnalyticsHandler(c *gin.Context) {
-	// Return aggregated performance data
+	if !repository.IsDBConnected() {
+		c.JSON(http.StatusOK, gin.H{"avgRating": 0, "totalReviews": 0, "completedGoals": 0, "pendingReviews": 0})
+		return
+	}
+
+	var avgRating float64
+	var totalReviews, pendingReviews, completedGoals int
+	ctx := c.Request.Context()
+
+	if err := repository.GetDB().QueryRow(ctx,
+		`SELECT COALESCE(AVG(overall_rating), 0) FROM performance_reviews WHERE status = 'completed'`,
+	).Scan(&avgRating); err != nil {
+		log.Printf("getPerformanceAnalyticsHandler: avgRating query failed: %v", err)
+	}
+	if err := repository.GetDB().QueryRow(ctx,
+		`SELECT COUNT(*) FROM performance_reviews`,
+	).Scan(&totalReviews); err != nil {
+		log.Printf("getPerformanceAnalyticsHandler: totalReviews query failed: %v", err)
+	}
+	if err := repository.GetDB().QueryRow(ctx,
+		`SELECT COUNT(*) FROM performance_reviews WHERE status NOT IN ('completed', 'approved')`,
+	).Scan(&pendingReviews); err != nil {
+		log.Printf("getPerformanceAnalyticsHandler: pendingReviews query failed: %v", err)
+	}
+	if err := repository.GetDB().QueryRow(ctx,
+		`SELECT COUNT(*) FROM performance_goals WHERE status = 'completed'`,
+	).Scan(&completedGoals); err != nil {
+		log.Printf("getPerformanceAnalyticsHandler: completedGoals query failed: %v", err)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"avgRating":       4.1,
-		"totalReviews":    0,
-		"completedGoals":  0,
-		"pendingReviews":  0,
-		"message":        "analytics available after reviews are created",
+		"avgRating":      math.Round(avgRating*10) / 10,
+		"totalReviews":   totalReviews,
+		"completedGoals": completedGoals,
+		"pendingReviews": pendingReviews,
 	})
 }
 
@@ -300,27 +456,39 @@ func enrollInTrainingHandler(c *gin.Context) {
 		return
 	}
 
+	// employeeId is accepted for backward compatibility but never trusted — self-enrollment
+	// always uses the caller's own employeeId, resolved from the JWT (previously any employee
+	// could enroll an arbitrary other employeeId with no check at all).
 	var req struct {
-		EmployeeID int `json:"employeeId" binding:"required"`
+		EmployeeID int `json:"employeeId"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	employeeID, ok := authorizeEmployeeTarget(c, req.EmployeeID)
+	if !ok {
+		return
+	}
 
-	if err := repository.EnrollEmployeeInTraining(c.Request.Context(), programID, req.EmployeeID); err != nil {
+	if err := repository.EnrollEmployeeInTraining(c.Request.Context(), programID, employeeID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	logAudit(c, "TRAINING_ASSIGNED", "training", "training_program", programID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "employee enrolled successfully"})
 }
 
-// getMyTrainingsHandler retrieves trainings for a specific employee
+// getMyTrainingsHandler retrieves trainings for a specific employee. Despite the "my" naming,
+// employeeId was previously read straight from the query string with no ownership check — any
+// authenticated user could read any other employee's training enrollments by ID (Module 14 IDOR
+// fix). authorizeEmployeeTarget resolves it to the caller's own record unless the caller is
+// admin/that employee's manager.
 func getMyTrainingsHandler(c *gin.Context) {
-	employeeID, err := strconv.Atoi(c.Query("employeeId"))
-	if err != nil || employeeID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "valid employeeId is required"})
+	requestedID, _ := strconv.Atoi(c.Query("employeeId"))
+	employeeID, ok := authorizeEmployeeTarget(c, requestedID)
+	if !ok {
 		return
 	}
 
@@ -348,6 +516,13 @@ func getBenefitPlansHandler(c *gin.Context) {
 func getEmployeeBenefitsHandler(c *gin.Context) {
 	employeeIDStr := c.Query("employeeId")
 	if employeeIDStr == "" {
+		// No employeeId at all is the "list everyone's benefits" admin view — restrict it the
+		// same way other org-wide listings are restricted, rather than handing it to any
+		// authenticated employee.
+		if GetUserRoleFromContext(c) != "admin" && GetUserRoleFromContext(c) != "recruiter" {
+			RespondWithError(c, http.StatusForbidden, "forbidden", "You are not authorized to view all employees' benefits", nil)
+			return
+		}
 		benefits, err := repository.GetAllEmployeeBenefits(c.Request.Context())
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -357,9 +532,13 @@ func getEmployeeBenefitsHandler(c *gin.Context) {
 		return
 	}
 
-	employeeID, err := strconv.Atoi(employeeIDStr)
+	requestedEmployeeID, err := strconv.Atoi(employeeIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid employeeId"})
+		return
+	}
+	employeeID, ok := authorizeEmployeeTarget(c, requestedEmployeeID)
+	if !ok {
 		return
 	}
 
@@ -426,6 +605,9 @@ func deleteBenefitPlanHandler(c *gin.Context) {
 // enrollEmployeeBenefitHandler enrolls an employee into a benefit plan
 func enrollEmployeeBenefitHandler(c *gin.Context) {
 	var payload struct {
+		// EmployeeID kept for backward compatibility but never trusted — see
+		// authorizeEmployeeTarget. An employee enrolls themselves, or an HR/admin/manager
+		// enrolls a specific employee on their behalf.
 		EmployeeID int    `json:"employeeId" binding:"required"`
 		PlanID     int    `json:"planId" binding:"required"`
 		StartDate  string `json:"startDate"`
@@ -434,12 +616,17 @@ func enrollEmployeeBenefitHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
 		return
 	}
-	id, err := repository.EnrollEmployeeBenefit(c.Request.Context(), payload.EmployeeID, payload.PlanID, payload.StartDate)
+	employeeID, ok := authorizeEmployeeTarget(c, payload.EmployeeID)
+	if !ok {
+		return
+	}
+	id, err := repository.EnrollEmployeeBenefit(c.Request.Context(), employeeID, payload.PlanID, payload.StartDate)
 	if err != nil {
 		log.Printf("Failed to enroll employee benefit: %v", err)
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to enroll employee in benefit plan", err.Error())
 		return
 	}
+	logAudit(c, "BENEFIT_ENROLLED", "benefits", "employee_benefit", id)
 	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Employee enrolled successfully"})
 }
 
@@ -453,7 +640,11 @@ func unenrollEmployeeBenefitHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
 		return
 	}
-	if err := repository.UnenrollEmployeeBenefit(c.Request.Context(), payload.EmployeeID, payload.PlanID); err != nil {
+	employeeID, ok := authorizeEmployeeTarget(c, payload.EmployeeID)
+	if !ok {
+		return
+	}
+	if err := repository.UnenrollEmployeeBenefit(c.Request.Context(), employeeID, payload.PlanID); err != nil {
 		log.Printf("Failed to unenroll employee benefit: %v", err)
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to unenroll employee from benefit plan", err.Error())
 		return
@@ -549,7 +740,7 @@ func addSuccessionCandidateHandler(c *gin.Context) {
 
 // removeSuccessionCandidateHandler removes a candidate from a succession plan
 func removeSuccessionCandidateHandler(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("candidateId"))
 	if err != nil {
 		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid succession candidate ID", nil)
 		return

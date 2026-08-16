@@ -2,10 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -70,10 +75,17 @@ func getEmployeesHandler(c *gin.Context) {
 	})
 }
 
+// getEmployeeByIDHandler returns a full employee record, including sensitive PII (national ID,
+// tax ID, bank account, BPJS numbers, birth date, address, etc.) — unlike the trimmed directory
+// list (getEmployeesHandler), this is only available to the employee themselves or HR/admin.
 func getEmployeeByIDHandler(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	requestedID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid employee ID", nil)
+		return
+	}
+	id, ok := authorizeEmployeeTarget(c, requestedID)
+	if !ok {
 		return
 	}
 
@@ -296,7 +308,10 @@ func convertCandidateHandler(c *gin.Context) {
 	})
 }
 
-// signContractHandler handles digital signatures for contracts
+// signContractHandler handles digital signatures for contracts. The signature image is
+// actually decoded and written to disk under the same ./uploads tree the rest of the app
+// serves from (r.Static("/uploads", "./uploads")) — it never claims success without a real
+// file backing the returned URL.
 func signContractHandler(c *gin.Context) {
 	contractID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -304,27 +319,92 @@ func signContractHandler(c *gin.Context) {
 		return
 	}
 
+	contractEmployeeID, err := repository.GetContractEmployeeID(c.Request.Context(), contractID)
+	if err != nil {
+		log.Printf("ERROR in signContractHandler: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to load contract", err.Error())
+		return
+	}
+	if contractEmployeeID == 0 {
+		RespondWithError(c, http.StatusNotFound, "contract_not_found", "Contract not found", nil)
+		return
+	}
+
+	// An employee may only sign their own contract; HR/admin roles may countersign on the
+	// company's behalf. Ownership is resolved server-side — never trust a client-supplied
+	// employeeId for this check.
+	role := GetUserRoleFromContext(c)
+	if role != "admin" && role != "hiring_manager" && role != "recruiter" {
+		actingEmployeeID, _ := repository.GetEmployeeIDByUserID(c.Request.Context(), GetUserIDFromContext(c))
+		if actingEmployeeID == 0 || actingEmployeeID != contractEmployeeID {
+			RespondWithError(c, http.StatusForbidden, "forbidden", "You may only sign your own contract", nil)
+			return
+		}
+	}
+
 	var req struct {
 		SignatureBase64 string `json:"signatureBase64" binding:"required"`
 	}
-
 	if err := c.ShouldBindJSON(&req); err != nil {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Signature is required", err.Error())
 		return
 	}
 
-	// In a real application, decode Base64 and save as image file, then store URL.
-	// For simplicity, we just store a mock URL or the base64 string directly if it's small.
-	// Let's pretend we saved it to /uploads/signatures/
-	signatureURL := "/uploads/signatures/contract_" + strconv.Itoa(contractID) + ".png"
-
-	err = repository.SignContract(c.Request.Context(), contractID, signatureURL)
+	imageBytes, err := decodeSignatureImage(req.SignatureBase64)
 	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "invalid_signature", "Signature image is invalid", err.Error())
+		return
+	}
+
+	uploadDir := "uploads/signatures"
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		log.Printf("ERROR in signContractHandler: failed to create upload directory: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to save signature", nil)
+		return
+	}
+
+	filename := fmt.Sprintf("contract_%d_%d.png", contractID, time.Now().Unix())
+	diskPath := filepath.Join(uploadDir, filename)
+	if err := os.WriteFile(diskPath, imageBytes, 0644); err != nil {
+		log.Printf("ERROR in signContractHandler: failed to write signature file: %v", err)
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to save signature", nil)
+		return
+	}
+
+	// URL matches the static file mount exactly — the file at this path genuinely exists on
+	// disk at this point, unlike the previous hardcoded/never-written URL.
+	signatureURL := "/uploads/signatures/" + filename
+
+	if err := repository.SignContract(c.Request.Context(), contractID, signatureURL); err != nil {
+		// The file was written but the DB update failed — clean it up rather than leaving an
+		// orphaned file whose URL a client might still show as "signed".
+		_ = os.Remove(diskPath)
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to sign contract", err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Contract signed successfully", "signatureUrl": signatureURL})
+}
+
+// decodeSignatureImage accepts either a raw base64 string or a data: URL
+// (e.g. "data:image/png;base64,...") and returns the decoded image bytes.
+func decodeSignatureImage(input string) ([]byte, error) {
+	data := input
+	if idx := strings.Index(data, ","); idx != -1 && strings.HasPrefix(data, "data:") {
+		data = data[idx+1:]
+	}
+	data = strings.TrimSpace(data)
+	if data == "" {
+		return nil, fmt.Errorf("empty signature data")
+	}
+	decoded, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base64: %w", err)
+	}
+	if len(decoded) == 0 {
+		return nil, fmt.Errorf("decoded signature is empty")
+	}
+	return decoded, nil
 }
 
 // getEmployeeCandidateHistoryHandler returns a converted employee's pre-hire

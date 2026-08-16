@@ -26,6 +26,11 @@ build_errors*.txt
 .env
 .env.local
 .env.*.local
+# Ad-hoc backup/test env snapshots left behind during past work — .env.backup_m14_orig in
+# particular has a real, live OpenAI API key in it (not a placeholder), so these patterns
+# aren't optional cleanup, they're the difference between a public repo and a leaked key.
+.env.backup*
+.env.m14
 
 # Service account credentials
 service-account.json

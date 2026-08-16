@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import AIChatbot from '../components/AIChatbot';
+
+const AIChatbot = React.lazy(() => import('../components/AIChatbot'));
 
 const MainLayout: React.FC = () => {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -27,7 +28,9 @@ const MainLayout: React.FC = () => {
                     </div>
                 </main>
             </div>
-            <AIChatbot />
+            <Suspense fallback={null}>
+                <AIChatbot />
+            </Suspense>
         </div>
     );
 };

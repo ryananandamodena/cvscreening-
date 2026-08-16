@@ -122,3 +122,47 @@ func GetUserEmailFromContext(c *gin.Context) string {
 	}
 	return ""
 }
+
+// resolveOwnEmployeeID resolves the caller's own employee record from their JWT. Every
+// self-service handler should call this instead of reading an employeeId off the request —
+// client input must never determine whose data is read/written.
+func resolveOwnEmployeeID(c *gin.Context) (int, bool) {
+	employeeID, err := repository.GetEmployeeIDByUserID(c.Request.Context(), GetUserIDFromContext(c))
+	if err != nil || employeeID == 0 {
+		RespondWithError(c, http.StatusNotFound, "no_employee_record", "Akun Anda belum terhubung dengan data karyawan", nil)
+		return 0, false
+	}
+	return employeeID, true
+}
+
+// authorizeEmployeeTarget resolves the caller's own employeeID, and — only if the caller
+// explicitly asked to act on a *different* employee (targetEmployeeID > 0 and != own) —
+// verifies the caller is either an admin or that employee's direct manager before allowing it.
+// Returns the employeeID whose data should actually be used, and false if an error response
+// was already written (caller must return immediately in that case).
+//
+// This is the shared self-service ownership pattern used across Leave, Attendance, and other
+// "view/act on my own record, or my subordinate's if I'm their manager" endpoints.
+func authorizeEmployeeTarget(c *gin.Context, targetEmployeeID int) (int, bool) {
+	ownEmployeeID, ok := resolveOwnEmployeeID(c)
+	if !ok {
+		return 0, false
+	}
+	if targetEmployeeID == 0 || targetEmployeeID == ownEmployeeID {
+		return ownEmployeeID, true
+	}
+
+	if GetUserRoleFromContext(c) == "admin" {
+		return targetEmployeeID, true
+	}
+	target, err := repository.GetEmployeeByID(c.Request.Context(), targetEmployeeID)
+	if err != nil || target == nil {
+		RespondWithError(c, http.StatusNotFound, "employee_not_found", "Employee not found", nil)
+		return 0, false
+	}
+	if target.ManagerID != nil && *target.ManagerID == ownEmployeeID {
+		return targetEmployeeID, true
+	}
+	RespondWithError(c, http.StatusForbidden, "forbidden", "You are not authorized to access this employee's data", nil)
+	return 0, false
+}

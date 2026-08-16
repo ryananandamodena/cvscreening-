@@ -26,16 +26,27 @@ func getLeaveTypesHandler(c *gin.Context) {
 }
 
 // ==================== LEAVE BALANCE HANDLERS ====================
+//
+// Leave is self-service by default: an employee's own employeeId is always resolved from the
+// JWT via resolveOwnEmployeeID/authorizeEmployeeTarget (auth.go) — never trusted from a query
+// param, path param, or request body. A caller MAY act on a *different* employee's leave data
+// only when they're an admin or that employee's direct manager (see authorizeEmployeeTarget).
 
 func getLeaveBalancesHandler(c *gin.Context) {
-	empIdStr := c.Query("employeeId")
-	if empIdStr == "" {
-		RespondWithError(c, http.StatusBadRequest, "validation_error", "employeeId required", nil)
-		return
+	// A manager/admin may still pass ?employeeId= to look up someone else's balance —
+	// authorizeEmployeeTarget enforces that only admins/direct managers can actually use it;
+	// for everyone else this parameter is silently ignored in favor of their own employeeId.
+	var requestedEmployeeID int
+	if empIdStr := c.Query("employeeId"); empIdStr != "" {
+		var err error
+		requestedEmployeeID, err = strconv.Atoi(empIdStr)
+		if err != nil {
+			RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid employeeId", nil)
+			return
+		}
 	}
-	empId, err := strconv.Atoi(empIdStr)
-	if err != nil {
-		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid employeeId", nil)
+	empId, ok := authorizeEmployeeTarget(c, requestedEmployeeID)
+	if !ok {
 		return
 	}
 
@@ -61,7 +72,10 @@ func getLeaveBalancesHandler(c *gin.Context) {
 
 func createLeaveRequestHandler(c *gin.Context) {
 	var req struct {
-		EmployeeID     int    `json:"employeeId" binding:"required"`
+		// EmployeeID is accepted for backward compatibility with older clients that still send
+		// it, but it is NEVER trusted: the request is always created for whoever is actually
+		// logged in (resolved from the JWT below), never for a client-asserted identity.
+		EmployeeID     int    `json:"employeeId"`
 		LeaveTypeID    int    `json:"leaveTypeId" binding:"required"`
 		StartDate      string `json:"startDate" binding:"required"`
 		EndDate        string `json:"endDate" binding:"required"`
@@ -74,6 +88,12 @@ func createLeaveRequestHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
 		return
 	}
+
+	ownEmployeeID, ok := resolveOwnEmployeeID(c)
+	if !ok {
+		return
+	}
+	req.EmployeeID = ownEmployeeID
 
 	// Parse dates
 	startDate, err := time.Parse("2006-01-02", req.StartDate)
@@ -180,14 +200,20 @@ func createLeaveRequestHandler(c *gin.Context) {
 }
 
 func getLeaveRequestsHandler(c *gin.Context) {
-	empIdStr := c.Query("employeeId")
 	status := c.Query("status")
 
-	// If employeeId is provided, get requests for that employee
-	if empIdStr != "" {
-		empId, err := strconv.Atoi(empIdStr)
+	// If employeeId is provided, this is a "give me one employee's history" call — treated as
+	// self-service unless the caller is an admin or that employee's direct manager (same rule
+	// as getLeaveBalancesHandler). No employeeId at all falls through to the admin/manager-wide
+	// list below, which is unrelated to any single employee's ownership.
+	if empIdStr := c.Query("employeeId"); empIdStr != "" {
+		requestedEmployeeID, err := strconv.Atoi(empIdStr)
 		if err != nil {
 			RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid employeeId", nil)
+			return
+		}
+		empId, ok := authorizeEmployeeTarget(c, requestedEmployeeID)
+		if !ok {
 			return
 		}
 
@@ -202,7 +228,25 @@ func getLeaveRequestsHandler(c *gin.Context) {
 		return
 	}
 
-	// Otherwise, get all requests (for admin/manager view)
+	// No employeeId: self-service default is "my own history", not the org-wide list — an
+	// arbitrary authenticated employee must never see everyone else's leave requests just by
+	// omitting the parameter. Only admins get the unscoped, all-employees view.
+	if GetUserRoleFromContext(c) != "admin" {
+		ownEmployeeID, ok := resolveOwnEmployeeID(c)
+		if !ok {
+			return
+		}
+		requests, err := repository.GetLeaveHistory(c.Request.Context(), ownEmployeeID)
+		if err != nil {
+			log.Printf("ERROR in getLeaveRequestsHandler: %v", err)
+			RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to fetch leave requests", err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, requests)
+		return
+	}
+
+	// Admin view: all requests, optionally filtered by status.
 	requests, err := repository.GetAllLeaveRequests(c.Request.Context(), status)
 	if err != nil {
 		log.Printf("ERROR in getLeaveRequestsHandler: %v", err)
@@ -214,8 +258,7 @@ func getLeaveRequestsHandler(c *gin.Context) {
 }
 
 func getLeaveRequestByIDHandler(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request ID", nil)
 		return
@@ -227,29 +270,71 @@ func getLeaveRequestByIDHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to fetch leave request", err.Error())
 		return
 	}
+	if request == nil {
+		RespondWithError(c, http.StatusNotFound, "not_found", "Leave request not found", nil)
+		return
+	}
+
+	// Same ownership rule as the list/balance endpoints: the request's own employee, that
+	// employee's direct manager, or an admin — never an arbitrary authenticated user.
+	if _, ok := authorizeEmployeeTarget(c, request.EmployeeID); !ok {
+		return
+	}
 
 	c.JSON(http.StatusOK, request)
 }
 
+// authorizeLeaveApprover checks that the caller is actually allowed to decide on the given
+// leave request: an admin, or the requesting employee's direct manager — never the requester
+// themselves, and never just "whatever approverId the client put in the body" (the previous
+// behavior let anyone approve/reject anyone's leave, including their own, by asserting any
+// approverId). Returns the request and the verified approver's own employeeId.
+func authorizeLeaveApprover(c *gin.Context, requestID int) (*models.LeaveRequest, int, bool) {
+	leaveReq, err := repository.GetLeaveRequestByID(c.Request.Context(), requestID)
+	if err != nil || leaveReq == nil {
+		RespondWithError(c, http.StatusNotFound, "not_found", "Leave request not found", nil)
+		return nil, 0, false
+	}
+
+	approverEmployeeID, ok := resolveOwnEmployeeID(c)
+	if !ok {
+		return nil, 0, false
+	}
+
+	if approverEmployeeID == leaveReq.EmployeeID {
+		RespondWithError(c, http.StatusForbidden, "forbidden", "You cannot approve or reject your own leave request", nil)
+		return nil, 0, false
+	}
+
+	if GetUserRoleFromContext(c) == "admin" {
+		return leaveReq, approverEmployeeID, true
+	}
+
+	employee, err := repository.GetEmployeeByID(c.Request.Context(), leaveReq.EmployeeID)
+	if err != nil || employee == nil || employee.ManagerID == nil || *employee.ManagerID != approverEmployeeID {
+		RespondWithError(c, http.StatusForbidden, "forbidden", "You are not authorized to approve or reject this leave request", nil)
+		return nil, 0, false
+	}
+
+	return leaveReq, approverEmployeeID, true
+}
+
 func approveLeaveRequestHandler(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request ID", nil)
 		return
 	}
 
-	var req struct {
-		ApproverID int `json:"approverId" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+	// approverId is no longer accepted from the client at all — the approver is always
+	// whoever is actually authenticated, and authorizeLeaveApprover verifies they're allowed
+	// to decide on this specific request (its employee's manager, or an admin).
+	_, approverEmployeeID, ok := authorizeLeaveApprover(c, id)
+	if !ok {
 		return
 	}
 
-	err = repository.UpdateLeaveRequestStatus(c.Request.Context(), id, "approved", req.ApproverID, "")
-	if err != nil {
+	if err := repository.UpdateLeaveRequestStatus(c.Request.Context(), id, "approved", approverEmployeeID, ""); err != nil {
 		log.Printf("ERROR in approveLeaveRequestHandler: %v", err)
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to approve leave request", err.Error())
 		return
@@ -291,25 +376,26 @@ func notifyLeaveDecision(requestID int, templateCode, rejectionReason string) {
 }
 
 func rejectLeaveRequestHandler(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request ID", nil)
 		return
 	}
 
 	var req struct {
-		ApproverID      int    `json:"approverId" binding:"required"`
 		RejectionReason string `json:"rejectionReason" binding:"required"`
 	}
-
 	if err := c.ShouldBindJSON(&req); err != nil {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
 		return
 	}
 
-	err = repository.UpdateLeaveRequestStatus(c.Request.Context(), id, "rejected", req.ApproverID, req.RejectionReason)
-	if err != nil {
+	_, approverEmployeeID, ok := authorizeLeaveApprover(c, id)
+	if !ok {
+		return
+	}
+
+	if err := repository.UpdateLeaveRequestStatus(c.Request.Context(), id, "rejected", approverEmployeeID, req.RejectionReason); err != nil {
 		log.Printf("ERROR in rejectLeaveRequestHandler: %v", err)
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to reject leave request", err.Error())
 		return
@@ -330,12 +416,12 @@ func cancelLeaveRequestHandler(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		EmployeeID int `json:"employeeId" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+	// The old version trusted `employeeId` from the request body for the *ownership check
+	// itself* — e.g. {"employeeId": <victim's id>} would pass because it compared the client's
+	// claim against the DB record instead of the actual caller's identity. Ownership is now
+	// always the caller's own employeeId, resolved from the JWT.
+	ownEmployeeID, ok := resolveOwnEmployeeID(c)
+	if !ok {
 		return
 	}
 
@@ -347,7 +433,7 @@ func cancelLeaveRequestHandler(c *gin.Context) {
 		return
 	}
 
-	if leaveReq.EmployeeID != req.EmployeeID {
+	if leaveReq.EmployeeID != ownEmployeeID {
 		RespondWithError(c, http.StatusForbidden, "forbidden", "You can only cancel your own leave requests", nil)
 		return
 	}
@@ -357,7 +443,7 @@ func cancelLeaveRequestHandler(c *gin.Context) {
 		return
 	}
 
-	err = repository.UpdateLeaveRequestStatus(c.Request.Context(), id, "cancelled", req.EmployeeID, "Cancelled by employee")
+	err = repository.UpdateLeaveRequestStatus(c.Request.Context(), id, "cancelled", ownEmployeeID, "Cancelled by employee")
 	if err != nil {
 		log.Printf("ERROR in cancelLeaveRequestHandler: %v", err)
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to cancel leave request", err.Error())

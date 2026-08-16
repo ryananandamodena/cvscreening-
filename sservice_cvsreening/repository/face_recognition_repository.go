@@ -54,6 +54,12 @@ func VerifyFaceDescriptor(ctx context.Context, employeeID int, candidate []float
 	if enrolled == nil {
 		return true, 0, nil
 	}
+	return CompareFaceDescriptors(enrolled, candidate)
+}
+
+// CompareFaceDescriptors is the pure distance-comparison core of VerifyFaceDescriptor, split out
+// so it can be unit-tested without a database connection (GetFaceDescriptor requires one).
+func CompareFaceDescriptors(enrolled, candidate []float64) (bool, float64, error) {
 	if len(candidate) != len(enrolled) {
 		return false, 999, fmt.Errorf("format face descriptor tidak valid")
 	}

@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -50,6 +51,74 @@ func updateOfficeLocationHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Office location updated"})
 }
 
+// getLocationExemptionsHandler lists every employee that currently has a geofencing exemption
+// row (enabled or not), for the HR/Admin management screen.
+func getLocationExemptionsHandler(c *gin.Context) {
+	list, _ := repository.ListLocationExemptions(c.Request.Context())
+	c.JSON(http.StatusOK, gin.H{"exemptions": list})
+}
+
+// setLocationExemptionHandler lets HR/Admin dynamically allow (or revoke) a specific employee
+// clocking in/out from outside the office geofencing radius — e.g. remote workers, field staff,
+// or a temporary WFH arrangement — without changing the shared office_settings location that
+// everyone else is still checked against.
+func setLocationExemptionHandler(c *gin.Context) {
+	employeeID, err := strconv.Atoi(c.Param("employeeId"))
+	if err != nil || employeeID <= 0 {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid employee id", nil)
+		return
+	}
+
+	var req struct {
+		Enabled   bool    `json:"enabled"`
+		Reason    string  `json:"reason"`
+		StartDate *string `json:"startDate"`
+		EndDate   *string `json:"endDate"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
+		return
+	}
+
+	parseDate := func(s *string) (*time.Time, error) {
+		if s == nil || *s == "" {
+			return nil, nil
+		}
+		t, err := time.Parse("2006-01-02", *s)
+		if err != nil {
+			return nil, err
+		}
+		return &t, nil
+	}
+	startDate, err := parseDate(req.StartDate)
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "startDate must be YYYY-MM-DD", nil)
+		return
+	}
+	endDate, err := parseDate(req.EndDate)
+	if err != nil {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "endDate must be YYYY-MM-DD", nil)
+		return
+	}
+	if startDate != nil && endDate != nil && endDate.Before(*startDate) {
+		RespondWithError(c, http.StatusBadRequest, "validation_error", "endDate must not be before startDate", nil)
+		return
+	}
+
+	err = repository.SetLocationExemption(c.Request.Context(), GetUserIDFromContext(c), repository.LocationExemption{
+		EmployeeID: employeeID,
+		Enabled:    req.Enabled,
+		Reason:     req.Reason,
+		StartDate:  startDate,
+		EndDate:    endDate,
+	})
+	if err != nil {
+		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to update location exemption", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Location exemption updated"})
+}
+
 // shiftTimeToday combines a "HH:MM:SS" shift time string with today's date into a full time.Time
 func shiftTimeToday(reference time.Time, hhmmss string) (time.Time, error) {
 	t, err := time.Parse("15:04:05", hhmmss)
@@ -57,6 +126,16 @@ func shiftTimeToday(reference time.Time, hhmmss string) (time.Time, error) {
 		return time.Time{}, err
 	}
 	return time.Date(reference.Year(), reference.Month(), reference.Day(), t.Hour(), t.Minute(), t.Second(), 0, reference.Location()), nil
+}
+
+// shouldEnforceFaceVerification decides whether mandatory face-matching applies to this
+// clock-in, based on the client's own declared platform — not on whether a descriptor happens
+// to be present (that was the exact fail-open bug fixed in Module 14; this is a deliberate,
+// declared exemption for a channel with no face-matching capability at all, not an omission).
+// Only "mobile" is exempted; anything else (empty string = web, or an unrecognized value) still
+// enforces verification, so a spoofed/unknown clientType fails closed rather than open.
+func shouldEnforceFaceVerification(clientType string) bool {
+	return strings.ToLower(strings.TrimSpace(clientType)) != "mobile"
 }
 
 func clockInHandler(c *gin.Context) {
@@ -101,18 +180,61 @@ func clockInHandler(c *gin.Context) {
 			return
 		}
 
-		office, _ := repository.GetOfficeSettings(c.Request.Context())
-		distance := haversineDistance(office.Latitude, office.Longitude, req.Latitude, req.Longitude)
-		if distance > office.RadiusMeters {
-			RespondWithError(c, http.StatusForbidden, "geofencing_error", "Anda berada di luar jangkauan area kantor (Geofencing)", nil)
-			return
+		// An employee with an active location exemption (set by HR/Admin — see
+		// attendance_location_exemption_repository.go) skips the office geofencing check
+		// entirely, e.g. permanent remote workers, field staff, or a time-boxed WFH
+		// arrangement. Photo capture is still mandatory either way.
+		exempt, exemptErr := repository.IsRemoteExempt(c.Request.Context(), employeeID)
+		if exemptErr != nil {
+			log.Printf("ERROR checking location exemption for employee %d: %v", employeeID, exemptErr)
+		}
+		if !exempt {
+			office, _ := repository.GetOfficeSettings(c.Request.Context())
+			distance := haversineDistance(office.Latitude, office.Longitude, req.Latitude, req.Longitude)
+			if distance > office.RadiusMeters {
+				RespondWithError(c, http.StatusForbidden, "geofencing_error", "Anda berada di luar jangkauan area kantor (Geofencing)", nil)
+				return
+			}
 		}
 
-		if len(req.FaceDescriptor) > 0 {
+		// Face verification is only meaningful once the employee has actually enrolled a
+		// reference descriptor — an employee with no enrollment yet has nothing to compare
+		// against (see VerifyFaceDescriptor's documented "no enrollment" pass-through; this is
+		// an explicit, unchanged business-policy decision, not something fixed here).
+		//
+		// But for an employee who HAS already enrolled, verification must be mandatory and
+		// fail-closed on every clock-in — two bypasses previously existed here (Module 14
+		// security fix):
+		//   1. Simply omitting `faceDescriptor` from the request skipped the whole check, even
+		//      for an already-enrolled employee — trivially bypassable via a direct API call
+		//      that never touches the camera/face-api.js at all.
+		//   2. Any error from VerifyFaceDescriptor (DB error, malformed/wrong-length descriptor)
+		//      was only logged, then fell through as an implicit ALLOW instead of a DENY.
+		// Both let an already-enrolled employee falsify their own attendance record — a direct
+		// bypass of the anti-fraud "live selfie" policy this feature exists to enforce, not a
+		// business-decision case.
+		//
+		// Exception: the mobile app has no on-device face-matching capability at all (no
+		// face-api.js equivalent), so it can never send a faceDescriptor — an explicit, declared
+		// exemption (shouldEnforceFaceVerification), not the same silent-omission bypass as
+		// above. Photo+GPS/geofencing are still mandatory for mobile either way.
+		enrolledDescriptor, faceLookupErr := repository.GetFaceDescriptor(c.Request.Context(), employeeID)
+		if faceLookupErr != nil {
+			log.Printf("ERROR fetching enrolled face descriptor for employee %d: %v", employeeID, faceLookupErr)
+		} else if enrolledDescriptor != nil && shouldEnforceFaceVerification(req.ClientType) {
+			if len(req.FaceDescriptor) == 0 {
+				RespondWithError(c, http.StatusForbidden, "face_verification_required",
+					"Verifikasi wajah diperlukan — wajah tidak terdeteksi pada foto. Silakan coba lagi dengan pencahayaan yang lebih baik.", nil)
+				return
+			}
 			matched, distance, verifyErr := repository.VerifyFaceDescriptor(c.Request.Context(), employeeID, req.FaceDescriptor)
 			if verifyErr != nil {
-				log.Printf("ERROR verifying face descriptor: %v", verifyErr)
-			} else if !matched {
+				log.Printf("ERROR verifying face descriptor for employee %d: %v", employeeID, verifyErr)
+				RespondWithError(c, http.StatusForbidden, "face_verification_failed",
+					"Verifikasi wajah gagal — data wajah tidak valid. Silakan ajukan koreksi absensi (jenis: Verifikasi Foto Gagal) untuk persetujuan manager.", nil)
+				return
+			}
+			if !matched {
 				log.Printf("Face verification failed for employee %d (distance=%.3f)", employeeID, distance)
 				RespondWithError(c, http.StatusForbidden, "face_verification_failed",
 					"Verifikasi wajah gagal — wajah tidak cocok dengan data terdaftar. Silakan ajukan koreksi absensi (jenis: Verifikasi Foto Gagal) untuk persetujuan manager.", nil)
@@ -189,10 +311,16 @@ func clockOutHandler(c *gin.Context) {
 			RespondWithError(c, http.StatusBadRequest, "location_required", "Lokasi GPS diperlukan untuk clock out", nil)
 			return
 		}
-		office, _ := repository.GetOfficeSettings(c.Request.Context())
-		if distance := haversineDistance(office.Latitude, office.Longitude, req.Latitude, req.Longitude); distance > office.RadiusMeters {
-			RespondWithError(c, http.StatusForbidden, "geofencing_error", "Anda berada di luar jangkauan area kantor (Geofencing)", nil)
-			return
+		exempt, exemptErr := repository.IsRemoteExempt(c.Request.Context(), employeeID)
+		if exemptErr != nil {
+			log.Printf("ERROR checking location exemption for employee %d: %v", employeeID, exemptErr)
+		}
+		if !exempt {
+			office, _ := repository.GetOfficeSettings(c.Request.Context())
+			if distance := haversineDistance(office.Latitude, office.Longitude, req.Latitude, req.Longitude); distance > office.RadiusMeters {
+				RespondWithError(c, http.StatusForbidden, "geofencing_error", "Anda berada di luar jangkauan area kantor (Geofencing)", nil)
+				return
+			}
 		}
 	}
 
@@ -277,14 +405,22 @@ func getTodayBreaksHandler(c *gin.Context) {
 }
 
 func getTodayAttendanceHandler(c *gin.Context) {
-	empIdStr := c.Query("employeeId")
-	if empIdStr == "" {
-		RespondWithError(c, http.StatusBadRequest, "validation_error", "employeeId required", nil)
-		return
+	// Self-service by default, resolved from the JWT — an explicit ?employeeId= is honored
+	// only for an admin or that employee's direct manager (authorizeEmployeeTarget). Previously
+	// a client-supplied employeeId was used directly with no check at all, and the "JWT
+	// fallback" for the no-param case read a gin context key ("employee_id") that AuthMiddleware
+	// never actually sets — so self-service calls with no employeeId always 400'd.
+	var requestedEmployeeID int
+	if empIdStr := c.Query("employeeId"); empIdStr != "" {
+		var err error
+		requestedEmployeeID, err = strconv.Atoi(empIdStr)
+		if err != nil {
+			RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid employeeId", nil)
+			return
+		}
 	}
-	empId, err := strconv.Atoi(empIdStr)
-	if err != nil {
-		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid employeeId", nil)
+	empId, ok := authorizeEmployeeTarget(c, requestedEmployeeID)
+	if !ok {
 		return
 	}
 
@@ -304,14 +440,18 @@ func getTodayAttendanceHandler(c *gin.Context) {
 }
 
 func getAttendanceHistoryHandler(c *gin.Context) {
-	empIdStr := c.Query("employeeId")
-	if empIdStr == "" {
-		RespondWithError(c, http.StatusBadRequest, "validation_error", "employeeId required", nil)
-		return
+	// Same ownership rule as getTodayAttendanceHandler — see its comment.
+	var requestedEmployeeID int
+	if empIdStr := c.Query("employeeId"); empIdStr != "" {
+		var err error
+		requestedEmployeeID, err = strconv.Atoi(empIdStr)
+		if err != nil {
+			RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid employeeId", nil)
+			return
+		}
 	}
-	empId, err := strconv.Atoi(empIdStr)
-	if err != nil {
-		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid employeeId", nil)
+	empId, ok := authorizeEmployeeTarget(c, requestedEmployeeID)
+	if !ok {
 		return
 	}
 
@@ -420,9 +560,13 @@ func getEmployeeShiftHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "employee ID required", nil)
 		return
 	}
-	empId, err := strconv.Atoi(empIdStr)
+	requestedEmpId, err := strconv.Atoi(empIdStr)
 	if err != nil {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid employee ID", nil)
+		return
+	}
+	empId, ok := authorizeEmployeeTarget(c, requestedEmpId)
+	if !ok {
 		return
 	}
 

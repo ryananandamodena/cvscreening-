@@ -104,7 +104,7 @@ func createUserHandler(c *gin.Context) {
 	}
 
 	// Log Activity
-	repository.LogActivity(c.Request.Context(), 1, "create_user", "user", id, "Created user: "+payload.Email, c.ClientIP())
+	repository.LogActivity(c.Request.Context(), GetUserIDFromContext(c), "create_user", "user", id, "Created user: "+payload.Email, c.ClientIP())
 	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "models.User created successfully"})
 }
 
@@ -154,7 +154,7 @@ func updateUserHandler(c *gin.Context) {
 		}
 	}
 
-	repository.LogActivity(c.Request.Context(), 1, "update_user", "user", id, "Updated user ID: "+idStr, c.ClientIP())
+	repository.LogActivity(c.Request.Context(), GetUserIDFromContext(c), "update_user", "user", id, "Updated user ID: "+idStr, c.ClientIP())
 	c.JSON(http.StatusOK, gin.H{"message": "models.User updated successfully"})
 }
 
@@ -183,7 +183,7 @@ func deleteUserHandler(c *gin.Context) {
 		return
 	}
 
-	repository.LogActivity(c.Request.Context(), 1, "delete_user", "user", id, "Deleted user ID: "+idStr, c.ClientIP())
+	repository.LogActivity(c.Request.Context(), GetUserIDFromContext(c), "delete_user", "user", id, "Deleted user ID: "+idStr, c.ClientIP())
 	c.JSON(http.StatusOK, gin.H{"message": "models.User deleted successfully"})
 }
 
@@ -229,6 +229,6 @@ func toggleUserStatusHandler(c *gin.Context) {
 	if payload.IsActive {
 		status = "activated"
 	}
-	repository.LogActivity(c.Request.Context(), 1, "toggle_user_status", "user", id, "User "+status, c.ClientIP())
+	repository.LogActivity(c.Request.Context(), GetUserIDFromContext(c), "toggle_user_status", "user", id, "User "+status, c.ClientIP())
 	c.JSON(http.StatusOK, gin.H{"message": "models.User status updated successfully"})
 }

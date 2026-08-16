@@ -1,23 +1,44 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { Camera, MapPin, RefreshCw, CheckCircle2, AlertCircle, Loader2, Building2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { attendanceService } from '../../services/attendance.service';
 import { useAuth } from '../../guards/AuthGuard';
 import { useToast } from '../../contexts/ToastContext';
-import { extractFaceDescriptor, faceRecognitionService } from '../../services/faceRecognition.service';
+import { extractFaceDescriptor, faceRecognitionService, FaceModelLoadError } from '../../services/faceRecognition.service';
 
-const HR_ROLES = ['admin', 'hr', 'hr_admin', 'hr_manager', 'hiring_manager', 'manager'];
+// Backend gate for PUT /attendance/office-location is HROrAdmin() (routes_attendance.go) —
+// 'admin'/'hr'/'hr_admin'/'hr_manager'. Previously this list was ['admin', 'recruiter'], mirroring
+// a since-fixed backend bug where the route was mistakenly gated by RecruiterOrAdmin(): a
+// recruiter (who has no real business reason to move the office geofencing point) could see this
+// button while genuine HR roles couldn't. Keep this in sync with HROrAdmin()'s role list.
+const HR_ROLES = ['admin', 'hr', 'hr_admin', 'hr_manager'];
 
-// Leaflet's default marker icons break under bundlers unless explicitly re-pointed to CDN assets.
-const markerIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+const MapView = React.lazy(async () => {
+  const [{ MapContainer, TileLayer, Marker, Circle }, L] = await Promise.all([
+    import('react-leaflet'),
+    import('leaflet'),
+  ]);
+  await import('leaflet/dist/leaflet.css');
+
+  const markerIcon = new L.Icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+  });
+
+  const MapPanel = ({ coords, office }: { coords: { lat: number; lng: number }; office: { latitude: number; longitude: number; radiusMeters: number } }) => (
+    <div className="h-48 rounded-xl overflow-hidden border border-slate-200 dark:border-neutral-800">
+      <MapContainer center={[coords.lat, coords.lng]} zoom={17} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
+        <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <Marker position={[coords.lat, coords.lng]} icon={markerIcon} />
+        <Circle center={[office.latitude, office.longitude]} radius={office.radiusMeters} pathOptions={{ color: '#dc2626', fillOpacity: 0.1 }} />
+      </MapContainer>
+    </div>
+  );
+
+  return { default: MapPanel };
 });
 
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -50,7 +71,7 @@ const ClockInModal: React.FC<ClockInModalProps> = ({ mode, onClose, onSuccess })
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
-  const [faceStatus, setFaceStatus] = useState<'idle' | 'checking' | 'detected' | 'not_detected'>('idle');
+  const [faceStatus, setFaceStatus] = useState<'idle' | 'checking' | 'detected' | 'not_detected' | 'model_load_failed'>('idle');
   const [faceEnrolled, setFaceEnrolled] = useState<boolean | null>(null);
 
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -130,9 +151,13 @@ const ClockInModal: React.FC<ClockInModalProps> = ({ mode, onClose, onSuccess })
         setFaceDescriptor(null);
         setFaceStatus('not_detected');
       }
-    } catch {
+    } catch (err) {
       setFaceDescriptor(null);
-      setFaceStatus('not_detected');
+      // A failed model download (no network / CDN blocked) is a distinct failure from "no face
+      // in this frame" — must show as a real error state, never silently behave as if
+      // verification passed (Module 14 audit, S8/S9). Either way faceStatus stays outside
+      // 'detected', so canSubmit still correctly blocks clock-in submission.
+      setFaceStatus(err instanceof FaceModelLoadError ? 'model_load_failed' : 'not_detected');
     }
   };
 
@@ -220,7 +245,25 @@ const ClockInModal: React.FC<ClockInModalProps> = ({ mode, onClose, onSuccess })
               ) : photo ? (
                 <img src={photo} alt="Captured" className="w-full h-full object-cover" />
               ) : (
-                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                <video
+                  ref={(el) => {
+                    videoRef.current = el;
+                    // The <video> element unmounts/remounts every time `photo` toggles (it's
+                    // swapped for an <img> after capture, then swapped back on "Ambil Ulang").
+                    // Attaching the stream only once in the mount-time effect left every
+                    // re-mounted video element with no srcObject at all — a black frame that
+                    // then got "captured" as the next photo. Re-attaching here, on every mount
+                    // of this exact element, fixes retake without needing a whole new
+                    // getUserMedia() call each time.
+                    if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                      el.srcObject = streamRef.current;
+                    }
+                  }}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
               )}
               <canvas ref={canvasRef} className="hidden" />
             </div>
@@ -241,6 +284,8 @@ const ClockInModal: React.FC<ClockInModalProps> = ({ mode, onClose, onSuccess })
                   <><Loader2 className="animate-spin" size={16} /> Memverifikasi wajah...</>
                 ) : faceStatus === 'detected' ? (
                   <><CheckCircle2 size={16} /> Wajah terdeteksi {faceEnrolled === false ? '— akan didaftarkan sebagai referensi' : ''}</>
+                ) : faceStatus === 'model_load_failed' ? (
+                  <><AlertCircle size={16} /> Gagal memuat model deteksi wajah — periksa koneksi internet Anda, lalu coba ambil ulang foto</>
                 ) : (
                   <><AlertCircle size={16} /> Wajah tidak terdeteksi, silakan ambil ulang foto</>
                 )}
@@ -264,13 +309,9 @@ const ClockInModal: React.FC<ClockInModalProps> = ({ mode, onClose, onSuccess })
               </div>
             ) : coords && office ? (
               <>
-                <div className="h-48 rounded-xl overflow-hidden border border-slate-200 dark:border-neutral-800">
-                  <MapContainer center={[coords.lat, coords.lng]} zoom={17} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
-                    <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    <Marker position={[coords.lat, coords.lng]} icon={markerIcon} />
-                    <Circle center={[office.latitude, office.longitude]} radius={office.radiusMeters} pathOptions={{ color: '#dc2626', fillOpacity: 0.1 }} />
-                  </MapContainer>
-                </div>
+                <Suspense fallback={<div className="h-48 rounded-xl border border-slate-200 dark:border-neutral-800 bg-slate-100 dark:bg-neutral-900 flex items-center justify-center text-sm text-slate-500">Memuat peta...</div>}>
+                  <MapView coords={coords} office={office} />
+                </Suspense>
                 <div className={`mt-2 flex items-center gap-2 text-sm font-semibold p-2.5 rounded-lg ${withinRange ? 'bg-success-50 dark:bg-success-500/10 text-success-700 dark:text-success-500' : 'bg-danger-50 dark:bg-danger-500/10 text-danger-700 dark:text-danger-500'}`}>
                   {withinRange ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                   {withinRange

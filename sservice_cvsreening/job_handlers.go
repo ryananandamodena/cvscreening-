@@ -91,7 +91,7 @@ func createJobHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Job created successfully"})
 
 	// Log Activity
-	repository.LogActivity(c.Request.Context(), 1, "create_job", "job", id, "Created job: "+job.Title, c.ClientIP())
+	repository.LogActivity(c.Request.Context(), GetUserIDFromContext(c), "create_job", "job", id, "Created job: "+job.Title, c.ClientIP())
 }
 
 func updateJobHandler(c *gin.Context) {

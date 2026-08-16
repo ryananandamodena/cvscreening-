@@ -163,58 +163,31 @@ func candidatePortalLoginHandler(c *gin.Context) {
 	})
 }
 
-// getPublicJobsHandler returns published jobs for candidates
+// getPublicJobsHandler returns published jobs for candidates. On a DB failure this must surface
+// a real error — it must never mask an outage by returning fabricated job postings with a 200,
+// which would mislead candidates into thinking those jobs actually exist.
 func getPublicJobsHandler(c *gin.Context) {
-	ctx := context.Context(nil)
-	if repository.IsDBConnected() {
-		ctx = c.Request.Context()
+	if !repository.IsDBConnected() {
+		log.Printf("getPublicJobsHandler: database not connected")
+		RespondWithError(c, http.StatusServiceUnavailable, "service_unavailable",
+			"Job listings are temporarily unavailable. Please try again later.", nil)
+		return
 	}
 
 	var jobs []models.JobDescription
-	rows, err := repository.GetDB().Query(ctx, `
-		SELECT id, title, department, description, requirements, location, 
+	rows, err := repository.GetDB().Query(c.Request.Context(), `
+		SELECT id, title, department, description, requirements, location,
 		       employment_type, salary_min, salary_max, created_at
-		FROM jobs 
-		WHERE status = 'published' AND deleted_at IS NULL
+		FROM job_descriptions
+		WHERE (status = 'active' OR status IS NULL) AND deleted_at IS NULL
 		ORDER BY created_at DESC
 	`)
 	if err != nil {
-		// Return mock data if DB not available
-		c.JSON(http.StatusOK, gin.H{
-			"jobs": []gin.H{
-				{
-					"id":             1,
-					"title":          "Software Engineer",
-					"department":     "Engineering",
-					"description":    "We are looking for a skilled Software Engineer to join our team.",
-					"location":       "Jakarta",
-					"employmentType": "Full-time",
-					"salaryMin":      10000000,
-					"salaryMax":      20000000,
-				},
-				{
-					"id":             2,
-					"title":          "Product Manager",
-					"department":     "Product",
-					"description":    "Join our product team to build amazing products.",
-					"location":       "Jakarta",
-					"employmentType": "Full-time",
-					"salaryMin":      15000000,
-					"salaryMax":      25000000,
-				},
-				{
-					"id":             3,
-					"title":          "UX Designer",
-					"department":     "Design",
-					"description":    "Create beautiful and intuitive user experiences.",
-					"location":       "Remote",
-					"employmentType": "Full-time",
-					"salaryMin":      8000000,
-					"salaryMax":      15000000,
-				},
-			},
-			"total": 3,
-		})
+		// Log internally for diagnosis; never expose the underlying DB error/details to a
+		// public, unauthenticated candidate-facing endpoint.
+		log.Printf("getPublicJobsHandler: query failed: %v", err)
+		RespondWithError(c, http.StatusServiceUnavailable, "service_unavailable",
+			"Job listings are temporarily unavailable. Please try again later.", nil)
 		return
 	}
 	defer rows.Close()
@@ -266,7 +239,7 @@ func submitApplicationHandler(c *gin.Context) {
 	// Get job details
 	var jobTitle, jobDepartment string
 	ctx := c.Request.Context()
-	err := repository.GetDB().QueryRow(ctx, "SELECT title, department FROM jobs WHERE id = $1 AND status = 'published'", jobID).Scan(&jobTitle, &jobDepartment)
+	err := repository.GetDB().QueryRow(ctx, "SELECT title, department FROM job_descriptions WHERE id = $1 AND (status = 'active' OR status IS NULL) AND deleted_at IS NULL", jobID).Scan(&jobTitle, &jobDepartment)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Job not found"})
 		return

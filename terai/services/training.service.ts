@@ -20,24 +20,22 @@ export interface TrainingProgram {
   updatedAt: string;
 }
 
+// EmployeeTraining mirrors the backend's TrainingEnrollment (extended_models.go) exactly —
+// it only has id/programId/employeeId/status/score/completedAt/createdAt/employeeName/
+// programTitle. Fields like enrollmentDate, startDate, progress, grade, certificateUrl,
+// feedback, and notes were previously declared here but never sent by the backend; they've
+// been removed rather than kept as always-undefined optionals (see git history: fix(training)
+// commits e247ba2/24737cb fixed the runtime side of this, this closes the type-contract gap).
 export interface EmployeeTraining {
   id: number;
   employeeId: number;
   employeeName: string;
   programId: number;
   programTitle: string;
-  status: 'enrolled' | 'in_progress' | 'completed' | 'cancelled' | 'waitlisted';
-  enrollmentDate: string;
-  startDate?: string;
-  completionDate?: string;
-  progress: number; // 0-100
+  status: 'enrolled' | 'completed' | 'cancelled' | 'no_show';
   score?: number;
-  grade?: string;
-  certificateUrl?: string;
-  feedback?: string;
-  notes?: string;
+  completedAt?: string;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface TrainingSession {

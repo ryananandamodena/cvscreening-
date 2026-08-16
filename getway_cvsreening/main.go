@@ -63,6 +63,23 @@ func main() {
 		req.Host = target.Host
 	}
 
+	// The backend service applies its own CORS middleware too (so it works when hit directly,
+	// e.g. in tests), which means a proxied response carries CORS headers from BOTH the
+	// backend and this gateway's cors.New() above. httputil.ReverseProxy merges upstream
+	// headers into the response via Header.Add (not Set), so the browser receives something
+	// like "Access-Control-Allow-Origin: http://localhost:5173, http://localhost:5173" — a
+	// multi-value header, which every browser correctly rejects as invalid, making every
+	// cross-origin request (login included) fail with a CORS error. The gateway is the only
+	// layer actually talking to the browser, so its own cors.New()-set headers are the ones
+	// that matter; strip the backend's duplicate copies before they get merged in.
+	proxy.ModifyResponse = func(res *http.Response) error {
+		res.Header.Del("Access-Control-Allow-Origin")
+		res.Header.Del("Access-Control-Allow-Credentials")
+		res.Header.Del("Access-Control-Allow-Headers")
+		res.Header.Del("Access-Control-Allow-Methods")
+		return nil
+	}
+
 	r.Any("/api/*proxyPath", func(c *gin.Context) {
 		defer func() {
 			if r := recover(); r != nil {

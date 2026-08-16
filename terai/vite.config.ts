@@ -22,6 +22,22 @@ export default defineConfig({
     },
   },
   plugins: [react()],
+  build: {
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          charting: ['recharts'],
+          maps: ['leaflet', 'react-leaflet'],
+          pdf: ['jspdf', 'jspdf-autotable'],
+          ai: ['@google/genai'],
+          vision: ['face-api.js', 'html5-qrcode'],
+          motion: ['framer-motion'],
+        },
+      },
+    },
+  },
   // SECURITY: API keys are NOT injected into the frontend bundle.
   // All AI operations are proxied through the backend API for security.
   // The backend handles API keys server-side, preventing exposure in client-side code.

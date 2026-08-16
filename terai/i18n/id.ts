@@ -37,6 +37,7 @@ const id: Record<string, string> = {
     'nav.payrollSimulator': 'Simulator Gaji',
     'nav.attendance': 'Presensi',
     'nav.shiftManagement': 'Manajemen Shift',
+    'nav.remoteWorkExemptions': 'Pengecualian Kerja Jarak Jauh',
     'nav.approvalCenter': 'Pusat Approval',
     'nav.leaves': 'Cuti',
     'nav.performance': 'Manajemen Kinerja',

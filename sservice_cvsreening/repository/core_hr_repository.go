@@ -373,6 +373,21 @@ func ActivateContract(ctx context.Context, contractID int) error {
 }
 
 // SignContract updates a contract with the digital signature
+// GetContractEmployeeID returns the employee_id a contract belongs to, used to check
+// ownership before letting an employee sign it. Returns (0, nil) if the contract doesn't exist
+// — callers should treat that as "not found", not as a server error.
+func GetContractEmployeeID(ctx context.Context, contractID int) (int, error) {
+	if !IsDBConnected() {
+		return 0, fmt.Errorf("database not connected")
+	}
+	var employeeID int
+	err := GetDB().QueryRow(ctx, `SELECT employee_id FROM employee_contracts WHERE id = $1`, contractID).Scan(&employeeID)
+	if err != nil {
+		return 0, nil
+	}
+	return employeeID, nil
+}
+
 func SignContract(ctx context.Context, id int, signatureURL string) error {
 	if !IsDBConnected() {
 		return fmt.Errorf("database not connected")
@@ -508,8 +523,13 @@ func CreateOnboardingTask(ctx context.Context, task *models.OnboardingTask) (int
 	return id, err
 }
 
-// UpdateOnboardingTaskStatus updates a task's status
-func UpdateOnboardingTaskStatus(ctx context.Context, taskID int, status string) error {
+// UpdateOnboardingTaskStatus updates a task's status, scoped to sessionID so a caller who
+// legitimately owns one onboarding session can't update a task belonging to a different
+// session by passing an arbitrary taskID (see updateOnboardingTaskHandler — the caller's
+// ownership of sessionID is verified separately via authorizeOnboardingSession, but that
+// alone doesn't prove taskID belongs to that session without this filter). Returns
+// pgx.ErrNoRows-compatible "no rows affected" via the caller checking rowsAffected.
+func UpdateOnboardingTaskStatus(ctx context.Context, taskID, sessionID int, status string) error {
 	if !IsDBConnected() {
 		return fmt.Errorf("database not connected")
 	}
@@ -519,10 +539,16 @@ func UpdateOnboardingTaskStatus(ctx context.Context, taskID int, status string) 
 		completedAt = "CURRENT_TIMESTAMP"
 	}
 
-	_, err := GetDB().Exec(ctx, fmt.Sprintf(`
-		UPDATE onboarding_tasks SET status = $1, completed_at = %s, updated_at = CURRENT_TIMESTAMP WHERE id = $2
-	`, completedAt), status, taskID)
-	return err
+	tag, err := GetDB().Exec(ctx, fmt.Sprintf(`
+		UPDATE onboarding_tasks SET status = $1, completed_at = %s, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND session_id = $3
+	`, completedAt), status, taskID, sessionID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("task not found in this session")
+	}
+	return nil
 }
 
 // GetOnboardingSessions retrieves onboarding sessions with optional status filter
@@ -567,6 +593,34 @@ func GetOnboardingSessions(ctx context.Context, status string) ([]models.Onboard
 	}
 
 	return sessions, nil
+}
+
+// GetOnboardingSessionByID retrieves a single onboarding session — used by handlers to verify
+// the caller (self/manager/admin/recruiter) is authorized to read or update it before trusting
+// a client-supplied sessionId (Module 13 IDOR fix).
+func GetOnboardingSessionByID(ctx context.Context, id int) (*models.OnboardingSession, error) {
+	if !IsDBConnected() {
+		return nil, nil
+	}
+
+	query := `
+		SELECT s.id, s.employee_id, s.template_id, s.start_date, s.due_date, s.status, s.progress,
+			s.completed_at, s.created_at, s.updated_at,
+			COALESCE(e.full_name, '')
+		FROM onboarding_sessions s
+		LEFT JOIN employees e ON s.employee_id = e.id
+		WHERE s.id = $1
+	`
+	var s models.OnboardingSession
+	err := GetDB().QueryRow(ctx, query, id).Scan(
+		&s.ID, &s.EmployeeID, &s.TemplateID, &s.StartDate, &s.DueDate, &s.Status, &s.Progress,
+		&s.CompletedAt, &s.CreatedAt, &s.UpdatedAt,
+		&s.EmployeeName,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
 }
 
 // GetOnboardingTasksBySessionID retrieves tasks for a session

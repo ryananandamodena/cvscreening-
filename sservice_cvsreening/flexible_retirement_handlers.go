@@ -56,6 +56,10 @@ func updateFlexibleBenefitHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Flexible benefit updated successfully"})
 }
 
+// EmployeeID was previously taken straight from the request body with no ownership check on
+// this self-service route — any authenticated user could enroll an arbitrary employeeId into a
+// flexible benefit plan (Module 14 IDOR fix). authorizeEmployeeTarget resolves it to the
+// caller's own record unless the caller is admin/that employee's manager.
 func enrollFlexibleBenefitHandler(c *gin.Context) {
 	var payload struct {
 		EmployeeID int     `json:"employeeId" binding:"required"`
@@ -66,7 +70,11 @@ func enrollFlexibleBenefitHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
 		return
 	}
-	id, err := repository.EnrollFlexibleBenefit(c.Request.Context(), payload.EmployeeID, payload.BenefitID, payload.Amount)
+	targetEmployeeID, ok := authorizeEmployeeTarget(c, payload.EmployeeID)
+	if !ok {
+		return
+	}
+	id, err := repository.EnrollFlexibleBenefit(c.Request.Context(), targetEmployeeID, payload.BenefitID, payload.Amount)
 	if err != nil {
 		log.Printf("Failed to enroll flexible benefit: %v", err)
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to enroll flexible benefit", err.Error())
@@ -121,6 +129,7 @@ func updateRetirementPlanHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Retirement plan updated successfully"})
 }
 
+// Same IDOR pattern/fix as enrollFlexibleBenefitHandler (Module 14).
 func enrollRetirementPlanHandler(c *gin.Context) {
 	var payload struct {
 		EmployeeID int `json:"employeeId" binding:"required"`
@@ -130,7 +139,11 @@ func enrollRetirementPlanHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
 		return
 	}
-	id, err := repository.EnrollRetirementPlan(c.Request.Context(), payload.EmployeeID, payload.PlanID)
+	targetEmployeeID, ok := authorizeEmployeeTarget(c, payload.EmployeeID)
+	if !ok {
+		return
+	}
+	id, err := repository.EnrollRetirementPlan(c.Request.Context(), targetEmployeeID, payload.PlanID)
 	if err != nil {
 		log.Printf("Failed to enroll retirement plan: %v", err)
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to enroll retirement plan", err.Error())

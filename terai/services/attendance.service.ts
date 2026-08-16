@@ -47,6 +47,30 @@ export const attendanceService = {
     return apiService.put<any>('/attendance/office-location', data);
   },
 
+  // Per-employee override letting HR/Admin dynamically allow a specific employee to clock
+  // in/out from outside the office geofencing radius (remote workers, field staff, temporary
+  // WFH), without touching the shared office location every other employee is checked against.
+  getLocationExemptions: async (): Promise<{
+    exemptions: Array<{
+      employeeId: number;
+      fullName: string;
+      employeeCode: string;
+      enabled: boolean;
+      reason: string;
+      startDate: string | null;
+      endDate: string | null;
+    }>;
+  }> => {
+    return apiService.get<any>('/attendance/location-exemptions');
+  },
+
+  setLocationExemption: async (
+    employeeId: number,
+    data: { enabled: boolean; reason?: string; startDate?: string | null; endDate?: string | null }
+  ): Promise<any> => {
+    return apiService.put<any>(`/attendance/location-exemptions/${employeeId}`, data);
+  },
+
   breakStart: async (): Promise<any> => {
     return apiService.post<any>('/attendance/break-start', {});
   },

@@ -19,24 +19,32 @@ export interface SuccessionCandidate {
   backupRoles: string[];
 }
 
+// SuccessionPlan mirrors the backend's models.SuccessionPlan (extended_models.go).
+// riskLevel/criticalPosition/timeToFillMonths were added to the backend to close the
+// gap this file used to document — they're real fields now, manually set on the plan
+// form (not derived from candidate readiness). department, currentIncumbent,
+// developmentPlan, status, and reviewDate are still NOT returned by the backend
+// (only id/positionId/incumbentId/priority/notes/positionName/incumbentName/candidates
+// exist beyond the three above) — keep treating those as aspirational until the
+// backend grows them.
 export interface SuccessionPlan {
   id: number;
   positionId: number;
   positionName: string;
-  department: string;
+  department?: string;
   criticalPosition: boolean;
-  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  riskLevel?: 'low' | 'medium' | 'high' | 'critical' | '';
   currentIncumbent?: string;
-  timeToFill: number; // months
+  timeToFillMonths?: number | null; // months
   candidates: SuccessionCandidate[];
-  developmentPlan: {
+  developmentPlan?: {
     trainingPrograms: string[];
     experienceRequirements: string[];
     timeline: string;
     budget: number;
   };
-  status: 'active' | 'in_progress' | 'completed' | 'on_hold';
-  reviewDate: string;
+  status?: 'active' | 'in_progress' | 'completed' | 'on_hold';
+  reviewDate?: string;
   createdAt: string;
   updatedAt: string;
 }

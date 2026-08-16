@@ -1,119 +1,138 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Platform } from 'react-native';
 import { Colors, Shadow } from '../../constants/theme';
+
+function ClockFAB({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity style={styles.fabContainer} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.fab}>
+        <Ionicons name="alarm-outline" size={28} color={Colors.white} />
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textTertiary,
-        tabBarBackground: () => (
-          <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
-        ),
+        tabBarActiveTintColor: Colors.tabActive,
+        tabBarInactiveTintColor: Colors.tabInactive,
         tabBarStyle: {
-          position: 'absolute',
-          bottom: 24,
-          left: 20,
-          right: 20,
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          borderRadius: 32,
-          height: 64,
-          paddingBottom: 0,
-          borderTopWidth: 0,
-          ...Shadow.lg,
-        },
-        tabBarItemStyle: {
-          paddingVertical: 10,
+          backgroundColor: Colors.white,
+          borderTopWidth: 1,
+          borderTopColor: Colors.border,
+          height: Platform.OS === 'ios' ? 85 : 65,
+          paddingBottom: Platform.OS === 'ios' ? 25 : 8,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 10,
-          fontWeight: '700',
-          marginBottom: 4,
+          fontWeight: '600',
+          marginTop: 2,
         },
-        headerStyle: {
-          backgroundColor: Colors.white,
-          shadowColor: 'transparent',
-          elevation: 0,
-          borderBottomWidth: 1,
-          borderBottomColor: Colors.borderLight,
-        },
-        headerTitleStyle: {
-          fontWeight: '800',
-          fontSize: 20,
-          color: Colors.text,
-        },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={focused ? styles.iconActive : styles.iconInactive}>
-              <Ionicons name={focused ? "grid" : "grid-outline"} size={20} color={color} />
-            </View>
+          title: 'Home',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="jobs"
+        name="menu"
         options={{
-          title: 'Jobs',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={focused ? styles.iconActive : styles.iconInactive}>
-              <Ionicons name={focused ? "briefcase" : "briefcase-outline"} size={20} color={color} />
-            </View>
+          title: 'Menu',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'menu' : 'menu-outline'} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="screenings"
+        name="clock"
         options={{
-          title: 'Screening',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={focused ? styles.iconActive : styles.iconInactive}>
-              <Ionicons name={focused ? "document-text" : "document-text-outline"} size={20} color={color} />
-            </View>
+          title: '',
+          tabBarIcon: () => null,
+          tabBarButton: (props) => (
+            <ClockFAB onPress={() => props.onPress?.(undefined as any)} />
           ),
         }}
       />
       <Tabs.Screen
-        name="interviews"
+        name="my-work"
         options={{
-          title: 'Interviews',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={focused ? styles.iconActive : styles.iconInactive}>
-              <Ionicons name={focused ? "videocam" : "videocam-outline"} size={22} color={color} />
-            </View>
+          title: 'My Work',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="profile"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={focused ? styles.iconActive : styles.iconInactive}>
-              <Ionicons name={focused ? "settings" : "settings-outline"} size={22} color={color} />
-            </View>
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />
           ),
         }}
       />
+
+      {/* None of these are tab-bar items — they're reached via menu/my-work instead, so they're
+          always absent from the bar (href: null) regardless of role. The RBAC check for each
+          still happens inside the screen itself via RequireAccess; hiding a tab is UX only and
+          doesn't stop someone from navigating to the route directly. */}
+      <Tabs.Screen name="jobs" options={{ href: null }} />
+      <Tabs.Screen name="employees" options={{ href: null }} />
+      <Tabs.Screen name="attendance" options={{ href: null }} />
+      <Tabs.Screen name="screenings" options={{ href: null }} />
+      <Tabs.Screen name="interviews" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
+
+      <Tabs.Screen name="leave-request" options={{ href: null }} />
+      <Tabs.Screen name="overtime-request" options={{ href: null }} />
+      <Tabs.Screen name="absence-request" options={{ href: null }} />
+      <Tabs.Screen name="swap-shift" options={{ href: null }} />
+
+      <Tabs.Screen name="payslip" options={{ href: null }} />
+      <Tabs.Screen name="claim-form" options={{ href: null }} />
+      <Tabs.Screen name="loan-request" options={{ href: null }} />
+
+      <Tabs.Screen name="org-structure" options={{ href: null }} />
+      <Tabs.Screen name="onboarding" options={{ href: null }} />
+      <Tabs.Screen name="employee-survey" options={{ href: null }} />
+      <Tabs.Screen name="training" options={{ href: null }} />
+      <Tabs.Screen name="performance" options={{ href: null }} />
+      <Tabs.Screen name="benefits" options={{ href: null }} />
+      <Tabs.Screen name="career" options={{ href: null }} />
+      <Tabs.Screen name="office-location" options={{ href: null }} />
+      <Tabs.Screen name="remote-exemptions" options={{ href: null }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  iconActive: {
-    backgroundColor: Colors.primaryBg,
-    padding: 8,
-    borderRadius: 16,
+  fabContainer: {
+    top: -25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 60,
+    height: 60,
   },
-  iconInactive: {
-    padding: 8,
-  }
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.fabColor,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadow.lg,
+    borderWidth: 4,
+    borderColor: Colors.white,
+  },
 });

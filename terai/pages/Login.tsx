@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, Zap } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 import { apiService } from '../services/api.service';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
 import { Button } from '../components/ui/Button';
+import HumaniqMark from '../components/HumaniqMark';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -35,8 +36,8 @@ const Login = () => {
     <div className="min-h-screen bg-slate-100 dark:bg-[#000000] flex items-center justify-center p-6 font-inter">
       <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-xl shadow-md border border-slate-200 dark:border-neutral-800 p-8 sm:p-10">
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="bg-brand-600 p-2.5 rounded-xl shadow-sm mb-4">
-            <Zap size={22} className="text-white" />
+          <div className="p-1 rounded-xl mb-4">
+            <HumaniqMark size={44} />
           </div>
           <span className="text-lg font-bold text-slate-900 dark:text-white">Human<span className="text-brand-600 dark:text-brand-400">IQ</span></span>
           <h1 className="text-xl font-bold text-slate-900 dark:text-white mt-4">{t('login.title')}</h1>

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiService } from '../../services/api';
@@ -9,14 +9,19 @@ export default function InterviewsScreen() {
   const [interviews, setInterviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
 
   const fetchInterviews = async () => {
     try {
       const res = await apiService.getInterviewSchedules();
       const list = Array.isArray(res) ? res : res?.data || [];
       setInterviews(list);
+      setError(false);
     } catch (err) {
+      // Developer-facing log stays; the user gets a visible retry state below instead of a
+      // silently empty list that looks the same as "no interviews scheduled".
       console.log('Interviews error:', err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -73,6 +78,18 @@ export default function InterviewsScreen() {
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={Colors.primary} /></View>;
 
+  if (error && interviews.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Ionicons name="cloud-offline-outline" size={48} color={Colors.textTertiary} />
+        <Text style={styles.emptyText}>Failed to load interviews.</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={fetchInterviews}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -114,4 +131,6 @@ const styles = StyleSheet.create({
   typeText: { fontSize: FontSize.xs, color: Colors.textSecondary, textTransform: 'capitalize' },
   empty: { alignItems: 'center', marginTop: 80, gap: Spacing.md },
   emptyText: { fontSize: FontSize.lg, color: Colors.textSecondary },
+  retryBtn: { backgroundColor: Colors.primary, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: BorderRadius.lg, marginTop: Spacing.md },
+  retryText: { color: Colors.white, fontWeight: FontWeight.bold },
 });

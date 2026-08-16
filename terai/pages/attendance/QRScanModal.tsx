@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import type { Html5Qrcode as Html5QrcodeType } from 'html5-qrcode';
 import { QrCode, AlertCircle } from 'lucide-react';
 import { attendanceService } from '../../services/attendance.service';
 
@@ -12,50 +12,60 @@ interface QRScanModalProps {
 const SCANNER_ELEMENT_ID = 'qr-scanner-region';
 
 const QRScanModal: React.FC<QRScanModalProps> = ({ mode, onClose, onSuccess }) => {
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerRef = useRef<Html5QrcodeType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID);
-    scannerRef.current = scanner;
-    let stopped = false;
+    let active = true;
+    let scanner: Html5QrcodeType | null = null;
 
-    scanner
-      .start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 220, height: 220 } },
-        async (decodedText) => {
-          if (stopped || processing) return;
-          stopped = true;
-          setProcessing(true);
-          try {
-            await scanner.stop();
-          } catch {
-            // ignore stop errors
-          }
-          try {
-            if (mode === 'in') {
-              await attendanceService.clockIn({ employeeId: 1, qrToken: decodedText });
-            } else {
-              await attendanceService.clockOut({ employeeId: 1, qrToken: decodedText, notes: 'Clock out via QR kiosk' });
+    const initScanner = async () => {
+      const { Html5Qrcode } = await import('html5-qrcode');
+      if (!active) return;
+
+      scanner = new Html5Qrcode(SCANNER_ELEMENT_ID);
+      scannerRef.current = scanner;
+      let stopped = false;
+
+      scanner
+        .start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          async (decodedText) => {
+            if (stopped || processing) return;
+            stopped = true;
+            setProcessing(true);
+            try {
+              await scanner?.stop();
+            } catch {
+              // ignore stop errors
             }
-            onSuccess();
-          } catch (err) {
-            setError((err as any).message || 'Gagal memproses QR code');
-            stopped = false;
-            setProcessing(false);
+            try {
+              if (mode === 'in') {
+                await attendanceService.clockIn({ employeeId: 1, qrToken: decodedText });
+              } else {
+                await attendanceService.clockOut({ employeeId: 1, qrToken: decodedText, notes: 'Clock out via QR kiosk' });
+              }
+              onSuccess();
+            } catch (err) {
+              setError((err as any).message || 'Gagal memproses QR code');
+              stopped = false;
+              setProcessing(false);
+            }
+          },
+          () => {
+            // per-frame decode failures are expected while aiming the camera; ignore
           }
-        },
-        () => {
-          // per-frame decode failures are expected while aiming the camera; ignore
-        }
-      )
-      .catch(() => setError('Tidak bisa mengakses kamera. Izinkan akses kamera di browser Anda.'));
+        )
+        .catch(() => setError('Tidak bisa mengakses kamera. Izinkan akses kamera di browser Anda.'));
+    };
+
+    initScanner();
 
     return () => {
-      stopped = true;
-      scanner.stop().catch(() => {});
+      active = false;
+      scanner?.stop().catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

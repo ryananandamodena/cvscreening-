@@ -74,6 +74,7 @@ func main() {
 			"schema_extended_modules.sql",
 			"schema_documents_extra.sql",
 			"schema_office_settings.sql",
+			"schema_attendance_location_exemptions.sql",
 			"schema_attendance_correction.sql",
 			"schema_approval_engine.sql",
 			"schema_overtime_request.sql",
@@ -87,8 +88,15 @@ func main() {
 			"schema_career_paths.sql",
 			"schema_leadership_programs.sql",
 			"schema_candidate_link.sql",
+			"schema_candidate_location.sql",
 			"schema_contract_approval.sql",
 			"schema_overtime_approval.sql",
+			"schema_shift_swap.sql",
+			"schema_succession_risk.sql",
+			"schema_claims.sql",
+			"schema_claim_approval.sql",
+			"schema_survey.sql",
+			"seed_survey.sql",
 		}
 		for _, f := range seedFiles {
 			if err := repository.RunSeed(f); err != nil {
@@ -167,6 +175,7 @@ func main() {
 	registerBenefitsSuccessionRoutes(protected)
 	registerDocumentsOnboardingRoutes(protected)
 	registerAdminFinanceRoutes(protected)
+	registerSurveyRoutes(protected)
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{

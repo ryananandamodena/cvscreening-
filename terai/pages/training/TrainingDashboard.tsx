@@ -5,12 +5,21 @@ import {
   User, TrendingUp, Download, Plus, Eye
 } from 'lucide-react';
 import { trainingService, TrainingProgram, EmployeeTraining } from '../../services/training.service';
+import { employeeService } from '../../services/employee.service';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../guards/AuthGuard';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 
+// Backend gate for POST /training/programs is RecruiterOrAdmin() (routes_hr.go) — catalog
+// browsing/enrollment/own-training stay open to everyone. Used to hide "Create Program" from
+// roles the backend will 403 anyway (Module 13 RBAC UX hardening).
+const STAFF_ROLES = ['admin', 'recruiter'];
+
 const TrainingDashboard: React.FC = () => {
   const { showToast } = useToast();
+  const { role } = useAuth();
+  const isStaff = !!role && STAFF_ROLES.includes(role);
   const [activeTab, setActiveTab] = useState('catalog');
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
   const [myTrainings, setMyTrainings] = useState<EmployeeTraining[]>([]);
@@ -45,7 +54,8 @@ const TrainingDashboard: React.FC = () => {
   const handleEnroll = async (programId: number) => {
     try {
       setEnrolling(programId);
-      await trainingService.enrollEmployee({ employeeId: 1, programId });
+      const me = await employeeService.getMyEmployee();
+      await trainingService.enrollEmployee({ employeeId: me.id, programId });
       showToast('success', 'Successfully enrolled in training program');
       fetchData(); // Refresh data
     } catch (err) {
@@ -70,7 +80,9 @@ const TrainingDashboard: React.FC = () => {
     totalPrograms: programs.length,
     myEnrollments: myTrainings.length,
     completedTrainings: myTrainings.filter(t => t.status === 'completed').length,
-    inProgress: myTrainings.filter(t => t.status === 'in_progress').length,
+    // Backend has no 'in_progress' status (enrolled/completed/cancelled/no_show only,
+    // see EmployeeTraining) — 'enrolled' is the closest real equivalent of "still going".
+    inProgress: myTrainings.filter(t => t.status === 'enrolled').length,
     totalHours: myTrainings
       .filter(t => t.status === 'completed')
       .reduce((sum, t) => sum + (programs.find(p => p.id === t.programId)?.duration || 0), 0)
@@ -124,10 +136,12 @@ const TrainingDashboard: React.FC = () => {
             <Download size={16} className="mr-2" />
             Export Report
           </Button>
-          <Button variant="primary" size="md">
-            <Plus size={16} className="mr-2" />
-            Create Program
-          </Button>
+          {isStaff && (
+            <Button variant="primary" size="md">
+              <Plus size={16} className="mr-2" />
+              Create Program
+            </Button>
+          )}
         </div>
       </div>
 
@@ -391,25 +405,17 @@ const TrainingDashboard: React.FC = () => {
                       </div>
 
                       <div className="space-y-3 mb-4">
-                        {(() => {
-                          // Backend (TrainingEnrollment) actually sends completedAt/createdAt,
-                          // not completionDate/enrollmentDate as this type declares — read the
-                          // real keys defensively rather than trust the aspirational type.
-                          const raw = training as unknown as { completedAt?: string; createdAt?: string };
-                          const completedAt = training.completionDate || raw.completedAt;
-                          const createdAt = training.enrollmentDate || raw.createdAt;
-                          return completedAt ? (
-                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                              <CheckCircle2 className="w-4 h-4 text-success-500" />
-                              Selesai: {new Date(completedAt).toLocaleDateString()}
-                            </div>
-                          ) : createdAt ? (
-                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                              <Clock className="w-4 h-4 text-slate-500" />
-                              Terdaftar: {new Date(createdAt).toLocaleDateString()}
-                            </div>
-                          ) : null;
-                        })()}
+                        {training.completedAt ? (
+                          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                            <CheckCircle2 className="w-4 h-4 text-success-500" />
+                            Selesai: {new Date(training.completedAt).toLocaleDateString()}
+                          </div>
+                        ) : training.createdAt ? (
+                          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                            <Clock className="w-4 h-4 text-slate-500" />
+                            Terdaftar: {new Date(training.createdAt).toLocaleDateString()}
+                          </div>
+                        ) : null}
                       </div>
 
                       <div className="flex gap-2">
@@ -417,12 +423,8 @@ const TrainingDashboard: React.FC = () => {
                           <Eye className="w-4 h-4 mr-2" />
                           View
                         </Button>
-                        {training.certificateUrl && (
-                          <Button variant="secondary" size="sm">
-                            <Download className="w-4 h-4 mr-2" />
-                            Certificate
-                          </Button>
-                        )}
+                        {/* Certificate download: backend has no certificateUrl field or
+                            download endpoint yet (see training.service.ts) — not wired here. */}
                       </div>
                     </div>
                   );
@@ -444,44 +446,60 @@ const TrainingDashboard: React.FC = () => {
 
           {activeTab === 'certificates' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Mock certificates - in real app, this would come from API */}
-                {[
-                  { id: 1, title: 'React Development', issuer: 'Internal Training', date: '2024-01-15', expiry: '2026-01-15' },
-                  { id: 2, title: 'Leadership Skills', issuer: 'External Provider', date: '2024-02-20', expiry: null },
-                  { id: 3, title: 'Project Management', issuer: 'Internal Training', date: '2023-11-10', expiry: '2025-11-10' }
-                ].map((cert) => (
-                  <div key={cert.id} className="bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-950/40 dark:to-brand-900/40 border border-brand-200 dark:border-brand-900/60 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 bg-brand-100 dark:bg-brand-900/40 rounded-lg flex items-center justify-center">
-                        <Award className="w-6 h-6 text-brand-600 dark:text-brand-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-slate-900 dark:text-white">{cert.title}</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">{cert.issuer}</p>
-                      </div>
-                    </div>
+              {/* The backend (TrainingEnrollment) has no certificate_url/issuer/expiry data at
+                  all — there's no certificate storage/generation on the backend. What IS real:
+                  a completed enrollment in a program flagged `certification: true` represents an
+                  earned certification. We show exactly that, with no fabricated issuer/expiry/
+                  download link. */}
+              {(() => {
+                const earnedCertifications = myTrainings.filter((t) => {
+                  const program = programs.find((p) => p.id === t.programId);
+                  return t.status === 'completed' && program?.certification;
+                });
 
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600 dark:text-slate-400">Issued:</span>
-                        <span className="text-slate-900 dark:text-white">{new Date(cert.date).toLocaleDateString()}</span>
-                      </div>
-                      {cert.expiry && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-600 dark:text-slate-400">Expires:</span>
-                          <span className="text-slate-900 dark:text-white">{new Date(cert.expiry).toLocaleDateString()}</span>
+                if (earnedCertifications.length === 0) {
+                  return (
+                    <div className="text-center py-12">
+                      <Award className="w-16 h-16 text-slate-700 dark:text-slate-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Data belum tersedia</h3>
+                      <p className="text-slate-700 dark:text-slate-300">
+                        Complete a certified training program to see your certifications here.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {earnedCertifications.map((cert) => {
+                      const completedAt = cert.completedAt;
+                      return (
+                        <div key={cert.id} className="bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-950/40 dark:to-brand-900/40 border border-brand-200 dark:border-brand-900/60 rounded-xl p-6">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-brand-100 dark:bg-brand-900/40 rounded-lg flex items-center justify-center">
+                              <Award className="w-6 h-6 text-brand-600 dark:text-brand-400" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-slate-900 dark:text-white">{cert.programTitle}</h3>
+                            </div>
+                          </div>
+
+                          {completedAt && (
+                            <div className="flex justify-between text-sm mb-4">
+                              <span className="text-slate-600 dark:text-slate-400">Completed:</span>
+                              <span className="text-slate-900 dark:text-white">{new Date(completedAt).toLocaleDateString()}</span>
+                            </div>
+                          )}
+
+                          <p className="text-xs text-slate-500 dark:text-slate-500 italic">
+                            Certificate download is not available yet.
+                          </p>
                         </div>
-                      )}
-                    </div>
-
-                    <Button variant="primary" size="md" className="w-full">
-                      <Download className="w-4 h-4 mr-2" />
-                      Download Certificate
-                    </Button>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
             </div>
           )}
         </div>

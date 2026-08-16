@@ -90,6 +90,8 @@ type Candidate struct {
 	Education       []string  `json:"education"`
 	CurrentCompany  string    `json:"currentCompany"`
 	CurrentPosition string    `json:"currentPosition"`
+	City            string    `json:"city,omitempty"`
+	Province        string    `json:"province,omitempty"`
 	CreatedAt       time.Time `json:"createdAt"`
 	UpdatedAt       time.Time `json:"updatedAt"`
 }

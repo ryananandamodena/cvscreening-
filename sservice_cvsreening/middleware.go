@@ -112,6 +112,16 @@ func HiringManagerOrAdmin() gin.HandlerFunc {
 	return RoleMiddleware("admin", "hiring_manager", "recruiter")
 }
 
+// HROrAdmin middleware - HR staff and admins can access. This is the actual role set for
+// org-wide HR administration (office geofencing location, shift definitions, approval-flow
+// definitions, attendance-correction review) — previously these routes were mistakenly gated
+// with RecruiterOrAdmin(), which let "recruiter" manage them while genuine HR roles ("hr",
+// "hr_admin", "hr_manager") were locked out despite the surrounding comments describing this
+// as an "HR/Admin" gate.
+func HROrAdmin() gin.HandlerFunc {
+	return RoleMiddleware("admin", "hr", "hr_admin", "hr_manager")
+}
+
 // ErrorResponse represents a structured error response
 type ErrorResponse struct {
 	Error   string      `json:"error"`

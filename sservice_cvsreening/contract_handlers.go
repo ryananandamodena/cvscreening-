@@ -14,10 +14,16 @@ import (
 
 // ==================== CONTRACT HANDLERS ====================
 
+// getEmployeeContractsHandler returns an employee's contract records (salary/terms/dates) —
+// sensitive enough that only the employee themselves or their manager/HR/admin may view it.
 func getEmployeeContractsHandler(c *gin.Context) {
-	empID, err := strconv.Atoi(c.Param("id"))
+	requestedID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid employee ID", nil)
+		return
+	}
+	empID, ok := authorizeEmployeeTarget(c, requestedID)
+	if !ok {
 		return
 	}
 
@@ -94,7 +100,40 @@ func getOnboardingSessionsHandler(c *gin.Context) {
 		return
 	}
 
+	// This route carries no role middleware (any authenticated employee can reach it, since an
+	// employee needs to see their own onboarding session) — but the underlying query has no
+	// employee_id filter, so it previously returned every employee's session org-wide to anyone.
+	// Admin/recruiter (the same "HR staff" gate used elsewhere in this file) keep full visibility;
+	// everyone else is scoped to their own record (Module 13 IDOR fix).
+	role := GetUserRoleFromContext(c)
+	if role != "admin" && role != "recruiter" {
+		ownEmployeeID, ok := resolveOwnEmployeeID(c)
+		if !ok {
+			return
+		}
+		filtered := make([]models.OnboardingSession, 0, len(sessions))
+		for _, s := range sessions {
+			if s.EmployeeID == ownEmployeeID {
+				filtered = append(filtered, s)
+			}
+		}
+		sessions = filtered
+	}
+
 	c.JSON(http.StatusOK, sessions)
+}
+
+// authorizeOnboardingSession verifies the caller may read/modify the given onboarding session:
+// admin/recruiter (HR staff) always may; anyone else only if it's their own session, or they are
+// its owner's direct manager (mirrors authorizeEmployeeTarget's self-or-manager rule). Returns
+// false if an error response was already written (caller must return immediately in that case).
+func authorizeOnboardingSession(c *gin.Context, session *models.OnboardingSession) bool {
+	role := GetUserRoleFromContext(c)
+	if role == "admin" || role == "recruiter" {
+		return true
+	}
+	_, ok := authorizeEmployeeTarget(c, session.EmployeeID)
+	return ok
 }
 
 func createOnboardingSessionHandler(c *gin.Context) {
@@ -156,6 +195,18 @@ func getOnboardingTasksHandler(c *gin.Context) {
 		return
 	}
 
+	// The sessionId is client-supplied and this route carries no role middleware — without this
+	// check, any authenticated employee could enumerate session IDs and read another employee's
+	// onboarding task list (Module 13 IDOR fix).
+	session, err := repository.GetOnboardingSessionByID(c.Request.Context(), sessionID)
+	if err != nil || session == nil {
+		RespondWithError(c, http.StatusNotFound, "not_found", "Onboarding session not found", nil)
+		return
+	}
+	if !authorizeOnboardingSession(c, session) {
+		return
+	}
+
 	tasks, err := repository.GetOnboardingTasksBySessionID(c.Request.Context(), sessionID)
 	if err != nil {
 		log.Printf("ERROR in getOnboardingTasksHandler: %v", err)
@@ -183,9 +234,25 @@ func updateOnboardingTaskHandler(c *gin.Context) {
 		return
 	}
 
-	if err := repository.UpdateOnboardingTaskStatus(c.Request.Context(), taskID, req.Status); err != nil {
+	// The sessionId in the body is client-supplied and this route carries no role middleware —
+	// without this check, any authenticated employee could mark another employee's onboarding
+	// task complete/incomplete by guessing/enumerating taskId+sessionId (Module 13 IDOR fix).
+	session, err := repository.GetOnboardingSessionByID(c.Request.Context(), req.SessionID)
+	if err != nil || session == nil {
+		RespondWithError(c, http.StatusNotFound, "not_found", "Onboarding session not found", nil)
+		return
+	}
+	if !authorizeOnboardingSession(c, session) {
+		return
+	}
+
+	// Verifying session ownership above is not enough on its own — without also scoping the
+	// update to that session, a caller who owns some onboarding session could still update an
+	// arbitrary taskId belonging to someone else's session by guessing/enumerating IDs. Passing
+	// req.SessionID here closes that gap (IDOR fix).
+	if err := repository.UpdateOnboardingTaskStatus(c.Request.Context(), taskID, req.SessionID, req.Status); err != nil {
 		log.Printf("Failed to update task status: %v", err)
-		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to update task", err.Error())
+		RespondWithError(c, http.StatusBadRequest, "not_found", "Task not found in this onboarding session", nil)
 		return
 	}
 

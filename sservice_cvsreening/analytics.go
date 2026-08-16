@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ryantriananda/sservice_cvsreening/repository"
 )
 
@@ -95,8 +97,18 @@ func getAnalyticsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	if !repository.IsDBConnected() {
-		// Return mock data for dev without DB
-		c.JSON(http.StatusOK, getMockAnalyticsData())
+		// No DB connection: return a zero-value payload rather than fabricated numbers.
+		// Fake counts here would look like real business data to whoever views the dashboard.
+		log.Printf("getAnalyticsHandler: database not connected, returning empty analytics")
+		c.JSON(http.StatusOK, AnalyticsData{
+			Pipeline:             []PipelineStage{},
+			Sources:              []SourceStat{},
+			Departments:          []DepartmentStat{},
+			SkillsGap:            []SkillGapStat{},
+			TimeToHireTrend:      []TimeToHireStat{},
+			GeographicData:       []GeographicStat{},
+			InterviewPerformance: []InterviewPerformance{},
+		})
 		return
 	}
 
@@ -139,8 +151,11 @@ func getAnalyticsHandler(c *gin.Context) {
 		log.Printf("Error getting time to hire: %v", err)
 	}
 
-	// 7. Geographic (Mock/Default)
-	data.GeographicData = GetGeographicAnalytics() // No location data yet
+	// 7. Geographic
+	data.GeographicData, err = GetGeographicAnalytics(ctx)
+	if err != nil {
+		log.Printf("Error getting geographic analytics: %v", err)
+	}
 
 	// 8. Interview Performance
 	data.InterviewPerformance, err = GetInterviewPerformance(ctx)
@@ -194,15 +209,96 @@ func GetOverviewStats(ctx context.Context) (OverviewStats, error) {
 	`).Scan(&stats.AvgTimeToHire)
 	stats.AvgTimeToHire = math.Round(stats.AvgTimeToHire*10) / 10
 
-	// Trends (Mock/Calculated)
-	// For real trends we'd compare with previous month. Approximating for now.
-	stats.TrendData = Trend{
-		Candidates: 12.5,  // +12.5%
-		Hired:      8.2,   // +8.2%
-		TimeToHire: -14.0, // -14% (faster)
+	// Trends: last 30 days vs the 30 days before that, computed from real data — no
+	// hardcoded/approximated percentages.
+	trend, err := getTrendData(ctx, db)
+	if err != nil {
+		// Trend is a nice-to-have on top of the core stats above — a failure here shouldn't
+		// fail the whole dashboard, but it must NOT fall back to fabricated percentages either.
+		// Zero-value Trend (all 0%) is the honest "no comparable data" signal.
+		log.Printf("GetOverviewStats: failed to compute trend data: %v", err)
+		trend = Trend{}
 	}
+	stats.TrendData = trend
 
 	return stats, nil
+}
+
+// getTrendData compares the last 30 days against the prior 30-day period for candidates
+// created, candidates hired, and average time-to-hire, expressed as a percentage change.
+func getTrendData(ctx context.Context, db *pgxpool.Pool) (Trend, error) {
+	var currentCandidates, previousCandidates int
+	var currentHired, previousHired int
+	var currentTTH, previousTTH float64
+
+	err := db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM candidates
+		WHERE deleted_at IS NULL AND created_at >= CURRENT_DATE - INTERVAL '30 days'
+	`).Scan(&currentCandidates)
+	if err != nil {
+		return Trend{}, err
+	}
+	err = db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM candidates
+		WHERE deleted_at IS NULL
+		  AND created_at >= CURRENT_DATE - INTERVAL '60 days'
+		  AND created_at < CURRENT_DATE - INTERVAL '30 days'
+	`).Scan(&previousCandidates)
+	if err != nil {
+		return Trend{}, err
+	}
+
+	err = db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM candidates
+		WHERE status = 'hired' AND deleted_at IS NULL AND hired_at >= CURRENT_DATE - INTERVAL '30 days'
+	`).Scan(&currentHired)
+	if err != nil {
+		return Trend{}, err
+	}
+	err = db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM candidates
+		WHERE status = 'hired' AND deleted_at IS NULL
+		  AND hired_at >= CURRENT_DATE - INTERVAL '60 days'
+		  AND hired_at < CURRENT_DATE - INTERVAL '30 days'
+	`).Scan(&previousHired)
+	if err != nil {
+		return Trend{}, err
+	}
+
+	err = db.QueryRow(ctx, `
+		SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (hired_at - created_at))/86400), 0)
+		FROM candidates
+		WHERE status = 'hired' AND hired_at >= CURRENT_DATE - INTERVAL '30 days'
+	`).Scan(&currentTTH)
+	if err != nil {
+		return Trend{}, err
+	}
+	err = db.QueryRow(ctx, `
+		SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (hired_at - created_at))/86400), 0)
+		FROM candidates
+		WHERE status = 'hired'
+		  AND hired_at >= CURRENT_DATE - INTERVAL '60 days'
+		  AND hired_at < CURRENT_DATE - INTERVAL '30 days'
+	`).Scan(&previousTTH)
+	if err != nil {
+		return Trend{}, err
+	}
+
+	return Trend{
+		Candidates: percentChange(float64(currentCandidates), float64(previousCandidates)),
+		Hired:      percentChange(float64(currentHired), float64(previousHired)),
+		TimeToHire: percentChange(currentTTH, previousTTH),
+	}, nil
+}
+
+// percentChange computes ((current - previous) / previous) * 100, business-safely handling
+// previous == 0 (would otherwise produce +Inf/NaN): if there's nothing to compare against,
+// report 0% change rather than a misleading infinite swing.
+func percentChange(current, previous float64) float64 {
+	if previous == 0 {
+		return 0
+	}
+	return math.Round(((current-previous)/previous)*100*10) / 10
 }
 
 func GetPipelineStats(ctx context.Context) ([]PipelineStage, error) {
@@ -287,13 +383,14 @@ func GetCandidateSources(ctx context.Context) ([]SourceStat, error) {
 
 func GetDepartmentAnalytics(ctx context.Context) ([]DepartmentStat, error) {
 	query := `
-		SELECT 
+		SELECT
 			COALESCE(j.department, 'General') as dept,
 			COUNT(DISTINCT c.id) as total,
 			COALESCE(AVG(s.score), 0) as avg_score,
 			COALESCE(100.0 * COUNT(CASE WHEN s.score >= 70 THEN 1 END) / NULLIF(COUNT(s.id), 0), 0) as match_rate,
 			COUNT(DISTINCT CASE WHEN j.status = 'active' THEN j.id END) as open_pos,
-			COUNT(DISTINCT CASE WHEN c.status = 'hired' AND date_trunc('month', c.hired_at) = date_trunc('month', CURRENT_DATE) THEN c.id END) as hired_month
+			COUNT(DISTINCT CASE WHEN c.status = 'hired' AND date_trunc('month', c.hired_at) = date_trunc('month', CURRENT_DATE) THEN c.id END) as hired_month,
+			COUNT(DISTINCT CASE WHEN c.status = 'hired' AND date_trunc('month', c.hired_at) = date_trunc('month', CURRENT_DATE) - interval '1 month' THEN c.id END) as hired_last_month
 		FROM job_descriptions j
 		LEFT JOIN screenings s ON s.job_id = j.id
 		LEFT JOIN candidates c ON c.id = s.candidate_id
@@ -307,50 +404,61 @@ func GetDepartmentAnalytics(ctx context.Context) ([]DepartmentStat, error) {
 	}
 	defer rows.Close()
 
-	var stats []DepartmentStat
+	stats := []DepartmentStat{}
 	for rows.Next() {
 		var s DepartmentStat
-		if err := rows.Scan(&s.Department, &s.TotalCandidates, &s.AvgScore, &s.MatchRate, &s.OpenPositions, &s.HiredThisMonth); err != nil {
+		var hiredLastMonth int
+		if err := rows.Scan(&s.Department, &s.TotalCandidates, &s.AvgScore, &s.MatchRate, &s.OpenPositions, &s.HiredThisMonth, &hiredLastMonth); err != nil {
 			continue
 		}
 		s.MatchRate = math.Round(s.MatchRate)
-		// Mock trend
-		s.TrendPercent = "+2%"
+		// Real month-over-month trend on hires — no fabricated percentage. 0 vs 0 reports
+		// "0%" (nothing to compare), not a misleading swing.
+		change := percentChange(float64(s.HiredThisMonth), float64(hiredLastMonth))
+		sign := ""
+		if change > 0 {
+			sign = "+"
+		}
+		s.TrendPercent = fmt.Sprintf("%s%.1f%%", sign, change)
 		stats = append(stats, s)
 	}
 	return stats, nil
 }
 
 func GetSkillsGap(ctx context.Context) ([]SkillGapStat, error) {
-	// Parse missing skills from screenings to find high demand gaps
-	// Requires Postgres 9.3+ for lateral join or func
-	// Simplified: Get top missing skills
+	// Demand = how often a skill shows up as "missing" across screenings (i.e. the role
+	// wanted it but the candidate lacked it). Supply = how often that same skill shows up
+	// as "matched" (candidates who actually have it) — both read straight from the
+	// screening JSONB columns, no synthetic ratio.
 	query := `
-		SELECT 
-			skill, COUNT(*) as demand
-		FROM screenings,
-		jsonb_array_elements_text(missing_skills) as skill
-		GROUP BY skill
-		ORDER BY demand DESC
+		WITH demand AS (
+			SELECT skill, COUNT(*) as demand
+			FROM screenings, jsonb_array_elements_text(missing_skills) as skill
+			GROUP BY skill
+		),
+		supply AS (
+			SELECT skill, COUNT(*) as supply
+			FROM screenings, jsonb_array_elements_text(matched_skills) as skill
+			GROUP BY skill
+		)
+		SELECT d.skill, d.demand, COALESCE(s.supply, 0)
+		FROM demand d
+		LEFT JOIN supply s ON s.skill = d.skill
+		ORDER BY d.demand DESC
 		LIMIT 6
 	`
 	rows, err := repository.GetDB().Query(ctx, query)
 	if err != nil {
-		// Fallback if JSONB query fails or is empty
 		return []SkillGapStat{}, nil
 	}
 	defer rows.Close()
 
-	var stats []SkillGapStat
+	stats := []SkillGapStat{}
 	for rows.Next() {
 		var s SkillGapStat
-		if err := rows.Scan(&s.Skill, &s.Demand); err != nil {
+		if err := rows.Scan(&s.Skill, &s.Demand, &s.Supply); err != nil {
 			continue
 		}
-		// Supply = those who have it (matched)
-		// We can query matched_skills similarly, or just mock supply relative to demand to show a gap
-		// Mocking supply for visual variety:
-		s.Supply = int(float64(s.Demand) * 0.6)
 		s.Gap = -(s.Demand - s.Supply)
 		stats = append(stats, s)
 	}
@@ -388,10 +496,7 @@ func GetTimeToHireTrend(ctx context.Context) ([]TimeToHireStat, error) {
 			continue
 		}
 		s.Days = math.Round(s.Days*10) / 10
-		s.Industry = 24.0 // Benchmark
-		if s.Days == 0 {
-			s.Days = 15.0 // Default if no data
-		}
+		s.Industry = 24.0 // Industry benchmark, not a per-tenant figure — kept as a fixed reference line
 		stats = append(stats, s)
 	}
 	return stats, nil
@@ -399,14 +504,16 @@ func GetTimeToHireTrend(ctx context.Context) ([]TimeToHireStat, error) {
 
 func GetInterviewPerformance(ctx context.Context) ([]InterviewPerformance, error) {
 	// Group by category/type. In DB we have 'interview_type' (ai, phone, video).
-	// We can map these to categories.
+	// Completion rate is real: completed interviews of that type over ALL interviews
+	// scheduled of that type (not just the completed ones), so it reflects no-shows/
+	// cancellations too instead of always reading 100%.
 	query := `
-		SELECT 
+		SELECT
 			interview_type,
-			COALESCE(AVG(rating), 0) as avg_rating,
-			COUNT(*) as count
+			COALESCE(AVG(rating) FILTER (WHERE status = 'completed'), 0) as avg_rating,
+			COUNT(*) FILTER (WHERE status = 'completed') as completed_count,
+			COUNT(*) as total_count
 		FROM interviews
-		WHERE status = 'completed'
 		GROUP BY interview_type
 	`
 	rows, err := repository.GetDB().Query(ctx, query)
@@ -415,12 +522,12 @@ func GetInterviewPerformance(ctx context.Context) ([]InterviewPerformance, error
 	}
 	defer rows.Close()
 
-	var stats []InterviewPerformance
+	stats := []InterviewPerformance{}
 	for rows.Next() {
 		var itype string
 		var rating float64
-		var count int
-		if err := rows.Scan(&itype, &rating, &count); err != nil {
+		var completedCount, totalCount int
+		if err := rows.Scan(&itype, &rating, &completedCount, &totalCount); err != nil {
 			continue
 		}
 
@@ -431,40 +538,54 @@ func GetInterviewPerformance(ctx context.Context) ([]InterviewPerformance, error
 
 		score := (rating / 5.0) * 100 // Convert 5 star to 100 scale
 
+		var completion float64
+		if totalCount > 0 {
+			completion = math.Round(float64(completedCount) / float64(totalCount) * 1000 / 10)
+		}
+
 		stats = append(stats, InterviewPerformance{
 			Name:       name,
 			Score:      math.Round(score),
-			Completion: 90.0, // Mock completion rate
+			Completion: completion,
 		})
 	}
 
-	if len(stats) == 0 {
-		// Mock if empty
-		stats = []InterviewPerformance{
-			{Name: "Technical", Score: 82, Completion: 95},
-			{Name: "Behavioral", Score: 78, Completion: 90},
-		}
-	}
-
+	// No fallback to fake data here — an empty slice tells the frontend to render its
+	// empty state instead of a dashboard that looks populated but isn't real.
 	return stats, nil
 }
 
-func GetGeographicAnalytics() []GeographicStat {
-	// Mock data since we don't have location in candidates table yet
-	return []GeographicStat{
-		{Location: "Jakarta", Candidates: 120, Hired: 12, AvgScore: 78.5},
-		{Location: "Remote", Candidates: 85, Hired: 8, AvgScore: 82.0},
-		{Location: "Bandung", Candidates: 45, Hired: 3, AvgScore: 76.0},
-		{Location: "Surabaya", Candidates: 30, Hired: 2, AvgScore: 75.0},
+// GetGeographicAnalytics aggregates candidates by province (falling back to city, then
+// "Unknown" when neither is on file — most historical candidates predate location capture).
+// Score/hired counts come straight from the candidates/screenings tables; nothing here is
+// fabricated, so an install with no location data simply returns a single "Unknown" bucket.
+func GetGeographicAnalytics(ctx context.Context) ([]GeographicStat, error) {
+	query := `
+		SELECT
+			COALESCE(NULLIF(c.province, ''), NULLIF(c.city, ''), 'Unknown') as location,
+			COUNT(*) as candidates,
+			COUNT(CASE WHEN c.status = 'hired' THEN 1 END) as hired,
+			COALESCE(AVG(s.score), 0) as avg_score
+		FROM candidates c
+		LEFT JOIN screenings s ON s.candidate_id = c.id
+		WHERE c.deleted_at IS NULL
+		GROUP BY location
+		ORDER BY candidates DESC
+	`
+	rows, err := repository.GetDB().Query(ctx, query)
+	if err != nil {
+		return nil, err
 	}
-}
+	defer rows.Close()
 
-func getMockAnalyticsData() AnalyticsData {
-	// Returns generic mock data
-	return AnalyticsData{
-		Overview: OverviewStats{
-			TotalCandidates: 100, TotalHired: 5, TotalRejected: 20,
-			AvgTimeToHire: 12, AvgMatchScore: 75, HiringRate: 5,
-		},
+	stats := []GeographicStat{}
+	for rows.Next() {
+		var s GeographicStat
+		if err := rows.Scan(&s.Location, &s.Candidates, &s.Hired, &s.AvgScore); err != nil {
+			continue
+		}
+		s.AvgScore = math.Round(s.AvgScore*10) / 10
+		stats = append(stats, s)
 	}
+	return stats, nil
 }

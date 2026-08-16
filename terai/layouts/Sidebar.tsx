@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Plus, LogOut, Globe, ChevronRight } from 'lucide-react';
+import { LogOut, Globe, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_ROUTES } from '../config/routes';
 import { apiService } from '../services/api.service';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../guards/AuthGuard';
+import HumaniqMark from '../components/HumaniqMark';
 
 interface SidebarProps {
     collapsed: boolean;
@@ -14,8 +16,15 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
     const location = useLocation();
     const { lang, setLang, t } = useLanguage();
+    const { role } = useAuth();
 
     const sectionKeys = ['section.overview', 'section.coreHr', 'section.recruitment', 'section.resources', 'section.system'] as const;
+
+    // Hiding a menu item is UX only, not security — RoleGuard still enforces this same
+    // `route.roles` check on the route itself, so a restricted page can't be reached even by
+    // typing the URL directly. This just keeps the sidebar from listing items the user would
+    // immediately get "Access Denied" on.
+    const isVisibleForRole = (routeRoles?: string[]) => !routeRoles || !role || routeRoles.includes(role);
 
     return (
         <motion.aside
@@ -27,8 +36,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
             {/* Brand Header */}
             <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 dark:border-neutral-800">
                 <div className="flex items-center gap-4 overflow-hidden whitespace-nowrap">
-                    <div className="bg-brand-600 p-2.5 rounded-2xl shadow-lg shadow-brand-600/20 shrink-0">
-                        <Plus size={20} className="text-white" />
+                    <div className="bg-white dark:bg-neutral-900 p-1.5 rounded-2xl shadow-lg shadow-brand-600/20 shrink-0 border border-slate-100 dark:border-neutral-800">
+                        <HumaniqMark size={26} />
                     </div>
                     <AnimatePresence>
                         {!collapsed && (
@@ -48,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
             {/* Navigation Menu */}
             <nav className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-8 mt-4 layout-scrollbar">
                 {sectionKeys.map((sectionKey) => {
-                    const sectionRoutes = APP_ROUTES.filter(route => route.section === sectionKey && !route.hidden);
+                    const sectionRoutes = APP_ROUTES.filter(route => route.section === sectionKey && !route.hidden && isVisibleForRole(route.roles));
                     if (sectionRoutes.length === 0) return null;
 
                     return (

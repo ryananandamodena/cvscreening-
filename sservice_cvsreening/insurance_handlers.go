@@ -102,7 +102,11 @@ func enrollInsurancePlanHandler(c *gin.Context) {
 // getEmployeeInsuranceEnrollmentsHandler lists insurance enrollments, optionally
 // scoped to one employee via ?employeeId=
 func getEmployeeInsuranceEnrollmentsHandler(c *gin.Context) {
-	employeeID, _ := strconv.Atoi(c.Query("employeeId"))
+	requestedEmployeeID, _ := strconv.Atoi(c.Query("employeeId"))
+	employeeID, ok := authorizeEmployeeTarget(c, requestedEmployeeID)
+	if !ok {
+		return
+	}
 	enrollments, err := repository.GetEmployeeInsuranceEnrollments(c.Request.Context(), employeeID)
 	if err != nil {
 		log.Printf("ERROR in getEmployeeInsuranceEnrollmentsHandler: %v", err)
@@ -139,9 +143,13 @@ func terminateInsuranceEnrollmentHandler(c *gin.Context) {
 
 // getDependentsHandler lists dependents for an employee
 func getDependentsHandler(c *gin.Context) {
-	employeeID, err := strconv.Atoi(c.Param("employeeId"))
+	requestedEmployeeID, err := strconv.Atoi(c.Param("employeeId"))
 	if err != nil {
 		RespondWithError(c, http.StatusBadRequest, "invalid_id", "Invalid employee ID", nil)
+		return
+	}
+	employeeID, ok := authorizeEmployeeTarget(c, requestedEmployeeID)
+	if !ok {
 		return
 	}
 	deps, err := repository.GetEmployeeDependents(c.Request.Context(), employeeID)
@@ -172,6 +180,7 @@ func addDependentHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to add dependent", err.Error())
 		return
 	}
+	logAudit(c, "DEPENDENT_CREATED", "benefits", "employee_dependent", id)
 	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Dependent added successfully"})
 }
 
@@ -198,6 +207,7 @@ func updateDependentHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to update dependent", err.Error())
 		return
 	}
+	logAudit(c, "DEPENDENT_UPDATED", "benefits", "employee_dependent", dependentID)
 	c.JSON(http.StatusOK, gin.H{"message": "Dependent updated successfully"})
 }
 
@@ -218,5 +228,6 @@ func removeDependentHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to remove dependent", err.Error())
 		return
 	}
+	logAudit(c, "DEPENDENT_DELETED", "benefits", "employee_dependent", dependentID)
 	c.JSON(http.StatusOK, gin.H{"message": "Dependent removed successfully"})
 }

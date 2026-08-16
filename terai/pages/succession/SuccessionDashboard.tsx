@@ -165,7 +165,7 @@ const SuccessionDashboard: React.FC = () => {
     }
   };
 
-  const getRiskTone = (risk: string): 'danger' | 'warning' | 'success' => {
+  const getRiskTone = (risk: string | undefined): 'danger' | 'warning' | 'success' => {
     switch (risk) {
       case 'critical': return 'danger';
       case 'high': return 'danger';
@@ -190,12 +190,10 @@ const SuccessionDashboard: React.FC = () => {
     }
   };
 
-  // NOTE: the real backend (models.SuccessionPlan) only returns id/positionId/
-  // incumbentId/priority/notes/positionName/incumbentName/candidates — fields like
-  // department, riskLevel, criticalPosition, timeToFill, currentIncumbent don't exist
-  // server-side yet. Every access below falls back to a safe default instead of
-  // crashing on undefined, until those fields are either added to the backend or
-  // removed from this richer aspirational frontend model.
+  // NOTE: riskLevel/criticalPosition/timeToFillMonths are now real backend fields
+  // (see schema_succession_risk.sql), manually set on the plan form. department and
+  // currentIncumbent are still NOT returned by the backend — those two keep falling
+  // back to a safe default until the backend grows them.
   const filteredPlans = plans.filter(plan => {
     const matchesSearch = (plan.positionName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (plan.department || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -634,7 +632,7 @@ const SuccessionDashboard: React.FC = () => {
 
                                 <div className="bg-slate-50 dark:bg-neutral-800/40 p-3 rounded-lg">
                                   <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Time to Fill</p>
-                                  <p className="text-lg font-bold text-slate-900 dark:text-white">{plan.timeToFill != null ? `${plan.timeToFill} months` : '—'}</p>
+                                  <p className="text-lg font-bold text-slate-900 dark:text-white">{plan.timeToFillMonths != null ? `${plan.timeToFillMonths} months` : '—'}</p>
                                 </div>
 
                                 <div className="bg-slate-50 dark:bg-neutral-800/40 p-3 rounded-lg">

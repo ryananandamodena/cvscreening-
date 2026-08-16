@@ -56,6 +56,30 @@ export const employeeService = {
     return res;
   },
 
+  // Profile photo (Module 15) — self-service, identity resolved server-side from the JWT, not
+  // from any id passed here.
+  uploadMyPhoto: async (file: File): Promise<{ photoUrl: string; updatedAt: string }> => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    return apiService.postFormData('/employees/me/photo', formData);
+  },
+
+  deleteMyPhoto: async (): Promise<{ message: string }> => {
+    return apiService.delete('/employees/me/photo');
+  },
+
+  // Admin/recruiter managing another employee's photo — backend enforces RecruiterOrAdmin() on
+  // these routes; this is not itself an authorization mechanism.
+  uploadEmployeePhoto: async (employeeId: number, file: File): Promise<{ photoUrl: string; updatedAt: string }> => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    return apiService.postFormData(`/employees/${employeeId}/photo`, formData);
+  },
+
+  deleteEmployeePhoto: async (employeeId: number): Promise<{ message: string }> => {
+    return apiService.delete(`/employees/${employeeId}/photo`);
+  },
+
   convertCandidate: async (data: ConvertCandidatePayload) => {
     return apiService.post<any>('/candidates/convert', data);
   },

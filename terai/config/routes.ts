@@ -101,6 +101,7 @@ const EnterpriseIntegrations = React.lazy(() => import('../pages/integrations/En
 // Phase 2 Modules
 const AttendanceOverview = React.lazy(() => import('../pages/attendance/AttendanceOverview'));
 const ShiftManagement = React.lazy(() => import('../pages/attendance/ShiftManagement'));
+const RemoteWorkExemptions = React.lazy(() => import('../pages/attendance/RemoteWorkExemptions'));
 const ApprovalCenter = React.lazy(() => import('../pages/approvals/ApprovalCenter'));
 const AttendanceKiosk = React.lazy(() => import('../pages/attendance/AttendanceKiosk'));
 const LeaveManagement = React.lazy(() => import('../pages/leave/LeaveManagement'));
@@ -216,7 +217,8 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.performance',
     icon: Target,
     section: 'section.coreHr',
-    roles: ['admin', 'hr'],
+    // Backend: create/update/analyze reviews + analytics are RecruiterOrAdmin() (routes_hr.go)
+    roles: ['admin', 'recruiter'],
   },
   {
     path: '/performance/goals',
@@ -232,7 +234,8 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.employeePortal',
     icon: User,
     section: 'section.coreHr',
-    roles: ['employee'],
+    // Backend: GET /employees/me and all leave/approval self-service reads are open to any
+    // authenticated employee — 'employee' isn't a real backend role, so no restriction is correct.
   },
   {
     path: '/training',
@@ -240,7 +243,9 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.training',
     icon: BookOpen,
     section: 'section.coreHr',
-    roles: ['admin', 'hr'],
+    // Backend: /training/programs, /training/my-trainings, and enroll are open to any
+    // authenticated employee (self-service catalog + enrollment); only creating a program is
+    // RecruiterOrAdmin()-gated. No route-level restriction — matches Module 11's enrollment tests.
   },
   {
     path: '/benefits',
@@ -248,7 +253,9 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.benefits',
     icon: Heart,
     section: 'section.coreHr',
-    roles: ['admin', 'hr'],
+    // Backend: /benefits/employee (own) and /benefits/enroll are open to any authenticated
+    // employee (self-service); only plan/insurance/allowance CRUD is RecruiterOrAdmin()-gated.
+    // No route-level restriction, same reasoning as /training.
   },
   {
     path: '/compensation',
@@ -256,7 +263,10 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.compensation',
     icon: DollarSign,
     section: 'section.coreHr',
-    roles: ['admin', 'hr'],
+    // Backend: compensation bands/grades/structures/analytics are FinanceOrAdmin() (both reads
+    // and writes — routes_benefits_succession.go). 'hr' (recruiter) is deliberately excluded
+    // there per that file's own comment; see Business Decisions if HR also needs visibility.
+    roles: ['admin', 'finance'],
   },
   {
     path: '/succession',
@@ -264,7 +274,9 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.succession',
     icon: Users,
     section: 'section.coreHr',
-    roles: ['admin', 'hr'],
+    // Backend: succession plans/candidates/nine-box reads AND writes are RecruiterOrAdmin()
+    // (unlike leave/documents, the reads are gated here too — routes_benefits_succession.go).
+    roles: ['admin', 'recruiter'],
   },
   {
     path: '/documents',
@@ -272,7 +284,8 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.documents',
     icon: FileText,
     section: 'section.coreHr',
-    roles: ['admin', 'hr', 'employee'],
+    // Backend: document/policy/compliance reads are open to any authenticated employee; only
+    // authoring policies/documents is RecruiterOrAdmin()-gated. No route-level restriction.
   },
   {
     path: '/system/audit-log',
@@ -288,7 +301,9 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.attendance',
     icon: Clock,
     section: 'section.coreHr',
-    roles: ['employee', 'admin', 'hr'],
+    // Backend: clock-in/out, today/history reads are open to any authenticated employee; the
+    // page's own internal canViewTeam check (now fixed, see AttendanceOverview.tsx) gates the
+    // team-view tab to hiring_manager/admin. No route-level restriction needed.
   },
   {
     path: '/attendance/shifts',
@@ -296,7 +311,21 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.shiftManagement',
     icon: Clock,
     section: 'section.coreHr',
-    roles: ['admin', 'hr'],
+    // Backend: creating/assigning/updating/deleting shifts is HROrAdmin() (routes_attendance.go)
+    // — 'admin'/'hr'/'hr_admin'/'hr_manager'. Previously listed here as ['admin', 'recruiter'],
+    // mirroring a since-fixed backend bug where this route group was mistakenly gated by
+    // RecruiterOrAdmin() instead of the HR/Admin gate its own comments described.
+    roles: ['admin', 'hr', 'hr_admin', 'hr_manager'],
+  },
+  {
+    path: '/attendance/remote-exemptions',
+    component: RemoteWorkExemptions,
+    label: 'nav.remoteWorkExemptions',
+    icon: Clock,
+    section: 'section.coreHr',
+    // Backend: PUT /attendance/location-exemptions/:employeeId is HROrAdmin() — same gate as
+    // office-location and shifts above.
+    roles: ['admin', 'hr', 'hr_admin', 'hr_manager'],
   },
   {
     path: '/attendance/kiosk',
@@ -304,7 +333,11 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.attendanceKiosk',
     icon: Clock,
     section: 'section.coreHr',
-    roles: ['admin', 'hr'],
+    // Backend has no dedicated kiosk-specific gate (QR token generation is open to any
+    // authenticated employee); who is meant to physically operate a kiosk device is a business
+    // question, not something the backend answers. Kept at the same operational-staff scope as
+    // /attendance/shifts (RecruiterOrAdmin) as the closest safe default — see Business Decisions.
+    roles: ['admin', 'recruiter'],
     hidden: true,
   },
   {
@@ -313,7 +346,9 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.approvalCenter',
     icon: ShieldCheck,
     section: 'section.coreHr',
-    roles: ['employee', 'admin', 'hr'],
+    // Backend: pending/act/cancel/delegations resolve identity from the JWT and check
+    // IsAuthorizedApprover internally — open to any authenticated employee. The page's own
+    // internal isHR check (now fixed) gates the HR-review/flow-config tabs.
   },
   {
     path: '/leaves',
@@ -321,7 +356,9 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.leaves',
     icon: Calendar,
     section: 'section.coreHr',
-    roles: ['employee', 'admin', 'hr'],
+    // Backend: leave type/balance/request reads+creation are open to any authenticated employee;
+    // approve/reject are checked in-handler against the requester's manager. No route-level
+    // restriction — matches /employee-portal and /attendance.
   },
   {
     path: '/payroll',
@@ -329,7 +366,8 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.payroll',
     icon: DollarSign,
     section: 'section.coreHr',
-    roles: ['admin', 'hr'],
+    // Backend: payroll periods/configs/payslip-catalog reads AND writes are FinanceOrAdmin().
+    roles: ['admin', 'finance'],
   },
   {
     path: '/my-payslip',
@@ -344,7 +382,8 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.payrollSimulator',
     icon: Calculator,
     section: 'section.coreHr',
-    roles: ['admin', 'hr'],
+    // Backend: SimulatePayroll is FinanceOrAdmin() (routes_admin_finance.go).
+    roles: ['admin', 'finance'],
   },
 
   // Mock Modules
@@ -359,32 +398,43 @@ export const APP_ROUTES: RouteConfig[] = [
     section: 'section.recruitment',
   },
   {
+    // Backend: /screening (create), /screenings, /screenings/:id (read/update) are all
+    // RecruiterOrAdmin() (routes_recruitment_admin.go) — no self-service read exists for this
+    // data at all (Module 13 fix — this whole Recruitment block was missed by Module 12, which
+    // only reconciled the "Core HR" section).
     path: '/screening/:id?',
     component: Screening,
     label: 'nav.screening',
     icon: SearchCode,
     section: 'section.recruitment',
+    roles: ['admin', 'recruiter'],
   },
   {
+    // Backend: /interviews create/read = RecruiterOrAdmin().
     path: '/interviews',
     component: LiveInterview,
     label: 'nav.interviews',
     icon: Video,
     section: 'section.recruitment',
+    roles: ['admin', 'recruiter'],
   },
   {
+    // Backend: /interview-schedules (read/create/update/cancel) = RecruiterOrAdmin().
     path: '/interview-schedule',
     component: InterviewSchedule,
     label: 'nav.interviewSchedule',
     icon: Calendar,
     section: 'section.recruitment',
+    roles: ['admin', 'recruiter'],
   },
   {
+    // Backend: interview feedback/scorecard update = RecruiterOrAdmin().
     path: '/interview-scorecard/:interviewId?',
     component: InterviewScorecard,
     label: 'nav.interviewScorecard',
     icon: Star,
     section: 'section.recruitment',
+    roles: ['admin', 'recruiter'],
   },
   {
     path: '/interviews/:id/results',
@@ -392,62 +442,79 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.interviewResults',
     icon: Star,
     section: 'section.recruitment',
+    roles: ['admin', 'recruiter'],
     hidden: true,
   },
   {
+    // Backend: /offer-letters (all methods) = RecruiterOrAdmin().
     path: '/offers',
     component: OfferLetter,
     label: 'nav.offers',
     icon: FileSignature,
     section: 'section.recruitment',
+    roles: ['admin', 'recruiter'],
   },
   {
+    // Backend: /skill-matching = RecruiterOrAdmin().
     path: '/skill-matching',
     component: SkillMatching,
     label: 'nav.skillMatching',
     icon: BrainCircuit,
     section: 'section.recruitment',
+    roles: ['admin', 'recruiter'],
     hidden: true,
   },
   {
+    // Backend: /linkedin/search = RecruiterOrAdmin().
     path: '/linkedin-import',
     component: LinkedInImport,
     label: 'nav.linkedinImport',
     icon: Linkedin,
     section: 'section.recruitment',
+    roles: ['admin', 'recruiter'],
     hidden: true,
   },
   {
+    // Backend: /interviews/:id/recordings, /recordings/:id = RecruiterOrAdmin().
     path: '/recording/:id',
     component: RecordingPlayback,
     label: 'nav.recordingPlayback',
     icon: PlayCircle,
     section: 'section.recruitment',
+    roles: ['admin', 'recruiter'],
     hidden: true,
   },
 
 
   // Resources
   {
+    // Backend: TalentPool reads via /candidates or /search/candidates, both RecruiterOrAdmin().
     path: '/pool',
     component: TalentPool,
     label: 'nav.pool',
     icon: Database,
     section: 'section.resources',
+    roles: ['admin', 'recruiter'],
   },
   {
+    // Backend: GET /questions = RecruiterOrAdmin().
     path: '/questions',
     component: QuestionBank,
     label: 'nav.questions',
     icon: BookOpen,
     section: 'section.resources',
+    roles: ['admin', 'recruiter'],
   },
   {
+    // Backend: /assessments (list/create/update/delete) = RecruiterOrAdmin(). (Candidate-facing
+    // per-id assessment-taking endpoints are separate, public, unauthenticated routes — not this
+    // admin page.)
     path: '/assessments',
     component: Assessments,
     label: 'nav.assessments',
     icon: ClipboardList,
     section: 'section.resources',
+    roles: ['admin', 'recruiter'],
   },
   {
     path: '/assessments/:id',
@@ -455,6 +522,7 @@ export const APP_ROUTES: RouteConfig[] = [
     label: 'nav.assessmentBuilder',
     icon: ClipboardList,
     section: 'section.resources',
+    roles: ['admin', 'recruiter'],
   },
 
   // System

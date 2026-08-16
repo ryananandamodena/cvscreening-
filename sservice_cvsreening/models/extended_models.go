@@ -30,9 +30,9 @@ type PerformanceReview struct {
 	UpdatedAt          time.Time  `json:"updatedAt"`
 
 	// Joined
-	EmployeeName string             `json:"employeeName,omitempty"`
-	ReviewerName string             `json:"reviewerName,omitempty"`
-	Goals        []PerformanceGoal  `json:"goals,omitempty"`
+	EmployeeName string            `json:"employeeName,omitempty"`
+	ReviewerName string            `json:"reviewerName,omitempty"`
+	Goals        []PerformanceGoal `json:"goals,omitempty"`
 }
 
 // PerformanceGoal represents an employee's OKR/goal
@@ -87,45 +87,45 @@ type TrainingProgram struct {
 
 // TrainingEnrollment represents an employee enrolled in a training
 type TrainingEnrollment struct {
-	ID         int        `json:"id"`
-	ProgramID  int        `json:"programId"`
-	EmployeeID int        `json:"employeeId"`
-	Status     string     `json:"status"` // enrolled, completed, cancelled, no_show
-	Score      *float64   `json:"score,omitempty"`
+	ID          int        `json:"id"`
+	ProgramID   int        `json:"programId"`
+	EmployeeID  int        `json:"employeeId"`
+	Status      string     `json:"status"` // enrolled, completed, cancelled, no_show
+	Score       *float64   `json:"score,omitempty"`
 	CompletedAt *time.Time `json:"completedAt,omitempty"`
-	CreatedAt  time.Time  `json:"createdAt"`
+	CreatedAt   time.Time  `json:"createdAt"`
 
 	// Joined
-	EmployeeName  string `json:"employeeName,omitempty"`
-	ProgramTitle  string `json:"programTitle,omitempty"`
+	EmployeeName string `json:"employeeName,omitempty"`
+	ProgramTitle string `json:"programTitle,omitempty"`
 }
 
 // ==================== BENEFITS ====================
 
 // BenefitPlan represents a company benefit plan (health, life insurance, etc.)
 type BenefitPlan struct {
-	ID          int     `json:"id"`
-	Name        string  `json:"name"`
-	Category    string  `json:"category"` // health, life, dental, vision, pension, other
-	Provider    string  `json:"provider"`
-	Description string  `json:"description"`
-	CoverageAmount float64 `json:"coverageAmount"`
-	EmployeeContribution float64 `json:"employeeContribution"`
-	EmployerContribution float64 `json:"employerContribution"`
-	IsActive    bool    `json:"isActive"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID                   int       `json:"id"`
+	Name                 string    `json:"name"`
+	Category             string    `json:"category"` // health, life, dental, vision, pension, other
+	Provider             string    `json:"provider"`
+	Description          string    `json:"description"`
+	CoverageAmount       float64   `json:"coverageAmount"`
+	EmployeeContribution float64   `json:"employeeContribution"`
+	EmployerContribution float64   `json:"employerContribution"`
+	IsActive             bool      `json:"isActive"`
+	CreatedAt            time.Time `json:"createdAt"`
+	UpdatedAt            time.Time `json:"updatedAt"`
 }
 
 // EmployeeBenefit represents an employee's enrollment in a benefit plan
 type EmployeeBenefit struct {
-	ID          int        `json:"id"`
-	EmployeeID  int        `json:"employeeId"`
-	PlanID      int        `json:"planId"`
-	StartDate   time.Time  `json:"startDate"`
-	EndDate     *time.Time `json:"endDate,omitempty"`
-	Status      string     `json:"status"` // active, inactive
-	CreatedAt   time.Time  `json:"createdAt"`
+	ID         int        `json:"id"`
+	EmployeeID int        `json:"employeeId"`
+	PlanID     int        `json:"planId"`
+	StartDate  time.Time  `json:"startDate"`
+	EndDate    *time.Time `json:"endDate,omitempty"`
+	Status     string     `json:"status"` // active, inactive
+	CreatedAt  time.Time  `json:"createdAt"`
 
 	// Joined
 	EmployeeName string `json:"employeeName,omitempty"`
@@ -137,13 +137,13 @@ type EmployeeBenefit struct {
 
 // CompensationBand represents salary bands for positions
 type CompensationBand struct {
-	ID         int     `json:"id"`
-	PositionID int     `json:"positionId"`
-	Level      string  `json:"level"` // junior, mid, senior, lead, manager
-	MinSalary  float64 `json:"minSalary"`
-	MaxSalary  float64 `json:"maxSalary"`
-	Currency   string  `json:"currency"`
-	Year       int     `json:"year"`
+	ID         int       `json:"id"`
+	PositionID int       `json:"positionId"`
+	Level      string    `json:"level"` // junior, mid, senior, lead, manager
+	MinSalary  float64   `json:"minSalary"`
+	MaxSalary  float64   `json:"maxSalary"`
+	Currency   string    `json:"currency"`
+	Year       int       `json:"year"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 
@@ -155,27 +155,30 @@ type CompensationBand struct {
 
 // SuccessionPlan represents a succession plan for a key position
 type SuccessionPlan struct {
-	ID            int    `json:"id"`
-	PositionID    int    `json:"positionId"`
-	IncumbentID   *int   `json:"incumbentId,omitempty"`
-	Priority      string `json:"priority"` // critical, high, medium, low
-	Notes         string `json:"notes"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID               int       `json:"id"`
+	PositionID       int       `json:"positionId"`
+	IncumbentID      *int      `json:"incumbentId,omitempty"`
+	Priority         string    `json:"priority"` // critical, high, medium, low
+	Notes            string    `json:"notes"`
+	RiskLevel        string    `json:"riskLevel,omitempty"` // critical, high, medium, low — manually assessed
+	CriticalPosition bool      `json:"criticalPosition"`
+	TimeToFillMonths *int      `json:"timeToFillMonths,omitempty"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 
 	// Joined
-	PositionName   string              `json:"positionName,omitempty"`
-	IncumbentName  string              `json:"incumbentName,omitempty"`
-	Candidates     []SuccessionCandidate `json:"candidates,omitempty"`
+	PositionName  string                `json:"positionName,omitempty"`
+	IncumbentName string                `json:"incumbentName,omitempty"`
+	Candidates    []SuccessionCandidate `json:"candidates,omitempty"`
 }
 
 // SuccessionCandidate represents a potential successor for a position
 type SuccessionCandidate struct {
-	ID         int    `json:"id"`
-	PlanID     int    `json:"planId"`
-	EmployeeID int    `json:"employeeId"`
-	Readiness  string `json:"readiness"` // ready_now, 1_2_years, 2_5_years
-	Notes      string `json:"notes"`
+	ID         int       `json:"id"`
+	PlanID     int       `json:"planId"`
+	EmployeeID int       `json:"employeeId"`
+	Readiness  string    `json:"readiness"` // ready_now, 1_2_years, 2_5_years
+	Notes      string    `json:"notes"`
 	CreatedAt  time.Time `json:"createdAt"`
 
 	// Joined
@@ -188,20 +191,20 @@ type SuccessionCandidate struct {
 
 // CompanyDocument represents a policy, SOP, or template document
 type CompanyDocument struct {
-	ID           int        `json:"id"`
-	Title        string     `json:"title"`
-	Category     string     `json:"category"` // policy, sop, template, announcement, other
-	Description  string     `json:"description"`
-	FilePath     string     `json:"filePath"`
-	FileSize     int64      `json:"fileSize"`
-	MimeType     string     `json:"mimeType"`
-	Version      string     `json:"version"`
-	IsPublic     bool       `json:"isPublic"`
-	UploadedBy   *int       `json:"uploadedBy,omitempty"`
+	ID            int        `json:"id"`
+	Title         string     `json:"title"`
+	Category      string     `json:"category"` // policy, sop, template, announcement, other
+	Description   string     `json:"description"`
+	FilePath      string     `json:"filePath"`
+	FileSize      int64      `json:"fileSize"`
+	MimeType      string     `json:"mimeType"`
+	Version       string     `json:"version"`
+	IsPublic      bool       `json:"isPublic"`
+	UploadedBy    *int       `json:"uploadedBy,omitempty"`
 	EffectiveDate *time.Time `json:"effectiveDate,omitempty"`
-	ExpiryDate   *time.Time `json:"expiryDate,omitempty"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
+	ExpiryDate    *time.Time `json:"expiryDate,omitempty"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
 
 	// Joined
 	UploaderName string `json:"uploaderName,omitempty"`

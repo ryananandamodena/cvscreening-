@@ -216,11 +216,17 @@ func GetApprovalHistory(ctx context.Context, requestID int) ([]models.ApprovalHi
 
 // approverMatchClause is the shared WHERE fragment resolving "is $1 (employeeID) with role $2 authorized
 // to act on the current level of this request", including active delegations.
+//
+// Escalation for orphaned requesters: when a level is "manager_of_requester" but the requester has no
+// manager_id on record (e.g. C-level, or data not yet set up), the request would otherwise sit pending
+// forever with no eligible approver and no error surfaced to anyone (see syncApprovedOvertimeToAttendance
+// callers / SubmitApprovalRequest). We escalate that case to any hr_admin instead of failing silently.
 const approverMatchClause = `
 	(
 		ar.override_approver_employee_id = $1
 		OR (ar.override_approver_employee_id IS NULL AND afl.approver_type = 'specific_user' AND afl.approver_employee_id = $1)
 		OR (ar.override_approver_employee_id IS NULL AND afl.approver_type = 'manager_of_requester' AND req_e.manager_id = $1)
+		OR (ar.override_approver_employee_id IS NULL AND afl.approver_type = 'manager_of_requester' AND req_e.manager_id IS NULL AND LOWER($2) = 'hr_admin')
 		OR (ar.override_approver_employee_id IS NULL AND afl.approver_type = 'role' AND LOWER(afl.approver_role) = LOWER($2))
 		OR EXISTS (
 			SELECT 1 FROM approval_delegations d
@@ -490,6 +496,32 @@ func GetMyDelegations(ctx context.Context, delegatorID int) ([]map[string]interf
 		}
 	}
 	return results, nil
+}
+
+// GetEmployeesByUserRole returns employees whose linked user account has the given role
+// (case-insensitive), for role-based approval escalation/notification (e.g. hr_admin).
+func GetEmployeesByUserRole(ctx context.Context, role string) ([]models.Employee, error) {
+	employees := []models.Employee{}
+	if !IsDBConnected() {
+		return employees, nil
+	}
+	rows, err := GetDB().Query(ctx, `
+		SELECT e.id, e.full_name, e.email
+		FROM employees e
+		JOIN users u ON e.user_id = u.id
+		WHERE LOWER(u.role) = LOWER($1)
+	`, role)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var e models.Employee
+		if err := rows.Scan(&e.ID, &e.FullName, &e.Email); err == nil {
+			employees = append(employees, e)
+		}
+	}
+	return employees, nil
 }
 
 // DeactivateApprovalDelegation revokes a delegation

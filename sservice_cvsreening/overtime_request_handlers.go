@@ -49,6 +49,7 @@ func createOvertimeRequestHandler(c *gin.Context) {
 		return
 	}
 	notifyApprovalOutcome(c, approvalID, "", "")
+	logAudit(c, "OVERTIME_SUBMITTED", "overtime", "overtime_request", id)
 
 	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Overtime request submitted for approval"})
 }

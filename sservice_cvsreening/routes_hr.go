@@ -17,47 +17,58 @@ func registerHRRoutes(protected *gin.RouterGroup) {
 	protected.PUT("/leave/requests/:id/cancel", cancelLeaveRequestHandler)
 	protected.GET("/holidays", getHolidaysHandler)
 
-	// Core HR Management
-	// NOTE: static paths (/employees/stats/summary) MUST come before wildcard (/employees/:id)
+	// Core HR Management — self-service reads stay open; org-wide mutations are HR/admin-gated
+	// below. NOTE: static paths (/employees/stats/summary) MUST come before wildcard (/employees/:id).
 	protected.GET("/employees", getEmployeesHandler)
 	protected.GET("/employees/me", getMyEmployeeHandler)
-	protected.GET("/employees/stats/summary", getEmployeeStatsHandler)
-	protected.POST("/employees", createEmployeeHandler)
-	protected.POST("/candidates/convert", convertCandidateHandler)
+	// Profile photo (Module 15): self-service, identity resolved from JWT only — no employeeId
+	// accepted from body/query, matching the authorizeEmployeeTarget/resolveOwnEmployeeID
+	// convention used everywhere else in this file.
+	protected.POST("/employees/me/photo", uploadMyPhotoHandler)
+	protected.DELETE("/employees/me/photo", deleteMyPhotoHandler)
 	protected.GET("/employees/:id", getEmployeeByIDHandler)
-	protected.PUT("/employees/:id", updateEmployeeHandler)
-	protected.DELETE("/employees/:id", deleteEmployeeHandler)
-	protected.GET("/employees/:id/candidate-history", getEmployeeCandidateHistoryHandler)
-
-	// Contracts
 	protected.GET("/employees/:id/contracts", getEmployeeContractsHandler)
-	protected.POST("/employees/:id/contracts", createContractHandler)
-	protected.GET("/contracts/expiring", getExpiringContractsHandler)
-	protected.POST("/contracts/:id/sign", signContractHandler)
-
-	// Performance Management
+	protected.POST("/contracts/:id/sign", signContractHandler) // ownership enforced inside the handler
 	protected.GET("/performance/reviews", getPerformanceReviewsHandler)
-	protected.POST("/performance/reviews", createPerformanceReviewHandler)
-	protected.PUT("/performance/reviews/:id", updatePerformanceReviewHandler)
-	protected.POST("/performance/reviews/:id/analyze", analyzePerformanceHandler)
-
-	// Advanced AI Features
-	protected.POST("/ai/chatbot", aiChatbotHandler)
-
-	// Performance Management (cont'd — historically filed under a duplicate
-	// "Training & Development" comment; left grouped with performance since
-	// that's what these routes actually are)
 	protected.GET("/performance/reviews/:id", getPerformanceReviewByIDHandler)
 	protected.GET("/performance/goals", getGoalsHandler)
 	protected.POST("/performance/goals", createGoalHandler)
 	protected.PUT("/performance/goals/:id", updateGoalHandler)
 	protected.DELETE("/performance/goals/:id", deleteGoalHandler)
-	protected.GET("/performance/analytics", getPerformanceAnalyticsHandler)
-
-	// Training & Development
+	protected.POST("/ai/chatbot", aiChatbotHandler)
 	protected.GET("/training/programs", getTrainingProgramsHandler)
-	protected.POST("/training/programs", createTrainingProgramHandler)
 	protected.POST("/training/programs/:id/enroll", enrollInTrainingHandler)
 	protected.GET("/training/my-trainings", getMyTrainingsHandler)
-	protected.GET("/training/employee", getTrainingEmployeeHandler)
+
+	// Employee self-service expense claims — identity always resolved from the JWT
+	// (resolveOwnEmployeeID), never a client-supplied employeeId. Replaces mobile's previous
+	// (incorrect) call to the HR-only POST /benefits/allowances.
+	protected.POST("/claims", createClaimHandler)
+	protected.GET("/claims/my", getMyClaimsHandler)
+
+	// HR/Admin: employee lifecycle, contracts, performance reviews (manager/HR-authored,
+	// not self-authored), training catalog. None of this was gated before — any authenticated
+	// employee could create/edit/delete another employee's record, contract, or review.
+	hrOrAdmin := protected.Group("/")
+	hrOrAdmin.Use(RecruiterOrAdmin())
+	{
+		hrOrAdmin.GET("/employees/stats/summary", getEmployeeStatsHandler)
+		hrOrAdmin.POST("/employees", createEmployeeHandler)
+		hrOrAdmin.POST("/candidates/convert", convertCandidateHandler)
+		hrOrAdmin.PUT("/employees/:id", updateEmployeeHandler)
+		hrOrAdmin.DELETE("/employees/:id", deleteEmployeeHandler)
+		// Profile photo (Module 15): admin/recruiter managing another employee's photo — same
+		// route-level RecruiterOrAdmin() gate as every other employee-write action in this group.
+		hrOrAdmin.POST("/employees/:id/photo", uploadEmployeePhotoHandler)
+		hrOrAdmin.DELETE("/employees/:id/photo", deleteEmployeePhotoHandler)
+		hrOrAdmin.GET("/employees/:id/candidate-history", getEmployeeCandidateHistoryHandler)
+		hrOrAdmin.POST("/employees/:id/contracts", createContractHandler)
+		hrOrAdmin.GET("/contracts/expiring", getExpiringContractsHandler)
+		hrOrAdmin.POST("/performance/reviews", createPerformanceReviewHandler)
+		hrOrAdmin.PUT("/performance/reviews/:id", updatePerformanceReviewHandler)
+		hrOrAdmin.POST("/performance/reviews/:id/analyze", analyzePerformanceHandler)
+		hrOrAdmin.GET("/performance/analytics", getPerformanceAnalyticsHandler)
+		hrOrAdmin.POST("/training/programs", createTrainingProgramHandler)
+		hrOrAdmin.GET("/training/employee", getTrainingEmployeeHandler)
+	}
 }

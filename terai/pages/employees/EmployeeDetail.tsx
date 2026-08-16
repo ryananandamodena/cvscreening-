@@ -7,8 +7,14 @@ import {
 import { employeeService } from '../../services/employee.service';
 import { Employee } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../guards/AuthGuard';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
+import EmployeePhotoUploader from '../../components/EmployeePhotoUploader';
+
+// Backend gate for POST/DELETE /employees/:id/photo is RecruiterOrAdmin() (routes_hr.go),
+// same as every other employee-write action — matches the established STAFF_ROLES convention.
+const STAFF_ROLES = ['admin', 'recruiter'];
 
 import EmployeeContracts from './EmployeeContracts';
 import { onboardingService, OnboardingSession, OnboardingTask } from '../../services/onboarding.service';
@@ -17,6 +23,8 @@ const EmployeeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { role } = useAuth();
+  const isStaff = !!role && STAFF_ROLES.includes(role);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,15 +148,14 @@ const EmployeeDetail: React.FC = () => {
         </div>
         <div className="px-10 pb-10">
           <div className="flex flex-col md:flex-row gap-8 items-start relative -mt-16">
-            <div className="w-32 h-32 rounded-2xl bg-white dark:bg-[#000000] border-4 border-white dark:border-neutral-900 shadow-2xl overflow-hidden shrink-0 flex items-center justify-center ring-1 ring-black/5 dark:ring-white/10">
-              {employee.photoUrl ? (
-                <img src={employee.photoUrl} alt={employee.fullName} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-5xl font-black text-white">
-                  {employee.fullName.charAt(0)}
-                </div>
-              )}
-            </div>
+            <EmployeePhotoUploader
+              photoUrl={employee.photoUrl}
+              fallbackInitial={employee.fullName.charAt(0)}
+              canEdit={isStaff}
+              onUpload={(file) => employeeService.uploadEmployeePhoto(employee.id, file)}
+              onDelete={() => employeeService.deleteEmployeePhoto(employee.id)}
+              onChanged={(newUrl) => setEmployee((prev) => (prev ? { ...prev, photoUrl: newUrl || '' } : prev))}
+            />
 
             <div className="flex-1 pt-20 md:pt-24">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

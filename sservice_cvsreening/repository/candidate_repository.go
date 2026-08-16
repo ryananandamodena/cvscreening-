@@ -51,6 +51,22 @@ func CreateOrUpdateCandidate(ctx context.Context, name, email, phone, cvText str
 	return id, nil
 }
 
+// UpdateCandidateLocation sets a candidate's city/province, used by manual profile
+// import (see linkedin_handlers.go) so the free-text "location" a profile carries isn't
+// discarded — it's what GetGeographicAnalytics now aggregates on. Left as its own
+// function (rather than folded into CreateOrUpdateCandidate) so existing callers of
+// that function are unaffected.
+func UpdateCandidateLocation(ctx context.Context, candidateID int, city, province string) error {
+	if !IsDBConnected() {
+		return nil
+	}
+	_, err := GetDB().Exec(ctx, `
+		UPDATE candidates SET city = NULLIF($1, ''), province = NULLIF($2, ''), updated_at = CURRENT_TIMESTAMP
+		WHERE id = $3
+	`, city, province, candidateID)
+	return err
+}
+
 // GetCandidates retrieves list of candidates with pagination
 func GetCandidates(ctx context.Context, page, limit int) ([]models.Candidate, int64, error) {
 	if !IsDBConnected() {

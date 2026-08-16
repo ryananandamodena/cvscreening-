@@ -9,14 +9,17 @@ export default function ScreeningDetailScreen() {
   const { id } = useLocalSearchParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const fetchData = async () => {
     try {
       if (!id) return;
       const res = await apiService.getScreeningByID(Number(id));
       setData(res.data || res);
+      setError(false);
     } catch (err) {
       console.log('Error fetching screening:', err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -37,6 +40,17 @@ export default function ScreeningDetailScreen() {
   };
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={Colors.primary} /></View>;
+  if (!data && error) {
+    return (
+      <View style={styles.center}>
+        <Ionicons name="cloud-offline-outline" size={48} color={Colors.textTertiary} />
+        <Text style={{ color: Colors.textSecondary, marginTop: Spacing.md }}>Failed to load screening details.</Text>
+        <TouchableOpacity style={[styles.btn, { backgroundColor: Colors.primary, marginTop: Spacing.lg, paddingHorizontal: Spacing.xl }]} onPress={fetchData}>
+          <Text style={styles.btnText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
   if (!data) return <View style={styles.center}><Text>Data not found</Text></View>;
 
   const score = data.overall_score || data.overallScore || 0;

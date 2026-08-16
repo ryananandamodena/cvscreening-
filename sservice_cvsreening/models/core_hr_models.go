@@ -445,18 +445,23 @@ type AuditTrailFilter struct {
 
 // ClockInRequest payload for clocking in
 type ClockInRequest struct {
-	EmployeeID int             `json:"employeeId" binding:"required"`
+	EmployeeID int             `json:"employeeId"`
 	Location   json.RawMessage `json:"location"`
 	Photo      string          `json:"photo"`
 	Latitude   float64         `json:"latitude"`
 	Longitude  float64         `json:"longitude"`
 	QRToken    string          `json:"qrToken"`
 	FaceDescriptor []float64   `json:"faceDescriptor,omitempty"`
+	// ClientType declares which client is submitting ("mobile" or empty/web). The mobile app has
+	// no on-device face-matching capability (no face-api.js equivalent) — this is an explicit,
+	// declared exemption from mandatory face verification for that channel, not a loophole (see
+	// shouldEnforceFaceVerification). Photo+GPS are still required either way.
+	ClientType string `json:"clientType,omitempty"`
 }
 
 // ClockOutRequest payload for clocking out
 type ClockOutRequest struct {
-	EmployeeID int             `json:"employeeId" binding:"required"`
+	EmployeeID int             `json:"employeeId"`
 	Location   json.RawMessage `json:"location"`
 	Photo      string          `json:"photo"`
 	Notes      string          `json:"notes"`

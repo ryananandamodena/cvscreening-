@@ -1,42 +1,44 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Image, Alert } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { apiService } from '../../services/api';
-import { Colors, Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '../../constants/theme';
+import { Colors, Spacing, BorderRadius, FontSize, FontWeight, Shadow, Gradients } from '../../constants/theme';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const StatCard = ({ icon, label, value, color, bgColor }: any) => (
-  <View style={[styles.statCard, Shadow.md]}>
-    <View style={[styles.statIcon, { backgroundColor: bgColor }]}>
-      <Ionicons name={icon} size={24} color={color} />
-    </View>
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
+const QuickAction = ({ icon, label, onPress, gradient }: any) => (
+  <TouchableOpacity style={styles.quickAction} onPress={onPress} activeOpacity={0.7}>
+    <LinearGradient colors={gradient || Gradients.softBlue} style={styles.quickIcon}>
+      <Ionicons name={icon} size={24} color={Colors.primary} />
+    </LinearGradient>
+    <Text style={styles.quickLabel}>{label}</Text>
+  </TouchableOpacity>
 );
 
 export default function DashboardScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [stats, setStats] = useState({ totalJobs: 0, totalScreenings: 0, todayInterviews: 0, upcomingInterviews: 0 });
+  const [todayAttendance, setTodayAttendance] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = async () => {
     try {
-      const data = await apiService.getDashboardStats();
-      setStats(data);
+      const [dashboardStats, attendance] = await Promise.all([
+        apiService.getDashboardStats(),
+        apiService.getTodayAttendance().catch(() => null),
+      ]);
+      setStats(dashboardStats);
+      setTodayAttendance(attendance);
     } catch (err) {
       console.log('Dashboard fetch error:', err);
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchStats();
-    }, [])
-  );
+  useFocusEffect(useCallback(() => { fetchStats(); }, []));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -44,52 +46,134 @@ export default function DashboardScreen() {
     setRefreshing(false);
   };
 
+  const formatTime = (dateStr: string | undefined) => {
+    if (!dateStr) return '--:--';
+    return new Date(dateStr).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
   return (
     <View style={styles.container}>
-      {/* Gradient Header Background */}
-      <LinearGradient
-        colors={[Colors.primaryDark, Colors.primaryLight]}
-        style={styles.headerBackground}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
-      
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.white} />}
-      >
-        {/* Welcome */}
-        <View style={styles.welcome}>
-          <View>
-            <Text style={styles.greeting}>Welcome back 👋</Text>
-            <Text style={styles.userName}>{user?.name || user?.email || 'Admin'}</Text>
+      {/* Header */}
+      <LinearGradient colors={Gradients.primary} style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
+        <View style={styles.headerProfileRow}>
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarText}>
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'E'}
+            </Text>
           </View>
-          <TouchableOpacity style={styles.notifBtn}>
-            <Ionicons name="notifications-outline" size={22} color={Colors.white} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.greeting}>{greeting()} 👋</Text>
+            <Text style={styles.userName}>{user?.name || user?.email || 'Employee'}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.notifBtn}
+            onPress={() => Alert.alert('Notifications', 'No new notifications')}
+          >
+            <Ionicons name="notifications-outline" size={24} color={Colors.white} />
           </TouchableOpacity>
         </View>
+      </LinearGradient>
 
-      {/* Stats Grid */}
-      <View style={styles.statsGrid}>
-        <StatCard icon="briefcase" label="Active Jobs" value={stats.totalJobs} color={Colors.primary} bgColor={Colors.primaryBg} />
-        <StatCard icon="document-text" label="Screenings" value={stats.totalScreenings} color={Colors.info} bgColor={Colors.infoBg} />
-        <StatCard icon="today" label="Today's Interviews" value={stats.todayInterviews} color={Colors.success} bgColor={Colors.successBg} />
-        <StatCard icon="calendar" label="Upcoming" value={stats.upcomingInterviews} color={Colors.warning} bgColor={Colors.warningBg} />
-      </View>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Attendance Card */}
+        <View style={[styles.attendanceCard, Shadow.md]}>
+          <LinearGradient colors={Gradients.meshLight} style={styles.attendanceGradient} start={{x:0, y:0}} end={{x:1, y:1}}>
+            <View style={styles.attendanceHeader}>
+              <Text style={styles.attendanceTitle}>Today's Attendance</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/my-work' as any)}>
+                <Text style={styles.seeAll}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.attendanceRow}>
+              <View style={styles.attendanceItem}>
+                <View style={[styles.attendanceIconWrap, { backgroundColor: Colors.successBg }]}>
+                  <Ionicons name="enter-outline" size={20} color={Colors.success} />
+                </View>
+                <View>
+                  <Text style={styles.attendanceLabel}>Clock In</Text>
+                  <Text style={styles.attendanceTime}>{formatTime(todayAttendance?.clockIn)}</Text>
+                </View>
+              </View>
+              <View style={styles.attendanceDivider} />
+              <View style={styles.attendanceItem}>
+                <View style={[styles.attendanceIconWrap, { backgroundColor: Colors.warningBg }]}>
+                  <Ionicons name="exit-outline" size={20} color={Colors.warning} />
+                </View>
+                <View>
+                  <Text style={styles.attendanceLabel}>Clock Out</Text>
+                  <Text style={styles.attendanceTime}>{formatTime(todayAttendance?.clockOut)}</Text>
+                </View>
+              </View>
+            </View>
+          </LinearGradient>
+        </View>
 
-      {/* Quick Actions */}
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
-      <View style={styles.quickActions}>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: Colors.primary }]} onPress={() => router.push('/upload')}>
-          <Ionicons name="cloud-upload" size={24} color={Colors.white} />
-          <Text style={styles.actionBtnText}>Upload CV</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: Colors.info }]} onPress={() => router.push('/(tabs)/jobs')}>
-          <Ionicons name="search" size={24} color={Colors.white} />
-          <Text style={styles.actionBtnText}>Browse Jobs</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Stats Grid */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Overview</Text>
+        </View>
+        <View style={styles.statsGrid}>
+          <View style={[styles.statCard, Shadow.sm]}>
+            <View style={[styles.statIconWrapper, { backgroundColor: Colors.infoBg }]}>
+              <Ionicons name="briefcase" size={20} color={Colors.info} />
+            </View>
+            <Text style={styles.statValue}>{stats.totalJobs}</Text>
+            <Text style={styles.statLabel}>Total Jobs</Text>
+          </View>
+          <View style={[styles.statCard, Shadow.sm]}>
+            <View style={[styles.statIconWrapper, { backgroundColor: Colors.warningBg }]}>
+              <Ionicons name="document-text" size={20} color={Colors.warning} />
+            </View>
+            <Text style={styles.statValue}>{stats.totalScreenings}</Text>
+            <Text style={styles.statLabel}>Screenings</Text>
+          </View>
+          <View style={[styles.statCard, Shadow.sm]}>
+            <View style={[styles.statIconWrapper, { backgroundColor: Colors.successBg }]}>
+              <Ionicons name="videocam" size={20} color={Colors.success} />
+            </View>
+            <Text style={styles.statValue}>{stats.todayInterviews}</Text>
+            <Text style={styles.statLabel}>Interviews Today</Text>
+          </View>
+          <View style={[styles.statCard, Shadow.sm]}>
+            <View style={[styles.statIconWrapper, { backgroundColor: Colors.primaryBg }]}>
+              <Ionicons name="calendar" size={20} color={Colors.primary} />
+            </View>
+            <Text style={styles.statValue}>{stats.upcomingInterviews}</Text>
+            <Text style={styles.statLabel}>Upcoming</Text>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+        </View>
+        <View style={styles.quickGrid}>
+          {/* Employee Self-Service */}
+          <QuickAction icon="calendar" label="Time Off" onPress={() => router.push('/(tabs)/leave-request' as any)} gradient={Gradients.softOrange} />
+          <QuickAction icon="time" label="Overtime" onPress={() => router.push('/(tabs)/overtime-request' as any)} gradient={Gradients.softPink} />
+          <QuickAction icon="receipt" label="Claim" onPress={() => router.push('/(tabs)/claim-form' as any)} gradient={Gradients.softGreen} />
+          <QuickAction icon="card" label="PaySlip" onPress={() => router.push('/(tabs)/payslip' as any)} gradient={Gradients.softBlue} />
+          
+          {/* Recruitment & Directory */}
+          <QuickAction icon="cloud-upload" label="Upload CV" onPress={() => router.push('/upload')} gradient={Gradients.softTeal} />
+          <QuickAction icon="people" label="Directory" onPress={() => router.push('/(tabs)/employees' as any)} gradient={Gradients.softPurple} />
+          <QuickAction icon="briefcase" label="Jobs" onPress={() => router.push('/(tabs)/jobs' as any)} gradient={Gradients.softOrange} />
+          <QuickAction icon="videocam" label="Interviews" onPress={() => router.push('/(tabs)/interviews' as any)} gradient={Gradients.softBlue} />
+        </View>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   );
@@ -97,48 +181,60 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  headerBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 300,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+  header: {
+    paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxl,
+    borderBottomLeftRadius: BorderRadius.xl, borderBottomRightRadius: BorderRadius.xl,
   },
-  content: { padding: Spacing.xl, paddingTop: 60, paddingBottom: 100 },
-  welcome: {
+  headerProfileRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 40,
+    gap: Spacing.md
   },
-  greeting: { fontSize: FontSize.md, color: 'rgba(255,255,255,0.8)', fontWeight: FontWeight.medium },
-  userName: { fontSize: FontSize.xxxl, fontWeight: FontWeight.extrabold, color: Colors.white, marginTop: 4 },
+  avatarPlaceholder: {
+    width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
+  },
+  avatarText: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.white },
+  greeting: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.8)' },
+  userName: { fontSize: FontSize.xl, fontWeight: FontWeight.bold, color: Colors.white, marginTop: 2 },
   notifBtn: {
-    width: 48, height: 48, borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center',
   },
-  statsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md, marginBottom: Spacing.xxl,
+  content: { padding: Spacing.xl },
+  attendanceCard: {
+    backgroundColor: Colors.white, borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xxl, marginTop: -Spacing.md,
+    overflow: 'hidden',
   },
+  attendanceGradient: { padding: Spacing.lg },
+  attendanceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
+  attendanceTitle: { fontSize: FontSize.md, fontWeight: FontWeight.bold, color: Colors.text },
+  seeAll: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: FontWeight.bold },
+  attendanceRow: { flexDirection: 'row', alignItems: 'center' },
+  attendanceItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  attendanceIconWrap: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  attendanceDivider: { width: 1, height: 30, backgroundColor: Colors.border, marginHorizontal: Spacing.md },
+  attendanceLabel: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  attendanceTime: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  sectionTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.extrabold, color: Colors.text },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md, marginBottom: Spacing.xxl },
   statCard: {
-    width: '47%', backgroundColor: Colors.white, borderRadius: BorderRadius.xl,
-    padding: Spacing.xl, borderWidth: 0,
+    width: '47%', backgroundColor: Colors.white, borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
   },
-  statIcon: {
-    width: 48, height: 48, borderRadius: BorderRadius.lg,
+  statIconWrapper: {
+    width: 36, height: 36, borderRadius: 18,
     justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.md,
   },
-  statValue: { fontSize: FontSize.hero, fontWeight: FontWeight.extrabold, color: Colors.text, marginBottom: 4 },
-  statLabel: { fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1 },
-  sectionTitle: {
-    fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text, marginBottom: Spacing.md,
+  statValue: { fontSize: FontSize.xxxl, fontWeight: FontWeight.extrabold, color: Colors.primary, letterSpacing: -0.5 },
+  statLabel: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: FontWeight.medium, marginTop: 2 },
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.lg },
+  quickAction: { alignItems: 'center', width: 72 },
+  quickIcon: {
+    width: 56, height: 56, borderRadius: BorderRadius.lg,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: Spacing.sm,
   },
-  quickActions: { flexDirection: 'row', gap: Spacing.md },
-  actionBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: Spacing.sm, paddingVertical: Spacing.lg, borderRadius: BorderRadius.lg,
-    ...Shadow.md,
-  },
-  actionBtnText: { color: Colors.white, fontWeight: FontWeight.bold, fontSize: FontSize.md },
+  quickLabel: { fontSize: FontSize.xs, color: Colors.text, textAlign: 'center', fontWeight: FontWeight.medium },
 });

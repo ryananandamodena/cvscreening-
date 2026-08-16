@@ -13,9 +13,13 @@ import (
 	"github.com/ryantriananda/sservice_cvsreening/repository"
 )
 
+// The routes this gates are RecruiterOrAdmin()-gated at the router level (routes_attendance.go),
+// but this function only ever matched "admin"/"hr"/"hr_admin"/"hr_manager" — none of which
+// "recruiter" is, so a recruiter who legitimately passed the route middleware was rejected here
+// anyway. Fixed to match the real backend role model (Module 14).
 func isHRRoleForApprovals(role string) bool {
 	switch strings.ToLower(role) {
-	case "admin", "hr", "hr_admin", "hr_manager":
+	case "admin", "recruiter":
 		return true
 	}
 	return false
@@ -157,6 +161,11 @@ func getPendingApprovalsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, requests)
 }
 
+// This route carries no role middleware and previously returned the full approval request —
+// which can carry sensitive module data such as a salary-change or contract payload — to any
+// authenticated user who guessed/enumerated an id, with no ownership check at all (Module 14
+// IDOR fix). Only the requester, an employee currently authorized to act on it, or an admin may
+// view it.
 func getApprovalRequestHandler(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -168,6 +177,19 @@ func getApprovalRequestHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusNotFound, "not_found", "Approval request not found", nil)
 		return
 	}
+
+	ownEmployeeID, ok := resolveOwnEmployeeID(c)
+	if !ok {
+		return
+	}
+	if GetUserRoleFromContext(c) != "admin" && ownEmployeeID != req.RequesterEmployeeID {
+		authorized, authErr := repository.IsAuthorizedApprover(c.Request.Context(), id, ownEmployeeID, GetUserRoleFromContext(c))
+		if authErr != nil || !authorized {
+			RespondWithError(c, http.StatusForbidden, "forbidden", "You are not authorized to view this approval request", nil)
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, req)
 }
 
@@ -195,6 +217,21 @@ func actOnApprovalRequestHandler(c *gin.Context) {
 		return
 	}
 
+	// IsAuthorizedApprover's approverMatchClause covers manager_of_requester/specific_user/role/
+	// delegation, but for approver_type="role" it doesn't exclude the requester themself if they
+	// happen to also hold that role — self-approval was possible. Leave's own
+	// authorizeLeaveApprover blocks this explicitly (even for admin); mirrored here for the
+	// generic engine every other module's approvals route through (Module 14 fix).
+	approvalReq, err := repository.GetApprovalRequestByID(c.Request.Context(), id)
+	if err != nil || approvalReq == nil {
+		RespondWithError(c, http.StatusNotFound, "not_found", "Approval request not found", nil)
+		return
+	}
+	if actorEmployeeID == approvalReq.RequesterEmployeeID {
+		RespondWithError(c, http.StatusForbidden, "forbidden", "Anda tidak dapat menyetujui atau menolak pengajuan Anda sendiri", nil)
+		return
+	}
+
 	authorized, err := repository.IsAuthorizedApprover(c.Request.Context(), id, actorEmployeeID, GetUserRoleFromContext(c))
 	if err != nil || !authorized {
 		RespondWithError(c, http.StatusForbidden, "forbidden", "Anda tidak berwenang melakukan aksi pada pengajuan ini", nil)
@@ -213,6 +250,17 @@ func actOnApprovalRequestHandler(c *gin.Context) {
 			RespondWithError(c, http.StatusInternalServerError, "server_error",
 				"Disetujui, tapi gagal menerapkan perubahan ke data terkait", applyErr.Error())
 			return
+		}
+	} else if result.FinalStatus == "rejected" && approvalReq.ModuleName == "claim_request" {
+		// Only claim_request needs its own status synced on rejection today — overtime/leave/
+		// contract modules don't keep a separate mirrored status field that would otherwise go
+		// stale, so this stays claim-specific rather than a new generic engine hook.
+		if err := repository.UpdateClaimStatus(c.Request.Context(), approvalReq.ReferenceID, "rejected"); err != nil {
+			log.Printf("WARN: failed to sync claim %d status to rejected: %v", approvalReq.ReferenceID, err)
+		}
+	} else if result.FinalStatus == "rejected" && approvalReq.ModuleName == "shift_swap_request" {
+		if err := repository.UpdateShiftSwapStatus(c.Request.Context(), approvalReq.ReferenceID, "rejected"); err != nil {
+			log.Printf("WARN: failed to sync shift swap request %d status to rejected: %v", approvalReq.ReferenceID, err)
 		}
 	}
 
@@ -266,6 +314,20 @@ func notifyApprovalOutcome(c *gin.Context, requestID int, finalStatus, comment s
 				if err == nil && manager.Email != "" {
 					emailService.SendApprovalPendingEmail(manager.Email, manager.FullName, moduleLabel, requester.FullName, request.Summary)
 				}
+			} else if err == nil {
+				// No manager on record for this requester: the generic "manager_of_requester"
+				// level has nobody to resolve to. approverMatchClause escalates this case to
+				// hr_admin, so make sure hr_admin actually gets notified instead of the request
+				// sitting pending with no one aware of it.
+				log.Printf("WARN: approval request %d escalated to hr_admin — requester %d has no manager_id", requestID, request.RequesterEmployeeID)
+				hrAdmins, hrErr := repository.GetEmployeesByUserRole(c.Request.Context(), "hr_admin")
+				if hrErr == nil {
+					for _, hr := range hrAdmins {
+						if hr.Email != "" {
+							emailService.SendApprovalPendingEmail(hr.Email, hr.FullName, moduleLabel, requester.FullName, request.Summary)
+						}
+					}
+				}
 			}
 		} else if lvl.ApproverType == "specific_user" && lvl.ApproverEmployeeID != nil {
 			approver, err := repository.GetEmployeeByID(c.Request.Context(), *lvl.ApproverEmployeeID)
@@ -293,6 +355,10 @@ func finalizeApprovedRequest(c *gin.Context, requestID int) error {
 		return repository.ApplySalaryChangeRequest(c.Request.Context(), request.ReferenceID)
 	case "employee_contract":
 		return repository.ActivateContract(c.Request.Context(), request.ReferenceID)
+	case "claim_request":
+		return repository.UpdateClaimStatus(c.Request.Context(), request.ReferenceID, "approved")
+	case "shift_swap_request":
+		return repository.UpdateShiftSwapStatus(c.Request.Context(), request.ReferenceID, "approved")
 	default:
 		// Modules without a finalization hook simply rely on their own status being "approved"; nothing else to do.
 		return nil

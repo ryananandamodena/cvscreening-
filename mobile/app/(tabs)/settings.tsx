@@ -1,11 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '../../constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -13,6 +17,9 @@ export default function SettingsScreen() {
       { text: 'Logout', style: 'destructive', onPress: logout },
     ]);
   };
+
+  const notAvailableYet = (feature: string) =>
+    Alert.alert('Not available yet', `${feature} is not supported yet in the mobile app.`);
 
   const MenuItem = ({ icon, label, value, onPress, danger }: any) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
@@ -28,8 +35,12 @@ export default function SettingsScreen() {
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Profile Card */}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Settings</Text>
+      </View>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {/* Profile Card */}
       <View style={[styles.profileCard, Shadow.md]}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{(user?.name || user?.email || 'A').charAt(0).toUpperCase()}</Text>
@@ -44,27 +55,32 @@ export default function SettingsScreen() {
       {/* Menu */}
       <Text style={styles.sectionTitle}>ACCOUNT</Text>
       <View style={[styles.menuGroup, Shadow.sm]}>
-        <MenuItem icon="person-outline" label="Profile" value={user?.email} />
-        <MenuItem icon="notifications-outline" label="Notifications" />
-        <MenuItem icon="shield-checkmark-outline" label="Security" />
+        <MenuItem icon="person-outline" label="Profile" value={user?.email} onPress={() => router.push('/(tabs)/profile' as any)} />
+        <MenuItem icon="notifications-outline" label="Notifications" onPress={() => Alert.alert('Notifications', 'No new notifications')} />
+        <MenuItem icon="shield-checkmark-outline" label="Security" onPress={() => notAvailableYet('Changing your password/security settings')} />
       </View>
 
       <Text style={styles.sectionTitle}>APP</Text>
       <View style={[styles.menuGroup, Shadow.sm]}>
-        <MenuItem icon="globe-outline" label="Language" value="English" />
-        <MenuItem icon="information-circle-outline" label="About" value="v1.0.0" />
+        <MenuItem icon="globe-outline" label="Language" value="English" onPress={() => Alert.alert('Language', 'Only English is currently supported.')} />
+        <MenuItem icon="information-circle-outline" label="About" value="v1.0.0" onPress={() => Alert.alert('About SunFish HRIS', 'Version 1.0.0\nMobile Employee Portal')} />
       </View>
 
       <View style={[styles.menuGroup, Shadow.sm, { marginTop: Spacing.xxl }]}>
         <MenuItem icon="log-out-outline" label="Logout" onPress={handleLogout} danger />
       </View>
     </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.xl, paddingBottom: 40 },
+  header: {
+    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md,
+  },
+  headerTitle: { fontSize: FontSize.xxxl, fontWeight: FontWeight.bold, color: Colors.text },
+  content: { padding: Spacing.xl, paddingBottom: 100 },
   profileCard: {
     backgroundColor: Colors.white, borderRadius: BorderRadius.xl,
     padding: Spacing.xxl, alignItems: 'center',

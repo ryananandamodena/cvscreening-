@@ -7,7 +7,10 @@ import ApprovalFlowConfig from './ApprovalFlowConfig';
 import SubmitOvertimeRequest from './SubmitOvertimeRequest';
 import CorrectionApprovals from '../attendance/CorrectionApprovals';
 
-const HR_ROLES = ['admin', 'hr', 'hr_admin', 'hr_manager'];
+// Backend gate for the HR-review correction stage and approval-flow config CRUD is
+// RecruiterOrAdmin() (routes_attendance.go / routes_hr.go) — 'hr'/'hr_admin'/'hr_manager' are
+// not real backend roles.
+const HR_ROLES = ['admin', 'recruiter'];
 
 const ApprovalCenter: React.FC = () => {
   const { role } = useAuth();

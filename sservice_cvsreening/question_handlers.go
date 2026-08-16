@@ -48,10 +48,9 @@ func updateSettingsHandler(c *gin.Context) {
 		return
 	}
 
-	// Log the update for audit purposes
-	userId := 1 // Default to system/admin for now as we don't have user context easily here without middleware extraction
-	// In a real app, extract user ID from JWT context
-	repository.LogActivity(c.Request.Context(), userId, "update_settings", "settings", 0, "Updated global settings", c.ClientIP())
+	// Log the update for audit purposes — actor comes from the authenticated JWT, never a
+	// hardcoded ID and never anything the client could pass in the request body.
+	repository.LogActivity(c.Request.Context(), GetUserIDFromContext(c), "update_settings", "settings", 0, "Updated global settings", c.ClientIP())
 
 	c.JSON(http.StatusOK, gin.H{"message": "Settings updated successfully", "updated": payload})
 }

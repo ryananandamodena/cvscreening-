@@ -1,12 +1,14 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiService } from '../../services/api';
 import { Colors, Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '../../constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function JobsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -77,7 +79,16 @@ export default function JobsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Open Positions</Text>
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => Alert.alert('Not available yet', 'Creating job postings from the mobile app is not supported yet — use the web admin portal.')}
+        >
+          <Ionicons name="add" size={24} color={Colors.white} />
+        </TouchableOpacity>
+      </View>
       <View style={[styles.searchBar, Shadow.sm]}>
         <Ionicons name="search" size={18} color={Colors.textSecondary} />
         <TextInput
@@ -107,6 +118,15 @@ export default function JobsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md,
+  },
+  headerTitle: { fontSize: FontSize.xxxl, fontWeight: FontWeight.bold, color: Colors.text },
+  addBtn: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primary,
+    justifyContent: 'center', alignItems: 'center', ...Shadow.md,
+  },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,

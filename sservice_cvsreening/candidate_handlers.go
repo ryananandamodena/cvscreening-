@@ -59,19 +59,22 @@ func searchCandidatesHandler(c *gin.Context) {
 		return
 	}
 
-	// 1. Extract filters using AI
+	// 1. Try AI-based filter extraction first. If it fails (quota, timeout, malformed
+	// response, etc.), fall back to a basic substring search instead of failing the whole
+	// request — but the fallback must be clearly labeled as such (`meta.source`), never
+	// presented to the caller as if it were the AI result.
+	source := "ai"
 	filters, err := aiService.ExtractSearchFilters(c.Request.Context(), query)
 	if err != nil {
-		log.Printf("AI filter extraction failed: %v", err)
-		// Fallback: simple text search if AI fails?
-		// For now, return error or basic search
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process search query"})
-		return
+		log.Printf("AI filter extraction failed, falling back to basic search: %v", err)
+		source = "basic_search"
+		filters = &models.SearchFilters{Query: query, Role: query}
 	}
 
 	// 2. Search in Database
 	candidates, err := repository.SearchCandidates(c.Request.Context(), filters)
 	if err != nil {
+		log.Printf("ERROR in searchCandidatesHandler: database search failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database search failed"})
 		return
 	}
@@ -81,15 +84,20 @@ func searchCandidatesHandler(c *gin.Context) {
 		candidates = []models.Candidate{}
 	}
 
-	// Create a summary for the user
-	summary := fmt.Sprintf("Found %d candidates matching: Role='%s', Skills=%v, Exp>=%d",
-		len(candidates), filters.Role, filters.Skills, filters.ExperienceYears)
+	var summary string
+	if source == "ai" {
+		summary = fmt.Sprintf("Found %d candidates matching: Role='%s', Skills=%v, Exp>=%d",
+			len(candidates), filters.Role, filters.Skills, filters.ExperienceYears)
+	} else {
+		summary = fmt.Sprintf("Found %d candidates matching \"%s\" (basic search — AI search was unavailable)", len(candidates), query)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": candidates,
 		"meta": gin.H{
 			"filters": filters,
 			"summary": summary,
+			"source":  source,
 		},
 	})
 }

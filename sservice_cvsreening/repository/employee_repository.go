@@ -93,6 +93,17 @@ func UpdateEmployee(ctx context.Context, emp *models.Employee) error {
 	return err
 }
 
+// UpdateEmployeePhotoURL updates only the photo_url column — used by the profile-photo
+// upload/delete flow (Module 15) so a photo change never touches any other employee field
+// (unlike the full UpdateEmployee, which is a whole-record overwrite).
+func UpdateEmployeePhotoURL(ctx context.Context, employeeID int, photoURL string) error {
+	if !IsDBConnected() {
+		return fmt.Errorf("database not connected")
+	}
+	_, err := GetDB().Exec(ctx, `UPDATE employees SET photo_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, photoURL, employeeID)
+	return err
+}
+
 // GetEmployeeByID retrieves an employee by ID with joined department/position names
 func GetEmployeeByID(ctx context.Context, id int) (*models.Employee, error) {
 	if !IsDBConnected() {
@@ -192,9 +203,10 @@ func GetEmployees(ctx context.Context, filter models.EmployeeFilter) ([]models.E
 	// Fetch
 	args = append(args, filter.Limit, offset)
 	query := fmt.Sprintf(`
-		SELECT e.id, e.employee_id, e.full_name, e.email, e.phone,
-			e.gender, e.department_id, e.position_id, e.employment_type, e.employment_status,
-			e.join_date, e.photo_url, e.created_at,
+		SELECT e.id, e.employee_id, e.full_name, e.email, COALESCE(e.phone, ''),
+			COALESCE(e.gender, ''), e.department_id, e.position_id,
+			COALESCE(e.employment_type, ''), COALESCE(e.employment_status, ''),
+			e.join_date, COALESCE(e.photo_url, ''), e.created_at,
 			COALESCE(d.name, ''), COALESCE(p.name, '')
 		FROM employees e
 		LEFT JOIN departments d ON e.department_id = d.id

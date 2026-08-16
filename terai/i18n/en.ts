@@ -34,6 +34,7 @@ const en: Record<string, string> = {
     'nav.auditLog': 'Audit Log',
     'nav.attendance': 'Attendance',
     'nav.shiftManagement': 'Shift Management',
+    'nav.remoteWorkExemptions': 'Remote Work Exemptions',
     'nav.approvalCenter': 'Approval Center',
     'nav.leaves': 'Leave Management',
     'nav.payroll': 'Payroll',

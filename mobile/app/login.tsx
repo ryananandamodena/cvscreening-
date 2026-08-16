@@ -45,8 +45,8 @@ export default function LoginScreen() {
             <View style={styles.logoIcon}>
               <Ionicons name="sparkles" size={32} color={Colors.primary} />
             </View>
-            <Text style={styles.logoText}>RecruitAI</Text>
-            <Text style={styles.subtitle}>Smart CV Screening Platform</Text>
+            <Text style={styles.logoText}>SunFish HRIS</Text>
+            <Text style={styles.subtitle}>Mobile Employee Portal</Text>
           </View>
 
           {/* Form Card */}

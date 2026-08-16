@@ -10,8 +10,16 @@ import (
 	"github.com/ryantriananda/sservice_cvsreening/repository"
 )
 
+// employeeId was previously an unauthenticated client-supplied query param with no ownership
+// check on this self-service route — any authenticated user could read any other employee's
+// career path by ID (Module 14 IDOR fix). authorizeEmployeeTarget resolves it to the caller's
+// own record unless the caller is admin/that employee's manager.
 func getCareerPathsHandler(c *gin.Context) {
-	employeeID, _ := strconv.Atoi(c.Query("employeeId"))
+	requestedID, _ := strconv.Atoi(c.Query("employeeId"))
+	employeeID, ok := authorizeEmployeeTarget(c, requestedID)
+	if !ok {
+		return
+	}
 	paths, err := repository.GetCareerPaths(c.Request.Context(), employeeID)
 	if err != nil {
 		log.Printf("ERROR in getCareerPathsHandler: %v", err)
@@ -21,6 +29,11 @@ func getCareerPathsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, paths)
 }
 
+// getCareerPathByIDHandler previously had NO authorization check at all — any authenticated
+// user could read any other employee's career path (mentor, target positions, timeline,
+// milestones) just by guessing/incrementing the id. Fixed the same way as every other
+// single-item lookup in this codebase (getPerformanceReviewByIDHandler, etc.): resolve the
+// path's actual EmployeeID and authorize against that via authorizeEmployeeTarget.
 func getCareerPathByIDHandler(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -30,6 +43,9 @@ func getCareerPathByIDHandler(c *gin.Context) {
 	path, err := repository.GetCareerPathByID(c.Request.Context(), id)
 	if err != nil {
 		RespondWithError(c, http.StatusNotFound, "not_found", "Career path not found", nil)
+		return
+	}
+	if _, ok := authorizeEmployeeTarget(c, path.EmployeeID); !ok {
 		return
 	}
 	c.JSON(http.StatusOK, path)

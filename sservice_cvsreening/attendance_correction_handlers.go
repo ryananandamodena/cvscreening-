@@ -155,9 +155,13 @@ func getCorrectionsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, corrections)
 }
 
+// hrReviewCorrectionHandler's route is gated by RecruiterOrAdmin() at the router level
+// (routes_attendance.go), but this function only ever matched "admin"/"hr"/"hr_admin"/
+// "hr_manager" — none of which "recruiter" is, so a recruiter who legitimately passed the route
+// middleware was rejected here anyway. Fixed to match the real backend role model (Module 14).
 func isHRRole(role string) bool {
 	switch role {
-	case "admin", "hr", "hr_admin", "hr_manager":
+	case "admin", "recruiter":
 		return true
 	}
 	return false
@@ -182,6 +186,19 @@ func managerReviewCorrectionHandler(c *gin.Context) {
 	managerEmployeeID, err := repository.GetEmployeeIDByUserID(c.Request.Context(), GetUserIDFromContext(c))
 	if err != nil || managerEmployeeID == 0 {
 		RespondWithError(c, http.StatusBadRequest, "no_employee_record", "Akun Anda belum terhubung dengan data karyawan", nil)
+		return
+	}
+
+	// Self-review was never blocked here — route-level RecruiterOrAdmin() gating restricts who
+	// can call this endpoint at all, but not whether the caller is reviewing their own
+	// correction request. Mirrors Leave's authorizeLeaveApprover self-check (Module 14 fix).
+	correction, err := repository.GetAttendanceCorrectionByID(c.Request.Context(), id)
+	if err != nil || correction == nil {
+		RespondWithError(c, http.StatusNotFound, "not_found", "Correction request not found", nil)
+		return
+	}
+	if managerEmployeeID == correction.EmployeeID {
+		RespondWithError(c, http.StatusForbidden, "forbidden", "Anda tidak dapat mereview koreksi Anda sendiri", nil)
 		return
 	}
 
@@ -230,6 +247,11 @@ func hrReviewCorrectionHandler(c *gin.Context) {
 	correction, err := repository.GetAttendanceCorrectionByID(c.Request.Context(), id)
 	if err != nil {
 		RespondWithError(c, http.StatusNotFound, "not_found", "Correction request not found", nil)
+		return
+	}
+	// Same self-review fix as managerReviewCorrectionHandler (Module 14).
+	if hrEmployeeID == correction.EmployeeID {
+		RespondWithError(c, http.StatusForbidden, "forbidden", "Anda tidak dapat mereview koreksi Anda sendiri", nil)
 		return
 	}
 

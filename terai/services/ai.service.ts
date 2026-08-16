@@ -194,8 +194,9 @@ export class AIService {
       return await this.callBackend<ScreeningResult>('/screening', { jd, cv });
     } catch (error) {
       console.error('Backend screening error:', error);
-      // Fallback to mock on error
-      return this.performScreeningMock(jd, cv);
+      // A real API failure must surface as a real error — silently swapping in mock/fabricated
+      // screening results here would show a fake "AI analysis" as if it were genuine.
+      throw error;
     }
   }
 

@@ -1,4 +1,3 @@
-import * as faceapi from 'face-api.js';
 import { apiService } from './api.service';
 
 // Publicly hosted face-api.js model weights (no local model files needed).
@@ -7,16 +6,29 @@ const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@mas
 let modelsLoaded = false;
 let loadingPromise: Promise<void> | null = null;
 
+async function getFaceApi() {
+  return import('face-api.js');
+}
+
 export async function loadFaceModels(): Promise<void> {
   if (modelsLoaded) return;
   if (loadingPromise) return loadingPromise;
   loadingPromise = (async () => {
-    await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-    ]);
-    modelsLoaded = true;
+    try {
+      const faceapi = await getFaceApi();
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+      ]);
+      modelsLoaded = true;
+    } catch (err) {
+      // Without this, a failed download would permanently cache the rejected promise —
+      // "Ambil Ulang" (retake/retry) would just keep re-throwing the same stale failure forever
+      // instead of actually retrying the download (Module 14 fix).
+      loadingPromise = null;
+      throw err;
+    }
   })();
   return loadingPromise;
 }
@@ -25,10 +37,27 @@ export async function loadFaceModels(): Promise<void> {
  * Extracts a 128-d face descriptor from an HTML image/video/canvas element.
  * Returns null if no face was detected in the frame.
  */
+// Thrown specifically when the face-detection model weights fail to download (e.g. no network,
+// the CDN is blocked) — distinguished from "no face found in this frame" so the UI can show a
+// real error state with a retry action instead of silently behaving as if verification passed
+// (Module 14 audit, S8/S9).
+export class FaceModelLoadError extends Error {
+  constructor(cause: unknown) {
+    super('Failed to load face detection models');
+    this.name = 'FaceModelLoadError';
+    this.cause = cause as Error;
+  }
+}
+
 export async function extractFaceDescriptor(
   input: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
 ): Promise<number[] | null> {
-  await loadFaceModels();
+  try {
+    await loadFaceModels();
+  } catch (err) {
+    throw new FaceModelLoadError(err);
+  }
+  const faceapi = await getFaceApi();
   const detection = await faceapi
     .detectSingleFace(input, new faceapi.TinyFaceDetectorOptions())
     .withFaceLandmarks()

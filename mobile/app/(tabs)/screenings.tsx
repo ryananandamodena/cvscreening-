@@ -11,13 +11,16 @@ export default function ScreeningsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
+  const [error, setError] = useState(false);
 
   const fetchScreenings = async (p = 1) => {
     try {
       const res = await apiService.getScreenings(p, 20);
       setScreenings(res.data || []);
+      setError(false);
     } catch (err) {
       console.log('Screenings error:', err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -67,6 +70,18 @@ export default function ScreeningsScreen() {
   };
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={Colors.primary} /></View>;
+
+  if (error && screenings.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Ionicons name="cloud-offline-outline" size={48} color={Colors.textTertiary} />
+        <Text style={styles.emptyText}>Failed to load screenings.</Text>
+        <TouchableOpacity style={styles.uploadBtn} onPress={() => fetchScreenings()}>
+          <Text style={styles.uploadBtnText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

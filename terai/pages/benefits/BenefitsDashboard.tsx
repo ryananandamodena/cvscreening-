@@ -6,13 +6,22 @@ import {
 } from 'lucide-react';
 import { benefitsService, EmployeeBenefit, BenefitsAnalytics, BenefitPlan, InsurancePlan, Allowance, FlexibleBenefit, RetirementPlan, InsuranceContinuation } from '../../services/benefits.service';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../guards/AuthGuard';
 import { CardSkeleton } from '../../components/SkeletonLoader';
 import SimpleCrudManager from '../../components/SimpleCrudManager';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 
+// Backend gate for GET /benefits/analytics and all plan/insurance/allowance/flexible/retirement
+// CRUD is RecruiterOrAdmin() (routes_benefits_succession.go) — own benefits/enroll stay open to
+// everyone. Used to hide the Analytics/Manage Plans tabs (and the create/delete controls inside
+// them) from roles the backend will 403 anyway (Module 13 RBAC UX hardening).
+const STAFF_ROLES = ['admin', 'recruiter'];
+
 const BenefitsDashboard: React.FC = () => {
   const { showToast } = useToast();
+  const { role } = useAuth();
+  const isStaff = !!role && STAFF_ROLES.includes(role);
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
   const [benefits, setBenefits] = useState<EmployeeBenefit[]>([]);
@@ -42,11 +51,11 @@ const BenefitsDashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'plans') {
+    if (activeTab === 'plans' && isStaff) {
       fetchPlans();
       fetchInsurancePlans();
     }
-  }, [activeTab]);
+  }, [activeTab, isStaff]);
 
   useEffect(() => {
     if (activeTab === 'plans' && plansSubTab === 'continuation') fetchContinuations();
@@ -106,17 +115,25 @@ const BenefitsDashboard: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [benefitsData, analyticsData] = await Promise.all([
-        benefitsService.getEmployeeBenefits(),
-        benefitsService.getBenefitsAnalytics()
-      ]);
+      // Own benefits (self-service, open to everyone) and analytics (RecruiterOrAdmin-gated)
+      // are fetched independently — they used to be a single Promise.all, so a 403 on analytics
+      // for a plain viewer/hiring_manager/finance user threw before setBenefits ever ran,
+      // breaking their own-benefits view with a generic "Failed to load" toast (Module 13 fix).
+      const benefitsData = await benefitsService.getEmployeeBenefits();
       setBenefits(benefitsData);
-      setAnalytics(analyticsData);
     } catch (err) {
       console.error('Failed to fetch benefits data:', err);
       showToast('error', 'Failed to load benefits data');
     } finally {
       setLoading(false);
+    }
+
+    if (isStaff) {
+      try {
+        setAnalytics(await benefitsService.getBenefitsAnalytics());
+      } catch (err) {
+        console.error('Failed to fetch benefits analytics:', err);
+      }
     }
   };
 
@@ -479,26 +496,33 @@ const BenefitsDashboard: React.FC = () => {
                 >
                   Employee Benefits
                 </button>
-                <button
-                  onClick={() => setActiveTab('analytics')}
-                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
-                    activeTab === 'analytics'
-                      ? 'border-brand-600 text-brand-600 dark:text-brand-400'
-                      : 'border-transparent text-slate-700 dark:text-slate-300 hover:text-slate-700'
-                  }`}
-                >
-                  Analytics
-                </button>
-                <button
-                  onClick={() => setActiveTab('plans')}
-                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
-                    activeTab === 'plans'
-                      ? 'border-brand-600 text-brand-600 dark:text-brand-400'
-                      : 'border-transparent text-slate-700 dark:text-slate-300 hover:text-slate-700'
-                  }`}
-                >
-                  Manage Plans
-                </button>
+                {/* Analytics (GET /benefits/analytics) and Manage Plans (plan/insurance/allowance
+                    CRUD) are both RecruiterOrAdmin()-gated backend-side — hidden here so a
+                    viewer/hiring_manager/finance user never sees a tab that will just 403. */}
+                {isStaff && (
+                  <button
+                    onClick={() => setActiveTab('analytics')}
+                    className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                      activeTab === 'analytics'
+                        ? 'border-brand-600 text-brand-600 dark:text-brand-400'
+                        : 'border-transparent text-slate-700 dark:text-slate-300 hover:text-slate-700'
+                    }`}
+                  >
+                    Analytics
+                  </button>
+                )}
+                {isStaff && (
+                  <button
+                    onClick={() => setActiveTab('plans')}
+                    className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                      activeTab === 'plans'
+                        ? 'border-brand-600 text-brand-600 dark:text-brand-400'
+                        : 'border-transparent text-slate-700 dark:text-slate-300 hover:text-slate-700'
+                    }`}
+                  >
+                    Manage Plans
+                  </button>
+                )}
               </nav>
             </div>
 

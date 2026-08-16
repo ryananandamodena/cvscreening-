@@ -7,12 +7,15 @@
     "@react-native-picker/picker": "2.11.4",
     "expo": "~57.0.6",
     "expo-blur": "~57.0.2",
+    "expo-build-properties": "~57.0.10",
+    "expo-camera": "~57.0.3",
     "expo-constants": "~57.0.5",
-    "expo-dev-client": "~57.0.6",
+    "expo-dev-client": "~57.0.11",
     "expo-document-picker": "~57.0.1",
     "expo-font": "~57.0.1",
     "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.3",
+    "expo-location": "~57.0.9",
     "expo-router": "~57.0.6",
     "expo-secure-store": "~57.0.1",
     "expo-splash-screen": "~57.0.4",
@@ -30,14 +33,32 @@
     "react-native-worklets": "0.10.0"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/react": "~19.2.2",
+    "jest": "~29.7.0",
+    "ts-jest": "^29.4.12",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "jest"
   },
-  "private": true
+  "private": true,
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/.expo/"
+    ],
+    "globals": {
+      "ts-jest": {
+        "tsconfig": "tsconfig.jest.json"
+      },
+      "__DEV__": true
+    }
+  }
 }

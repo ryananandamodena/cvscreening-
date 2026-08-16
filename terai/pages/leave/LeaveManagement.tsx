@@ -4,6 +4,7 @@ import {
   FileText, Briefcase, AlertCircle
 } from 'lucide-react';
 import { leaveService } from '../../services/leave.service';
+import { employeeService } from '../../services/employee.service';
 import { LeaveBalance, LeaveRequest, LeaveType } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
 import { Button } from '../../components/ui/Button';
@@ -17,6 +18,7 @@ const LeaveManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [submittingRequest, setSubmittingRequest] = useState(false);
   
   // Form State
   const [newRequest, setNewRequest] = useState({
@@ -26,7 +28,8 @@ const LeaveManagement: React.FC = () => {
     reason: ''
   });
 
-  const MOCK_EMPLOYEE_ID = 1;
+  // Resolved from the logged-in user's own employee record — never hardcoded.
+  const [employeeId, setEmployeeId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -36,10 +39,13 @@ const LeaveManagement: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      const me = await employeeService.getMyEmployee();
+      setEmployeeId(me.id);
+
       const [typesRes, balRes, histRes] = await Promise.all([
         leaveService.getLeaveTypes(),
-        leaveService.getBalances(MOCK_EMPLOYEE_ID),
-        leaveService.getRequests(MOCK_EMPLOYEE_ID)
+        leaveService.getBalances(me.id),
+        leaveService.getRequests(me.id)
       ]);
       setLeaveTypes(typesRes || []);
       setBalances(balRes || []);
@@ -82,12 +88,14 @@ const LeaveManagement: React.FC = () => {
 
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRequest.leaveTypeId || !newRequest.startDate || !newRequest.endDate) return;
+    if (!employeeId || !newRequest.leaveTypeId || !newRequest.startDate || !newRequest.endDate) return;
+    if (submittingRequest) return; // guard against a double-click/double-submit while in flight
 
+    setSubmittingRequest(true);
     try {
       const totalDays = calculateDays(newRequest.startDate, newRequest.endDate);
       await leaveService.createRequest({
-        employeeId: MOCK_EMPLOYEE_ID,
+        employeeId,
         leaveTypeId: parseInt(newRequest.leaveTypeId),
         startDate: newRequest.startDate,
         endDate: newRequest.endDate,
@@ -102,6 +110,8 @@ const LeaveManagement: React.FC = () => {
       console.error('Failed to submit leave request:', err);
       const errorMessage = err.message || 'Gagal mengirim pengajuan cuti';
       showToast('error', errorMessage);
+    } finally {
+      setSubmittingRequest(false);
     }
   };
 
@@ -277,7 +287,7 @@ const LeaveManagement: React.FC = () => {
                 <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" disabled={submittingRequest} loading={submittingRequest}>
                   Submit Request
                 </Button>
               </div>

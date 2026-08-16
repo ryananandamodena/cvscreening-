@@ -55,6 +55,10 @@ func updateLeadershipProgramHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Leadership program updated successfully"})
 }
 
+// EmployeeID was previously taken straight from the request body with no ownership check —
+// any authenticated user could enroll an arbitrary employeeId into a leadership program
+// (Module 14 IDOR fix). authorizeEmployeeTarget resolves it to the caller's own record unless
+// the caller is admin/that employee's manager.
 func enrollInLeadershipProgramHandler(c *gin.Context) {
 	programID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -68,11 +72,16 @@ func enrollInLeadershipProgramHandler(c *gin.Context) {
 		RespondWithError(c, http.StatusBadRequest, "validation_error", "Invalid request data", err.Error())
 		return
 	}
-	if err := repository.EnrollInLeadershipProgram(c.Request.Context(), programID, payload.EmployeeID); err != nil {
+	targetEmployeeID, ok := authorizeEmployeeTarget(c, payload.EmployeeID)
+	if !ok {
+		return
+	}
+	if err := repository.EnrollInLeadershipProgram(c.Request.Context(), programID, targetEmployeeID); err != nil {
 		log.Printf("Failed to enroll in leadership program: %v", err)
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to enroll in leadership program", err.Error())
 		return
 	}
+	logAudit(c, "CAREER_PLAN_UPDATED", "career", "leadership_program", programID)
 	c.JSON(http.StatusCreated, gin.H{"message": "Enrolled successfully"})
 }
 

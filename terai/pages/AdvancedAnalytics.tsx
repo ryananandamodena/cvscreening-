@@ -50,6 +50,7 @@ const AdvancedAnalytics: React.FC = () => {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
     const [data, setData] = useState<AnalyticsData | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchAnalytics();
@@ -57,6 +58,7 @@ const AdvancedAnalytics: React.FC = () => {
 
     const fetchAnalytics = async () => {
         setLoading(true);
+        setError(null);
         try {
             const response = await apiService.get<any>(
                 `/analytics/advanced?range=${dateRange}&department=${selectedDepartment}`
@@ -96,88 +98,31 @@ const AdvancedAnalytics: React.FC = () => {
                         openPositions: d.openJobs || 0,
                         hiredThisMonth: d.candidates || 0,
                     })),
-                    skillsGap: getMockData().skillsGap, 
+                    // The backend's /analytics/advanced response has no skills-gap, geographic,
+                    // or interview-performance breakdowns yet — these sections render an honest
+                    // empty state (see JSX below) instead of splicing in fabricated numbers.
+                    skillsGap: [],
                     timeToHireTrend: (response.monthlyTrends || []).map((t: any) => ({
                         month: t.month?.split('-')[1] ? new Date(t.month + '-01').toLocaleString('default', { month: 'short' }) : t.month,
                         days: Math.round(response.averageTimeToHire || 18),
                         industry: 24,
                     })),
-                    geographicData: getMockData().geographicData,
-                    interviewPerformance: getMockData().interviewPerformance,
+                    geographicData: [],
+                    interviewPerformance: [],
                 };
                 setData(transformed);
             } else {
-                setData(getMockData());
+                setData(null);
+                setError('Analytics data is unavailable right now.');
             }
         } catch (err) {
             console.error("Failed to fetch analytics:", err);
-            setData(getMockData());
+            setData(null);
+            setError('Failed to load analytics data. Please try again.');
         } finally {
             setLoading(false);
         }
     };
-
-    const getMockData = (): AnalyticsData => ({
-        overview: {
-            totalCandidates: 1247,
-            totalHired: 89,
-            totalRejected: 342,
-            avgTimeToHire: 18.4,
-            avgMatchScore: 75.2,
-            hiringRate: 7.1,
-            trendData: { candidates: 12, hired: 8, timeToHire: -14 },
-        },
-        pipeline: [
-            { name: 'Jan', screen: 120, interview: 45, hire: 8, rejected: 32 },
-            { name: 'Feb', screen: 145, interview: 52, hire: 12, rejected: 28 },
-            { name: 'Mar', screen: 132, interview: 48, hire: 10, rejected: 35 },
-            { name: 'Apr', screen: 178, interview: 65, hire: 15, rejected: 42 },
-            { name: 'May', screen: 156, interview: 58, hire: 11, rejected: 38 },
-            { name: 'Jun', screen: 189, interview: 72, hire: 18, rejected: 45 },
-        ],
-        sources: [
-            { name: 'LinkedIn', value: 42, color: '#0077B5' },
-            { name: 'Job Board', value: 28, color: '#6366f1' },
-            { name: 'Referral', value: 18, color: '#10b981' },
-            { name: 'Direct', value: 12, color: '#f59e0b' },
-        ],
-        departments: [
-            { department: 'Engineering', matchRate: 94, trendPercent: '+4%', openPositions: 12, hiredThisMonth: 5 },
-            { department: 'Product', matchRate: 88, trendPercent: '+2%', openPositions: 4, hiredThisMonth: 2 },
-            { department: 'Marketing', matchRate: 72, trendPercent: '-1%', openPositions: 3, hiredThisMonth: 1 },
-            { department: 'Sales', matchRate: 85, trendPercent: '+5%', openPositions: 8, hiredThisMonth: 3 },
-            { department: 'Design', matchRate: 91, trendPercent: '+3%', openPositions: 2, hiredThisMonth: 1 },
-        ],
-        skillsGap: [
-            { skill: 'React', demand: 95, supply: 78, gap: -17 },
-            { skill: 'Golang', demand: 88, supply: 45, gap: -43 },
-            { skill: 'Python', demand: 82, supply: 72, gap: -10 },
-            { skill: 'AWS', demand: 75, supply: 55, gap: -20 },
-            { skill: 'TypeScript', demand: 90, supply: 68, gap: -22 },
-            { skill: 'Kubernetes', demand: 70, supply: 35, gap: -35 },
-        ],
-        timeToHireTrend: [
-            { month: 'Jan', days: 22, industry: 24 },
-            { month: 'Feb', days: 20, industry: 24 },
-            { month: 'Mar', days: 19, industry: 25 },
-            { month: 'Apr', days: 18, industry: 24 },
-            { month: 'May', days: 17, industry: 23 },
-            { month: 'Jun', days: 18, industry: 24 },
-        ],
-        geographicData: [
-            { location: 'Jakarta', candidates: 450, hired: 35, avgScore: 78 },
-            { location: 'Bandung', candidates: 180, hired: 12, avgScore: 75 },
-            { location: 'Surabaya', candidates: 220, hired: 18, avgScore: 76 },
-            { location: 'Yogyakarta', candidates: 95, hired: 6, avgScore: 72 },
-            { location: 'Remote', candidates: 302, hired: 18, avgScore: 80 },
-        ],
-        interviewPerformance: [
-            { name: 'Technical', score: 82, completion: 95 },
-            { name: 'Behavioral', score: 78, completion: 92 },
-            { name: 'Cultural Fit', score: 85, completion: 88 },
-            { name: 'Problem Solving', score: 75, completion: 90 },
-        ],
-    });
 
     const exportToPDF = async () => {
         try {
@@ -220,6 +165,15 @@ const AdvancedAnalytics: React.FC = () => {
                    <Loader2 size={40} className="text-brand-600 dark:text-brand-400 animate-spin relative z-10" />
                 </div>
                 <p className="font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] text-xs">Aggregating Global Metrics...</p>
+            </div>
+        );
+    }
+
+    if (error || !data) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4">
+                <p className="text-slate-600 dark:text-slate-400">{error || 'No analytics data available.'}</p>
+                <Button variant="secondary" onClick={fetchAnalytics}>Retry</Button>
             </div>
         );
     }
@@ -350,6 +304,11 @@ const AdvancedAnalytics: React.FC = () => {
             <motion.div variants={staggerContainer} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ChartCard title="Capability Demand & Supply">
                     <div className="h-[280px] mt-2 text-sm font-semibold">
+                        {data?.skillsGap.length === 0 ? (
+                            <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400">
+                                No skills gap data available yet.
+                            </div>
+                        ) : (
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={data?.skillsGap} layout="vertical" margin={{ left: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
@@ -360,6 +319,7 @@ const AdvancedAnalytics: React.FC = () => {
                                 <Bar dataKey="supply" fill="#10b981" radius={[6, 6, 6, 6]} barSize={12} />
                             </BarChart>
                         </ResponsiveContainer>
+                        )}
                     </div>
                 </ChartCard>
 
@@ -408,6 +368,9 @@ const AdvancedAnalytics: React.FC = () => {
 
                 <ChartCard title="Geographic Distribution">
                      <div className="space-y-3 mt-4">
+                        {data?.geographicData.length === 0 && (
+                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-6">No geographic data available yet.</p>
+                        )}
                         {data?.geographicData.map((geo, index) => (
                             <div key={index} className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-100/50 rounded-[1.5rem]">
                                 <div className="flex items-center gap-4">
@@ -433,6 +396,9 @@ const AdvancedAnalytics: React.FC = () => {
             <motion.div variants={staggerContainer} className="mt-6 border-none">
                  <ChartCard title="AI Interview Assessment Metrics">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+                        {data?.interviewPerformance.length === 0 && (
+                            <p className="col-span-full text-sm text-slate-500 dark:text-slate-400 text-center py-6">No interview performance data available yet.</p>
+                        )}
                         {data?.interviewPerformance.map((perf, index) => (
                             <div key={index} className="p-5 bg-gradient-to-br from-brand-50/50 to-white dark:from-brand-900/20 dark:to-neutral-900 rounded-[1.5rem] border border-brand-50/80 dark:border-brand-900/40">
                                 <p className="text-[11px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-3">{perf.name}</p>

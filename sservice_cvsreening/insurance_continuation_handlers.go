@@ -32,9 +32,17 @@ func initiateInsuranceContinuationHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id, "message": "Insurance continuation initiated successfully"})
 }
 
-// getInsuranceContinuationsHandler lists continuations, optionally scoped via ?employeeId=
+// getInsuranceContinuationsHandler lists continuations, scoped via ?employeeId=. This route
+// carries no role middleware and previously trusted employeeId with no ownership check —
+// omitting it entirely returned every employee's insurance-continuation records to any
+// authenticated user (Module 14 IDOR fix). authorizeEmployeeTarget resolves it to the caller's
+// own record unless the caller is admin/that employee's manager.
 func getInsuranceContinuationsHandler(c *gin.Context) {
-	employeeID, _ := strconv.Atoi(c.Query("employeeId"))
+	requestedID, _ := strconv.Atoi(c.Query("employeeId"))
+	employeeID, ok := authorizeEmployeeTarget(c, requestedID)
+	if !ok {
+		return
+	}
 	list, err := repository.GetInsuranceContinuations(c.Request.Context(), employeeID)
 	if err != nil {
 		log.Printf("ERROR in getInsuranceContinuationsHandler: %v", err)
