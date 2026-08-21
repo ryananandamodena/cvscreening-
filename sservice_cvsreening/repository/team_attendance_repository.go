@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -19,13 +20,17 @@ type TeamAttendanceRow struct {
 }
 
 // GetTeamAttendance returns every active employee's attendance status for the given date.
+// Previously unbounded (no LIMIT) — cost scaled linearly with total active headcount. This is a
+// dashboard view of "today's team", not a paginated list, so a hard cap preserves the existing
+// "one row per employee" response shape while still bounding worst-case query/response size.
 func GetTeamAttendance(ctx context.Context, date time.Time) ([]TeamAttendanceRow, error) {
 	rows_ := []TeamAttendanceRow{}
 	if !IsDBConnected() {
 		return rows_, nil
 	}
 
-	rows, err := GetDB().Query(ctx, `
+	const maxRows = 1000
+	rows, err := GetDB().Query(ctx, fmt.Sprintf(`
 		SELECT e.id, e.full_name, COALESCE(d.name, 'Unassigned'), COALESCE(p.name, ''),
 			CASE
 				WHEN a.status IS NOT NULL THEN a.status
@@ -43,7 +48,8 @@ func GetTeamAttendance(ctx context.Context, date time.Time) ([]TeamAttendanceRow
 		LEFT JOIN attendances a ON a.employee_id = e.id AND a.date = $1
 		WHERE e.employment_status = 'active'
 		ORDER BY d.name, e.full_name
-	`, date)
+		LIMIT %d
+	`, maxRows), date)
 	if err != nil {
 		return nil, err
 	}

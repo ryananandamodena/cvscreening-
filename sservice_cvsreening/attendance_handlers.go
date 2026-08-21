@@ -693,14 +693,28 @@ func assignShiftHandler(c *gin.Context) {
 }
 
 func getEmployeeShiftAssignmentsHandler(c *gin.Context) {
-	assignments, err := repository.GetEmployeeShiftAssignments(c.Request.Context())
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	assignments, total, err := repository.GetEmployeeShiftAssignments(c.Request.Context(), page, limit)
 	if err != nil {
 		log.Printf("ERROR in getEmployeeShiftAssignmentsHandler: %v", err)
 		RespondWithError(c, http.StatusInternalServerError, "server_error", "Failed to fetch assignments", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, assignments)
+	totalPages := int(total) / limit
+	if limit > 0 && int(total)%limit != 0 {
+		totalPages++
+	}
+
+	c.JSON(http.StatusOK, models.PaginatedResponse{
+		Data:       assignments,
+		Total:      total,
+		Page:       page,
+		Limit:      limit,
+		TotalPages: totalPages,
+	})
 }
 
 func removeShiftAssignmentHandler(c *gin.Context) {

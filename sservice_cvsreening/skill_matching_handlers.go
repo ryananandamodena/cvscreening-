@@ -103,6 +103,30 @@ func skillMatchingHandler(c *gin.Context) {
 	}
 	defer rows.Close()
 
+	// Latest screening score per candidate for this job, fetched once up front instead of one
+	// query per matched candidate inside the loop below (was up to 200 extra round-trips per
+	// request — one per candidate in the LIMIT 200 batch above).
+	screeningScoresByCandidate := map[int]int{}
+	if req.JobID > 0 {
+		scoreRows, scoreErr := db.Query(ctx, `
+			SELECT DISTINCT ON (candidate_id) candidate_id, score
+			FROM screenings
+			WHERE job_id = $1
+			ORDER BY candidate_id, created_at DESC
+		`, req.JobID)
+		if scoreErr != nil {
+			log.Printf("Failed to fetch screening scores for job %d: %v", req.JobID, scoreErr)
+		} else {
+			defer scoreRows.Close()
+			for scoreRows.Next() {
+				var candidateID, score int
+				if scanErr := scoreRows.Scan(&candidateID, &score); scanErr == nil {
+					screeningScoresByCandidate[candidateID] = score
+				}
+			}
+		}
+	}
+
 	var results []SkillMatchResult
 	for rows.Next() {
 		var candidate SkillMatchCandidate
@@ -140,15 +164,9 @@ func skillMatchingHandler(c *gin.Context) {
 			MatchScore:    matchScore,
 		}
 
-		// Get screening score if available
-		if req.JobID > 0 {
-			var score int
-			scanErr := db.QueryRow(ctx,
-				"SELECT score FROM screenings WHERE candidate_id = $1 AND job_id = $2 ORDER BY created_at DESC LIMIT 1",
-				candidate.ID, req.JobID).Scan(&score)
-			if scanErr == nil {
-				result.ScreeningScore = &score
-			}
+		// Screening score, if available — looked up from the batch fetched above.
+		if score, ok := screeningScoresByCandidate[candidate.ID]; ok {
+			result.ScreeningScore = &score
 		}
 
 		results = append(results, result)

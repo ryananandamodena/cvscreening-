@@ -1,0 +1,50 @@
+name: sservice_cvsreening CI/CD
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'sservice_cvsreening/**'
+      - '.github/workflows/sservice_cvsreening-ci.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'sservice_cvsreening/**'
+      - '.github/workflows/sservice_cvsreening-ci.yml'
+
+defaults:
+  run:
+    working-directory: sservice_cvsreening
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.1'
+          cache-dependency-path: sservice_cvsreening/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        env:
+          # Add real secrets via repo Settings > Secrets and variables > Actions
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: go test ./... -v
+
+      - name: Build
+        run: go build -o sservice_cvsreening_build ./...
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sservice_cvsreening-binary
+          path: sservice_cvsreening/sservice_cvsreening_build

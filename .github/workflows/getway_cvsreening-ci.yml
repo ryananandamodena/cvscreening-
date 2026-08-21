@@ -1,0 +1,47 @@
+name: getway_cvsreening CI/CD
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'getway_cvsreening/**'
+      - '.github/workflows/getway_cvsreening-ci.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'getway_cvsreening/**'
+      - '.github/workflows/getway_cvsreening-ci.yml'
+
+defaults:
+  run:
+    working-directory: getway_cvsreening
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.3'
+          cache-dependency-path: getway_cvsreening/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./... -v
+
+      - name: Build
+        run: go build -o getway_cvsreening_build ./...
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: getway_cvsreening-binary
+          path: getway_cvsreening/getway_cvsreening_build

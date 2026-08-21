@@ -306,10 +306,30 @@ func AssignShiftToEmployee(ctx context.Context, es *models.EmployeeShift) (int, 
 	return id, err
 }
 
-// GetEmployeeShiftAssignments retrieves all shift assignments, optionally filtered
-func GetEmployeeShiftAssignments(ctx context.Context) ([]models.EmployeeShiftView, error) {
+// GetEmployeeShiftAssignments retrieves shift assignments, paginated. Previously this ran an
+// unfiltered, unpaginated 3-table join and returned every row ever inserted — cost grew linearly
+// (unbounded) with total headcount x shift history. page/limit follow the same convention as
+// GetEmployees (repository/employee_repository.go): 1-indexed page, LIMIT/OFFSET, capped limit.
+func GetEmployeeShiftAssignments(ctx context.Context, page, limit int) ([]models.EmployeeShiftView, int64, error) {
 	if !IsDBConnected() {
-		return []models.EmployeeShiftView{}, nil
+		return []models.EmployeeShiftView{}, 0, nil
+	}
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100 // hard cap regardless of what the caller asks for
+	}
+	offset := (page - 1) * limit
+
+	var total int64
+	err := GetDB().QueryRow(ctx, `SELECT COUNT(*) FROM employee_shifts`).Scan(&total)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	rows, err := GetDB().Query(ctx, `
@@ -320,9 +340,10 @@ func GetEmployeeShiftAssignments(ctx context.Context) ([]models.EmployeeShiftVie
 		JOIN employees e ON es.employee_id = e.id
 		JOIN shifts s ON es.shift_id = s.id
 		ORDER BY es.effective_date DESC
-	`)
+		LIMIT $1 OFFSET $2
+	`, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -341,7 +362,7 @@ func GetEmployeeShiftAssignments(ctx context.Context) ([]models.EmployeeShiftVie
 		assignments = append(assignments, a)
 	}
 
-	return assignments, nil
+	return assignments, total, nil
 }
 
 // RemoveEmployeeShiftAssignment removes a shift assignment

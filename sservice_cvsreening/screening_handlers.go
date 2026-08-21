@@ -516,6 +516,21 @@ func bulkScreeningHandler(c *gin.Context) {
 		return
 	}
 
+	// Previously the file count here was capped by nothing but the 50MB total request size —
+	// with small PDFs that still allows hundreds of files in one request. Every file below
+	// spawns its own goroutine that calls the OpenAI API (and sometimes Gemini too, for OCR
+	// fallback), with no concurrency limit either, so a large batch meant hundreds of AI API
+	// calls fired at once: real cost risk, real risk of tripping OpenAI/Gemini rate limits, and
+	// real risk of exhausting this service's own goroutines/outbound connections. Cap the batch
+	// size explicitly instead of relying on total-bytes as an indirect (and easily bypassed) limit.
+	const maxBulkFiles = 20
+	if len(files) > maxBulkFiles {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("Too many files: %d uploaded, max %d per bulk screening request. Split into smaller batches.", len(files), maxBulkFiles),
+		})
+		return
+	}
+
 	log.Printf("Processing %d CV files for bulk screening", len(files))
 
 	results := make([]BulkScreeningResult, len(files))
@@ -528,13 +543,22 @@ func bulkScreeningHandler(c *gin.Context) {
 	resultChan := make(chan internalResult, len(files))
 	var wg sync.WaitGroup
 
-	log.Printf("Starting parallel processing for %d CV files", len(files))
+	// Bound how many files are actively being AI-analyzed at once, independent of how many
+	// files are in the batch (still capped at maxBulkFiles above, but this also protects against
+	// that cap being raised later without anyone revisiting the concurrency question).
+	const maxConcurrentAICalls = 5
+	sem := make(chan struct{}, maxConcurrentAICalls)
 
-	// Process each file in a goroutine
+	log.Printf("Starting parallel processing for %d CV files (max %d concurrent AI calls)", len(files), maxConcurrentAICalls)
+
+	// Process each file in a goroutine, bounded by sem
 	for i, fileHeader := range files {
 		wg.Add(1)
 		go func(idx int, fh *multipart.FileHeader) {
 			defer wg.Done()
+
+			sem <- struct{}{}        // acquire a slot — blocks once maxConcurrentAICalls are in flight
+			defer func() { <-sem }() // release the slot when this file is done
 
 			res := BulkScreeningResult{
 				FileName: fh.Filename,

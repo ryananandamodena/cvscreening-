@@ -88,6 +88,12 @@ func GetMonthlyAttendanceReport(ctx context.Context, year, month, employeeID int
 		args = append(args, employeeID)
 	}
 	query += " ORDER BY d.name, e.full_name"
+	// Company-wide mode (employeeID == 0) previously had no upper bound at all — cost scaled
+	// linearly with total active headcount. This is a report/export endpoint, not a paginated
+	// list, so a hard cap (rather than page/limit) preserves the existing "one row per employee"
+	// response shape while still bounding worst-case query/response size.
+	const maxReportRows = 1000
+	query += fmt.Sprintf(" LIMIT %d", maxReportRows)
 
 	rows, err := GetDB().Query(ctx, query, args...)
 	if err != nil {
