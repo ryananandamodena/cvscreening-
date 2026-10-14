@@ -26,8 +26,8 @@ func ExtractTextWithGemini(fileBytes []byte, mimeType string) (string, error) {
 	b64Data := base64.StdEncoding.EncodeToString(fileBytes)
 
 	// Prepare Gemini API request
-	// Using gemini-2.5-flash for best multimodal capabilities including PDF understanding
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=%s", apiKey)
+	// Using gemini-3.6-flash for best multimodal capabilities including PDF understanding
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=%s", apiKey)
 
 	reqBody := map[string]interface{}{
 		"contents": []interface{}{

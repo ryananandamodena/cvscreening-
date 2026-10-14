@@ -58,12 +58,27 @@ export async function extractFaceDescriptor(
     throw new FaceModelLoadError(err);
   }
   const faceapi = await getFaceApi();
-  const detection = await faceapi
-    .detectSingleFace(input, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-  if (!detection) return null;
-  return Array.from(detection.descriptor);
+
+  // TinyFaceDetector's defaults (inputSize 416, scoreThreshold 0.5) are tuned for speed over
+  // recall — on a real webcam frame (mixed indoor lighting, mild compression, an off-center
+  // face) it frequently reports "no face" on a photo a person can plainly see is a clear,
+  // front-facing shot, which reads to the user as a broken feature rather than "retake it".
+  // Try progressively larger input sizes / lower score thresholds before giving up, instead of
+  // failing on the very first (strictest) attempt.
+  const attempts = [
+    { inputSize: 416, scoreThreshold: 0.5 },
+    { inputSize: 512, scoreThreshold: 0.3 },
+    { inputSize: 608, scoreThreshold: 0.2 },
+  ];
+
+  for (const opts of attempts) {
+    const detection = await faceapi
+      .detectSingleFace(input, new faceapi.TinyFaceDetectorOptions(opts))
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+    if (detection) return Array.from(detection.descriptor);
+  }
+  return null;
 }
 
 export const faceRecognitionService = {

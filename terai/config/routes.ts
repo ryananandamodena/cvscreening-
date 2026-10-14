@@ -102,6 +102,7 @@ const EnterpriseIntegrations = React.lazy(() => import('../pages/integrations/En
 const AttendanceOverview = React.lazy(() => import('../pages/attendance/AttendanceOverview'));
 const ShiftManagement = React.lazy(() => import('../pages/attendance/ShiftManagement'));
 const RemoteWorkExemptions = React.lazy(() => import('../pages/attendance/RemoteWorkExemptions'));
+const OfficeLocationSettings = React.lazy(() => import('../pages/attendance/OfficeLocationSettings'));
 const ApprovalCenter = React.lazy(() => import('../pages/approvals/ApprovalCenter'));
 const AttendanceKiosk = React.lazy(() => import('../pages/attendance/AttendanceKiosk'));
 const LeaveManagement = React.lazy(() => import('../pages/leave/LeaveManagement'));
@@ -159,6 +160,10 @@ export const APP_ROUTES: RouteConfig[] = [
     icon: Plus,
     section: 'section.coreHr',
     hidden: true,
+    // Backend: POST /employees is HROrAdmin() (routes_hr.go). This route had no role
+    // restriction at all — any authenticated employee could reach the form (and would only
+    // find out it's HR/admin-only when the submit itself got rejected).
+    roles: ['admin', 'hr', 'hr_admin', 'hr_manager'],
   },
   {
     path: '/employees/:id',
@@ -175,6 +180,8 @@ export const APP_ROUTES: RouteConfig[] = [
     icon: Plus,
     section: 'section.coreHr',
     hidden: true,
+    // Backend: PUT /employees/:id is also HROrAdmin() — same reasoning as /employees/new above.
+    roles: ['admin', 'hr', 'hr_admin', 'hr_manager'],
   },
   {
     path: '/organizations/chart',
@@ -325,6 +332,15 @@ export const APP_ROUTES: RouteConfig[] = [
     section: 'section.coreHr',
     // Backend: PUT /attendance/location-exemptions/:employeeId is HROrAdmin() — same gate as
     // office-location and shifts above.
+    roles: ['admin', 'hr', 'hr_admin', 'hr_manager'],
+  },
+  {
+    path: '/attendance/office-location',
+    component: OfficeLocationSettings,
+    label: 'nav.officeLocation',
+    icon: Building2,
+    section: 'section.coreHr',
+    // Backend: PUT /attendance/office-location is HROrAdmin() (routes_attendance.go).
     roles: ['admin', 'hr', 'hr_admin', 'hr_manager'],
   },
   {

@@ -185,7 +185,7 @@ func (s *liveInterviewSession) generateAndSendResponse(extraPrompt string) {
 
 	// Call Gemini API
 	temp := float32(0.7)
-	result, err := s.geminiClient.Models.GenerateContent(ctx, "gemini-2.5-flash", contents, &genai.GenerateContentConfig{
+	result, err := s.geminiClient.Models.GenerateContent(ctx, "gemini-3.6-flash", contents, &genai.GenerateContentConfig{
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{
 				genai.NewPartFromText(s.systemInstruction),

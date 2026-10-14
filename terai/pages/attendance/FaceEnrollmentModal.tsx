@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Camera, CheckCircle2, AlertCircle, Loader2, X, RefreshCw } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { useToast } from '../../contexts/ToastContext';
-import { extractFaceDescriptor, faceRecognitionService, FaceModelLoadError } from '../../services/faceRecognition.service';
+import { extractFaceDescriptor, faceRecognitionService, FaceModelLoadError, loadFaceModels } from '../../services/faceRecognition.service';
 
 interface FaceEnrollmentModalProps {
   onClose: () => void;
@@ -27,6 +27,15 @@ const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({ onClose, onEn
 
   useEffect(() => {
     let active = true;
+    // Kick the face-api.js model download off in parallel with the camera permission prompt,
+    // instead of lazily inside extractFaceDescriptor() — previously the entire multi-megabyte
+    // model download only started after the user clicked "capture", so the wait they'd expect
+    // to spend pointing the camera at their face happened after the fact instead, right when
+    // they were expecting an instant result.
+    loadFaceModels().catch(() => {
+      // Swallowed here — extractFaceDescriptor() re-throws the same failure as
+      // FaceModelLoadError at capture time, where the UI already has a real error state for it.
+    });
     navigator.mediaDevices
       ?.getUserMedia({ video: { facingMode: 'user' }, audio: false })
       .then((stream) => {

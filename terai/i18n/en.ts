@@ -35,6 +35,7 @@ const en: Record<string, string> = {
     'nav.attendance': 'Attendance',
     'nav.shiftManagement': 'Shift Management',
     'nav.remoteWorkExemptions': 'Remote Work Exemptions',
+    'nav.officeLocation': 'Office Location',
     'nav.approvalCenter': 'Approval Center',
     'nav.leaves': 'Leave Management',
     'nav.payroll': 'Payroll',

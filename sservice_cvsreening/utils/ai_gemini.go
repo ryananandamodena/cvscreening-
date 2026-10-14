@@ -80,7 +80,7 @@ Manager comments: %s`, achievements, challenges, managerComments)
 
 	systemInstruction := "You are an HR performance-review sentiment analyzer. Always respond with a single valid JSON object matching the requested schema, and nothing else."
 
-	result, err := client.Models.GenerateContent(callCtx, "gemini-2.5-flash",
+	result, err := client.Models.GenerateContent(callCtx, "gemini-3.6-flash",
 		[]*genai.Content{{Role: "user", Parts: []*genai.Part{genai.NewPartFromText(prompt)}}},
 		&genai.GenerateContentConfig{
 			SystemInstruction: &genai.Content{Parts: []*genai.Part{genai.NewPartFromText(systemInstruction)}},
@@ -184,7 +184,7 @@ Jangan pernah mengarang angka atau data yang tidak ada di konteks yang diberikan
 		},
 	}
 
-	result, err := client.Models.GenerateContent(ctx, "gemini-2.5-flash", contents, &genai.GenerateContentConfig{
+	result, err := client.Models.GenerateContent(ctx, "gemini-3.6-flash", contents, &genai.GenerateContentConfig{
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{
 				genai.NewPartFromText(systemInstruction),

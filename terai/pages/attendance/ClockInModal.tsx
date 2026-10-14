@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { attendanceService } from '../../services/attendance.service';
 import { useAuth } from '../../guards/AuthGuard';
 import { useToast } from '../../contexts/ToastContext';
-import { extractFaceDescriptor, faceRecognitionService, FaceModelLoadError } from '../../services/faceRecognition.service';
+import { extractFaceDescriptor, faceRecognitionService, FaceModelLoadError, loadFaceModels } from '../../services/faceRecognition.service';
 
 // Backend gate for PUT /attendance/office-location is HROrAdmin() (routes_attendance.go) —
 // 'admin'/'hr'/'hr_admin'/'hr_manager'. Previously this list was ['admin', 'recruiter'], mirroring
@@ -85,6 +85,14 @@ const ClockInModal: React.FC<ClockInModalProps> = ({ mode, onClose, onSuccess })
   // Start camera
   useEffect(() => {
     let active = true;
+    // Preload face-api.js's model weights alongside the camera permission prompt so they're
+    // already warm by the time the user captures a photo — previously this only started inside
+    // extractFaceDescriptor() at capture time, adding several seconds of "stuck" wait exactly
+    // when the user expects an instant result.
+    loadFaceModels().catch(() => {
+      // Swallowed — extractFaceDescriptor() surfaces the same failure as FaceModelLoadError
+      // at capture time, where there's already a real error state for it.
+    });
     navigator.mediaDevices
       ?.getUserMedia({ video: { facingMode: 'user' }, audio: false })
       .then((stream) => {

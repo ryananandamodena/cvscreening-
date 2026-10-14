@@ -32,8 +32,10 @@ func registerBenefitsSuccessionRoutes(protected *gin.RouterGroup) {
 	// plans, allowances, dependents, retirement/flexible-benefit plans, and anything that
 	// targets or affects employees org-wide rather than the caller's own record. None of this
 	// was gated before — any authenticated employee could create/edit/delete these.
+	// Was RecruiterOrAdmin() despite the comment above already saying "HR/Admin" — same bug
+	// class as routes_attendance.go/routes_hr.go, fixed the same way.
 	hrOrAdmin := protected.Group("/")
-	hrOrAdmin.Use(RecruiterOrAdmin())
+	hrOrAdmin.Use(HROrAdmin())
 	{
 		hrOrAdmin.POST("/benefits/plans", createBenefitPlanHandler)
 		hrOrAdmin.PUT("/benefits/plans/:id", updateBenefitPlanHandler)

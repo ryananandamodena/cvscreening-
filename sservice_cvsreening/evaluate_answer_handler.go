@@ -77,7 +77,7 @@ Format:
 	prompt := fmt.Sprintf("Question asked: %s\nPlease evaluate the candidate's video answer.", question)
 
 	temp := float32(0.7)
-	result, err := client.Models.GenerateContent(ctx, "gemini-2.5-flash", []*genai.Content{
+	result, err := client.Models.GenerateContent(ctx, "gemini-3.6-flash", []*genai.Content{
 		{
 			Role: "user",
 			Parts: []*genai.Part{

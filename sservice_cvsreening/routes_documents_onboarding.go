@@ -26,8 +26,10 @@ func registerDocumentsOnboardingRoutes(protected *gin.RouterGroup) {
 
 	// HR/Admin: none of the following were gated before — any authenticated employee could
 	// create/edit/delete company policies, onboarding templates, departments, and positions.
+	// Was RecruiterOrAdmin() despite the comment above already saying "HR/Admin" — same bug
+	// class as routes_attendance.go/routes_hr.go, fixed the same way.
 	hrOrAdmin := protected.Group("/")
-	hrOrAdmin.Use(RecruiterOrAdmin())
+	hrOrAdmin.Use(HROrAdmin())
 	{
 		hrOrAdmin.POST("/documents", createDocumentHandler)
 		hrOrAdmin.POST("/documents/policies", createPolicyHandler)

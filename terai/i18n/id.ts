@@ -38,6 +38,7 @@ const id: Record<string, string> = {
     'nav.attendance': 'Presensi',
     'nav.shiftManagement': 'Manajemen Shift',
     'nav.remoteWorkExemptions': 'Pengecualian Kerja Jarak Jauh',
+    'nav.officeLocation': 'Lokasi Kantor',
     'nav.approvalCenter': 'Pusat Approval',
     'nav.leaves': 'Cuti',
     'nav.performance': 'Manajemen Kinerja',

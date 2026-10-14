@@ -49,16 +49,21 @@ func registerHRRoutes(protected *gin.RouterGroup) {
 	// HR/Admin: employee lifecycle, contracts, performance reviews (manager/HR-authored,
 	// not self-authored), training catalog. None of this was gated before — any authenticated
 	// employee could create/edit/delete another employee's record, contract, or review.
+	// Was RecruiterOrAdmin() (admin/recruiter only) despite the comment above already saying
+	// "HR/Admin" — genuine HR roles ('hr'/'hr_admin'/'hr_manager') could not create, edit, or
+	// terminate an employee record, convert a hired candidate, or manage contracts/reviews at
+	// all, while a recruiter (who has no business reason to edit employee/contract/review data)
+	// could. Same bug class as the attendance routes, fixed the same way with HROrAdmin().
 	hrOrAdmin := protected.Group("/")
-	hrOrAdmin.Use(RecruiterOrAdmin())
+	hrOrAdmin.Use(HROrAdmin())
 	{
 		hrOrAdmin.GET("/employees/stats/summary", getEmployeeStatsHandler)
 		hrOrAdmin.POST("/employees", createEmployeeHandler)
 		hrOrAdmin.POST("/candidates/convert", convertCandidateHandler)
 		hrOrAdmin.PUT("/employees/:id", updateEmployeeHandler)
 		hrOrAdmin.DELETE("/employees/:id", deleteEmployeeHandler)
-		// Profile photo (Module 15): admin/recruiter managing another employee's photo — same
-		// route-level RecruiterOrAdmin() gate as every other employee-write action in this group.
+		// Profile photo (Module 15): HR/admin managing another employee's photo — same
+		// route-level HROrAdmin() gate as every other employee-write action in this group.
 		hrOrAdmin.POST("/employees/:id/photo", uploadEmployeePhotoHandler)
 		hrOrAdmin.DELETE("/employees/:id/photo", deleteEmployeePhotoHandler)
 		hrOrAdmin.GET("/employees/:id/candidate-history", getEmployeeCandidateHistoryHandler)
